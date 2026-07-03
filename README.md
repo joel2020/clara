@@ -39,9 +39,15 @@ This rewrites `lib/content/audio-manifest.ts` with the list of clips that exist;
 
 > Note: ElevenLabs reads each word in isolation, so stress-pair words spelled the same (e.g. *PREsent* the noun vs *preSENT* the verb) may sound similar — the IPA and mouth hint carry that distinction, and you teach it live. Regenerate an individual clip any time it doesn't sound right.
 
-### Browser support — use Google Chrome
+### Install it (PWA)
 
-Recording and scoring use the **Web Speech API** (`SpeechRecognition`), best supported in **Google Chrome on desktop**. Playback (Joel's voice) works everywhere:
+Clara is an installable Progressive Web App. On iPhone: open the site in Safari → Share → **Add to Home Screen**. It launches fullscreen with its own icon, and practiced audio is cached for **offline** use (service worker in `public/sw.js`). Icons and manifest live in `public/`.
+
+### Scoring works on iPhone too
+
+Recording/scoring uses the browser's **Web Speech API** where available (desktop Chrome — instant and free). **iOS Safari has no Web Speech API**, so there it records with `MediaRecorder` and transcribes server-side via **ElevenLabs Scribe** (`app/api/transcribe/route.ts`, which needs `ELEVENLABS_API_KEY` set in the deployment env). The client picks the method automatically (`lib/speech/recognition.ts` → `createRecognition`). Playback (Joel's voice) works everywhere.
+
+### Browser support
 
 | Feature | What it does | Support |
 | --- | --- | --- |
