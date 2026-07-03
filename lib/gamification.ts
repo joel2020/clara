@@ -1,0 +1,198 @@
+import type { PlayerStats } from "./db/types";
+
+// The "fun layer": turn attempts into XP, levels, streaks, combos and badges.
+// Pure functions over PlayerStats so the rules are easy to reason about and test.
+
+// ── XP & levels ────────────────────────────────────────────────────────────
+
+export const PASS_XP = 10;
+export const FAIL_XP = 2; // a little reward for trying keeps momentum
+export const COMBO_STEP = 2; // bonus per consecutive pass
+export const COMBO_CAP = 10;
+
+/** Total XP required to *reach* a given level (level 1 = 0). */
+export function levelFloor(level: number): number {
+  let total = 0;
+  for (let l = 1; l < level; l++) total += 40 + 20 * (l - 1); // 40, 60, 80, …
+  return total;
+}
+
+export function levelForXp(xp: number): number {
+  let level = 1;
+  while (levelFloor(level + 1) <= xp) level++;
+  return level;
+}
+
+export interface LevelProgress {
+  level: number;
+  into: number; // xp earned into the current level
+  span: number; // xp needed to clear the current level
+  pct: number; // 0–100 toward next level
+  toNext: number; // xp remaining to next level
+}
+
+export function levelProgress(xp: number): LevelProgress {
+  const level = levelForXp(xp);
+  const base = levelFloor(level);
+  const next = levelFloor(level + 1);
+  const span = next - base;
+  const into = xp - base;
+  return { level, into, span, pct: Math.round((into / span) * 100), toNext: next - xp };
+}
+
+/** XP for one attempt, with a combo bonus for a hot streak. */
+export function xpForAttempt(passed: boolean, combo: number): number {
+  if (!passed) return FAIL_XP;
+  const bonus = Math.min(Math.max(combo - 1, 0), COMBO_CAP) * COMBO_STEP;
+  return PASS_XP + bonus;
+}
+
+// ── Days & streaks ─────────────────────────────────────────────────────────
+
+export function dayKey(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function previousDayKey(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() - 1);
+  return dayKey(date);
+}
+
+// ── Achievements ───────────────────────────────────────────────────────────
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // lucide icon name
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  { id: "first_steps", name: "First words", description: "Record your very first attempt.", icon: "Sparkles" },
+  { id: "combo_5", name: "Combo ×5", description: "Get 5 clear in a row.", icon: "Flame" },
+  { id: "combo_10", name: "On fire", description: "Get 10 clear in a row.", icon: "Zap" },
+  { id: "fifty_clear", name: "Fifty clear", description: "Say 50 words clearly.", icon: "Target" },
+  { id: "hundred_clear", name: "Century", description: "Say 100 words clearly.", icon: "Medal" },
+  { id: "streak_3", name: "Three days", description: "Practice 3 days in a row.", icon: "CalendarCheck" },
+  { id: "streak_7", name: "Week warrior", description: "Practice 7 days in a row.", icon: "Trophy" },
+  { id: "streak_30", name: "Unstoppable", description: "Practice 30 days in a row.", icon: "Crown" },
+  { id: "level_5", name: "Level 5", description: "Reach level 5.", icon: "Star" },
+  { id: "level_10", name: "Level 10", description: "Reach level 10.", icon: "Rocket" },
+  { id: "perfect_lesson", name: "Flawless", description: "Finish a lesson with every word clear.", icon: "BadgeCheck" },
+  { id: "sound_master", name: "Sound master", description: "Master every word in a sound.", icon: "Gem" },
+];
+
+export const ACHIEVEMENT_BY_ID = new Map(ACHIEVEMENTS.map((a) => [a.id, a]));
+
+/** Achievements unlockable purely from PlayerStats (the rest fire on events). */
+function statAchievements(stats: PlayerStats): string[] {
+  const out: string[] = [];
+  const level = levelForXp(stats.xp);
+  if (stats.totalAttempts >= 1) out.push("first_steps");
+  if (stats.bestCombo >= 5) out.push("combo_5");
+  if (stats.bestCombo >= 10) out.push("combo_10");
+  if (stats.totalPasses >= 50) out.push("fifty_clear");
+  if (stats.totalPasses >= 100) out.push("hundred_clear");
+  if (stats.currentStreak >= 3) out.push("streak_3");
+  if (stats.currentStreak >= 7) out.push("streak_7");
+  if (stats.currentStreak >= 30) out.push("streak_30");
+  if (level >= 5) out.push("level_5");
+  if (level >= 10) out.push("level_10");
+  return out;
+}
+
+// ── The award pipeline ─────────────────────────────────────────────────────
+
+export interface AttemptRewards {
+  xpGain: number;
+  newXp: number;
+  leveledUp: boolean;
+  oldLevel: number;
+  newLevel: number;
+  combo: number;
+  streakIncreased: boolean;
+  currentStreak: number;
+  dailyGoalMet: boolean; // crossed the goal on this attempt
+  unlocked: string[]; // newly unlocked achievement ids
+}
+
+/**
+ * Apply one attempt to the player's stats. `combo` is the count of consecutive
+ * passes in the current session including this one (0 if this attempt failed).
+ */
+export function applyAttempt(
+  prev: PlayerStats,
+  opts: { passed: boolean; combo: number; dailyGoal: number; now?: Date },
+): { stats: PlayerStats; rewards: AttemptRewards } {
+  const now = opts.now ?? new Date();
+  const today = dayKey(now);
+  const xpGain = xpForAttempt(opts.passed, opts.combo);
+  const oldLevel = levelForXp(prev.xp);
+
+  // Streak / daily bookkeeping.
+  let currentStreak = prev.currentStreak;
+  let longestStreak = prev.longestStreak;
+  let streakIncreased = false;
+  let todayKey = prev.todayKey;
+  let todayXp = prev.todayXp;
+
+  if (prev.lastActiveDay !== today) {
+    currentStreak = prev.lastActiveDay && previousDayKey(today) === prev.lastActiveDay ? prev.currentStreak + 1 : 1;
+    streakIncreased = currentStreak !== prev.currentStreak || prev.lastActiveDay === null;
+    longestStreak = Math.max(longestStreak, currentStreak);
+  }
+  if (todayKey !== today) {
+    todayKey = today;
+    todayXp = 0;
+  }
+
+  const todayXpBefore = todayKey === prev.todayKey ? prev.todayXp : 0;
+  todayXp = todayXpBefore + xpGain;
+
+  const newXp = prev.xp + xpGain;
+  const bestCombo = Math.max(prev.bestCombo, opts.combo);
+
+  const next: PlayerStats = {
+    ...prev,
+    xp: newXp,
+    currentStreak,
+    longestStreak,
+    lastActiveDay: today,
+    todayKey,
+    todayXp,
+    totalAttempts: prev.totalAttempts + 1,
+    totalPasses: prev.totalPasses + (opts.passed ? 1 : 0),
+    bestCombo,
+    updatedAt: now.getTime(),
+  };
+
+  const unlocked = statAchievements(next).filter((id) => !prev.achievements.includes(id));
+  next.achievements = [...prev.achievements, ...unlocked];
+
+  const newLevel = levelForXp(newXp);
+
+  return {
+    stats: next,
+    rewards: {
+      xpGain,
+      newXp,
+      leveledUp: newLevel > oldLevel,
+      oldLevel,
+      newLevel,
+      combo: opts.combo,
+      streakIncreased,
+      currentStreak,
+      dailyGoalMet: todayXpBefore < opts.dailyGoal && todayXp >= opts.dailyGoal,
+      unlocked,
+    },
+  };
+}
+
+/** Unlock event-based achievements (perfect lesson, sound mastered). Returns the newly added ids. */
+export function unlock(stats: PlayerStats, ids: string[]): { stats: PlayerStats; unlocked: string[] } {
+  const fresh = ids.filter((id) => ACHIEVEMENT_BY_ID.has(id) && !stats.achievements.includes(id));
+  if (!fresh.length) return { stats, unlocked: [] };
+  return { stats: { ...stats, achievements: [...stats.achievements, ...fresh] }, unlocked: fresh };
+}

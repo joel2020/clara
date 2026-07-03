@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Volume2, VolumeX } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/hooks/useSettings";
+import { Switch } from "@/components/ui/switch";
+import { t } from "@/lib/i18n";
+
+const NAV = [
+  { href: "/", key: "navLessons" as const },
+  { href: "/dashboard", key: "navSounds" as const },
+];
+
+export function SiteHeader() {
+  const pathname = usePathname();
+  const { settings, update } = useSettings();
+  const lang = settings.coachLanguage;
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-hairline bg-background/70 backdrop-blur-xl">
+      {/* Colombia, up top — a quiet tricolor signature. */}
+      <div className="flag-bar h-[3px] w-full" aria-hidden />
+      <div className="mx-auto flex h-16 max-w-3xl items-center px-5 sm:px-6">
+        <Link href="/" className="flex items-baseline gap-2">
+          <span className="font-display text-xl font-semibold tracking-tight">Clara</span>
+          <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:inline">
+            Pronunciation
+          </span>
+        </Link>
+
+        <nav className="ml-auto flex items-center gap-6">
+          {NAV.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "relative text-sm font-medium transition-colors",
+                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t(item.key, lang)}
+                {active && (
+                  <span className="absolute -bottom-1.5 left-0 h-px w-full bg-foreground" aria-hidden />
+                )}
+              </Link>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => update({ soundEnabled: !settings.soundEnabled })}
+            aria-label={settings.soundEnabled ? "Mute sounds" : "Unmute sounds"}
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {settings.soundEnabled ? <Volume2 className="size-[18px]" /> : <VolumeX className="size-[18px]" />}
+          </button>
+
+          <div className="flex items-center gap-2 border-l border-hairline pl-5">
+            <span className="hidden text-xs font-medium text-muted-foreground sm:inline">Instructor</span>
+            <Switch
+              checked={settings.instructorMode}
+              onCheckedChange={(v) => update({ instructorMode: v })}
+              aria-label="Toggle instructor mode"
+            />
+          </div>
+        </nav>
+      </div>
+    </header>
+  );
+}
