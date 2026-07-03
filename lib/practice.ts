@@ -1,9 +1,10 @@
 import { repo } from "@/lib/db";
-import type { PracticeItem } from "@/lib/db/types";
+import type { Attempt, ItemProgress, PracticeItem } from "@/lib/db/types";
 import { applyResult, freshProgress } from "@/lib/srs";
 import { scoreAttempt, type ScoreResult } from "@/lib/speech/scoring";
 import { partnerOf } from "@/lib/content/lessons";
 import { applyAttempt, type AttemptRewards } from "@/lib/gamification";
+import { pushAttempt, pushProgress, pushPlayer } from "@/lib/sync/supabase-sync";
 
 // One place that knows how an attempt becomes saved state: score it, append to
 // history, advance the item's spaced-repetition box, and award XP / streak /
@@ -36,7 +37,7 @@ export async function recordPracticeAttempt(args: {
 
   const now = Date.now();
 
-  await repo.recordAttempt({
+  const attempt: Attempt = {
     itemId: item.id,
     lessonId,
     categoryId: item.categoryId,
@@ -47,7 +48,8 @@ export async function recordPracticeAttempt(args: {
     passed: result.passed,
     heardPartner: result.heardPartner,
     at: now,
-  });
+  };
+  await repo.recordAttempt(attempt);
 
   const prev =
     (await repo.getProgress(item.id)) ??
@@ -55,7 +57,8 @@ export async function recordPracticeAttempt(args: {
       { itemId: item.id, lessonId, categoryId: item.categoryId, phoneme: item.phoneme },
       now,
     );
-  await repo.saveProgress(applyResult(prev, result.passed, result.score, now));
+  const nextProgress: ItemProgress = applyResult(prev, result.passed, result.score, now);
+  await repo.saveProgress(nextProgress);
 
   // Game layer: XP, streak, combo, achievements.
   const [player, settings] = await Promise.all([repo.getPlayerStats(), repo.getSettings()]);
@@ -65,6 +68,14 @@ export async function recordPracticeAttempt(args: {
     dailyGoal: settings.dailyGoal,
   });
   await repo.savePlayerStats(stats);
+
+  // Mirror to the cloud for cross-device sync + the instructor's view.
+  // No-ops when Supabase isn't configured or no profile is set.
+  if (settings.profileId) {
+    pushAttempt(settings.profileId, attempt);
+    pushProgress(settings.profileId, nextProgress);
+    pushPlayer(settings.profileId, stats);
+  }
 
   return { score: result, rewards };
 }

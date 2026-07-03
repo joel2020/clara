@@ -5,6 +5,7 @@ import { repo } from "@/lib/db";
 import { DEFAULT_SETTINGS } from "@/lib/db/repository";
 import type { Settings } from "@/lib/db/types";
 import { setSfxEnabled } from "@/lib/sfx";
+import { ensureProfile, pushSettings } from "@/lib/sync/supabase-sync";
 
 // App-wide settings (instructor toggle, voice, rate) loaded once and shared.
 
@@ -39,6 +40,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings(next);
     if (patch.soundEnabled !== undefined) setSfxEnabled(patch.soundEnabled);
     await repo.saveSettings(next);
+    // Mirror the student's synced preferences to the cloud (no-op without sync).
+    if (next.profileId) {
+      pushSettings(next.profileId, next);
+      if (next.studentName && (patch.studentName !== undefined || patch.coachLanguage !== undefined)) {
+        void ensureProfile({ id: next.profileId, name: next.studentName, coachLanguage: next.coachLanguage }).catch(
+          () => {},
+        );
+      }
+    }
   };
 
   return (

@@ -5,6 +5,21 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { sfx } from "@/lib/sfx";
+import { ensureProfile } from "@/lib/sync/supabase-sync";
+
+// A short, friendly, passwordless "sync code" — name slug + 4 random chars —
+// that identifies the student across devices (e.g. "mariana-7k2p").
+function makeProfileId(name: string): string {
+  const slug =
+    name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 12) || "student";
+  const rand = Math.abs(Date.now() ^ (Math.random() * 1e9)).toString(36).slice(-4);
+  return `${slug}-${rand}`;
+}
 
 // First-run welcome. Asks the student's name and which language the coaching
 // should speak — Spanish for beginners (default), English for advanced. This is
@@ -21,7 +36,10 @@ export function Onboarding() {
     const trimmed = name.trim();
     if (!trimmed) return;
     sfx.tap();
-    await update({ studentName: trimmed, coachLanguage: lang });
+    const profileId = settings.profileId ?? makeProfileId(trimmed);
+    await update({ studentName: trimmed, coachLanguage: lang, profileId });
+    // Create the cloud profile row (no-op if Supabase isn't configured).
+    void ensureProfile({ id: profileId, name: trimmed, coachLanguage: lang }).catch(() => {});
   };
 
   return (

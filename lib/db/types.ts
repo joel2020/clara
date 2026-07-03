@@ -118,6 +118,12 @@ export interface Settings {
   /** The student's name — set on first launch, personalizes the whole app. */
   studentName: string | null;
   /**
+   * Passwordless "sync code" identifying this student across devices. Generated
+   * on first launch (or entered to join an existing profile). Null until the
+   * student is set up. Drives cloud sync when Supabase is configured.
+   */
+  profileId: string | null;
+  /**
    * Language of the COACHING (instructions, hints, feedback). "es" teaches a
    * beginner in Spanish while the practice content stays English; "en" is for
    * advanced students. Practice targets are always English.

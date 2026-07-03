@@ -56,6 +56,7 @@ export const DEFAULT_SETTINGS: Settings = {
   soundEnabled: true,
   dailyGoal: 40,
   studentName: null,
+  profileId: null,
   coachLanguage: "es",
 };
 
