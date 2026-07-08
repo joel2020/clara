@@ -1,20 +1,19 @@
 // The AI conversation partner. Mariana speaks a line (transcribed by
-// /api/transcribe), the client sends the running conversation here, and Claude
-// replies AS Joel — in her scenario, in very simple A1–A2 English, with a
+// /api/transcribe), the client sends the running conversation here, and the
+// model replies AS Joel — in her scenario, in very simple A1–A2 English, with a
 // Spanish translation, a gentle correction, and a couple of things she could
 // say next. The reply text is then spoken back in Joel's real voice via
-// /api/tts. The Anthropic key stays on the server.
+// /api/tts. The OpenAI key stays on the server.
 
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { getScenario } from "@/lib/content/scenarios";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-// Opus 4.8 is the default. A conversation turn is short and simple, so we leave
-// extended thinking off for a snappier reply. Swap the model string here if you
-// want faster/cheaper turns (e.g. "claude-haiku-4-5").
-const MODEL = "claude-opus-4-8";
+// gpt-4o-mini: cheap and fast, plenty for simple A1–A2 roleplay. Swap the model
+// string here if you ever want a stronger (pricier) model.
+const MODEL = "gpt-4o-mini";
 
 interface Turn {
   role: "assistant" | "user";
@@ -35,6 +34,7 @@ interface ChatReply {
   suggestions: string[];
 }
 
+// OpenAI Structured Outputs (strict) schema — guarantees valid JSON back.
 const SCHEMA = {
   type: "object",
   properties: {
@@ -67,14 +67,12 @@ RULES:
 - Be encouraging and natural, like a kind friend — never like a test.
 - Her speech is transcribed from audio, so it may have small errors. Read past obvious transcription slips; assume she is trying her best.
 - Gently correct at most ONE mistake per turn, and only when it actually matters for being understood. Put the correction in the "correction" field written in ${coach}, not in your reply. Most turns should have no correction (null) — do not nitpick.
-- "reply_es" is a natural ${coachLang === "es" ? "Spanish" : "English"} translation of your English reply, so she always understands you.
-- "suggestions" are 2–3 very short, natural English phrases she could say next in this moment.
-
-Reply ONLY with the JSON object matching the schema.`;
+- "reply_es" is a natural Spanish translation of your English reply, so she always understands you.
+- "suggestions" are 2–3 very short, natural English phrases she could say next in this moment.`;
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     // Not configured yet — the client shows a friendly "coming soon" state.
     return Response.json({ error: "not_configured" }, { status: 503 });
@@ -96,41 +94,46 @@ export async function POST(request: Request): Promise<Response> {
   const name = (body.studentName || "the student").toString().slice(0, 40);
   const coachLang: "es" | "en" = body.coachLanguage === "en" ? "en" : "es";
 
-  // Build the message list. The scenario opener is the first assistant turn so
-  // the model has continuity even though the client rendered it locally.
-  const messages: Anthropic.MessageParam[] = [
+  // Build the message list: system prompt, then the scenario opener as Joel's
+  // first turn (the client rendered it locally), then the running conversation.
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt(scenario.role, scenario.setting, name, coachLang) },
     { role: "assistant", content: scenario.opener.en },
-    ...history.map((t): Anthropic.MessageParam => ({
-      role: t.role === "user" ? "user" : "assistant",
-      content: (t.text || "").toString().slice(0, 500),
-    })),
+    ...history.map(
+      (turn): OpenAI.Chat.Completions.ChatCompletionMessageParam => ({
+        role: turn.role === "user" ? "user" : "assistant",
+        content: (turn.text || "").toString().slice(0, 500),
+      }),
+    ),
   ];
   // The conversation must end on a user turn for the model to respond to it.
   if (messages[messages.length - 1]?.role !== "user") {
     return Response.json({ error: "Nothing to respond to." }, { status: 400 });
   }
 
-  const client = new Anthropic({ apiKey });
+  const client = new OpenAI({ apiKey });
 
   try {
-    const response = await client.messages.create({
+    const completion = await client.chat.completions.create({
       model: MODEL,
-      max_tokens: 600,
-      system: systemPrompt(scenario.role, scenario.setting, name, coachLang),
+      max_completion_tokens: 600,
       messages,
-      output_config: { format: { type: "json_schema", schema: SCHEMA } },
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "joel_reply", strict: true, schema: SCHEMA },
+      },
     });
 
-    if (response.stop_reason === "refusal") {
+    const choice = completion.choices[0];
+    if (choice?.message.refusal) {
       return Response.json({ error: "refused" }, { status: 502 });
     }
-
-    const text = response.content.find((b) => b.type === "text");
-    if (!text || text.type !== "text") {
+    const content = choice?.message.content;
+    if (!content) {
       return Response.json({ error: "Empty reply." }, { status: 502 });
     }
 
-    const parsed = JSON.parse(text.text) as ChatReply;
+    const parsed = JSON.parse(content) as ChatReply;
     return Response.json({
       reply: (parsed.reply ?? "").trim(),
       reply_es: (parsed.reply_es ?? "").trim(),
