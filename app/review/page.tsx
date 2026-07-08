@@ -5,12 +5,16 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { PracticeSession } from "@/components/practice/practice-session";
 import { getDueReviewItems } from "@/lib/review";
+import { useSettings } from "@/lib/hooks/useSettings";
+import { t } from "@/lib/i18n";
 import type { Lesson } from "@/lib/db/types";
 
 // A review session pulls every due item across all lessons into one focused
 // pass — the spaced-repetition payoff. Built as a synthetic sound-focus lesson.
 
 export default function ReviewPage() {
+  const { settings, ready } = useSettings();
+  const lang = settings.coachLanguage;
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,9 +25,9 @@ export default function ReviewPage() {
       if (dueItems.length > 0) {
         setLesson({
           id: "review",
-          title: "Review",
-          subtitle: "Words to refresh",
-          description: "A focused pass over the sounds you've been missing.",
+          title: t("reviewLessonTitle", lang),
+          subtitle: t("reviewLessonSub", lang),
+          description: "",
           kind: "sound-focus",
           categoryIds: [],
           items: dueItems,
@@ -35,25 +39,23 @@ export default function ReviewPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [lang]);
 
-  if (loading) {
-    return <div className="mx-auto max-w-xl px-5 py-24 text-center text-muted-foreground">Loading review…</div>;
+  if (!ready || loading) {
+    return <div className="mx-auto max-w-xl px-5 py-24 text-center text-muted-foreground">{t("reviewLoading", lang)}</div>;
   }
 
   if (!lesson) {
     return (
       <div className="mx-auto max-w-xl px-5 py-24 text-center">
         <CheckCircle2 className="mx-auto mb-5 size-10 text-success" />
-        <p className="font-display text-3xl font-medium tracking-[-0.02em]">All caught up</p>
-        <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
-          Nothing&apos;s due right now. Practice a lesson to keep building.
-        </p>
+        <p className="font-display text-3xl font-medium tracking-[-0.02em]">{t("reviewAllDone", lang)}</p>
+        <p className="mx-auto mt-3 max-w-sm text-muted-foreground">{t("reviewAllDoneSub", lang)}</p>
         <Link
           href="/"
           className="mt-6 inline-flex items-center rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-all hover:opacity-90 active:scale-[0.98]"
         >
-          Back to lessons
+          {t("backHome", lang)}
         </Link>
       </div>
     );

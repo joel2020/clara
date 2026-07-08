@@ -27,6 +27,31 @@ const STRINGS = {
   trackSoundsSub: { es: "Los sonidos del inglés que más nos cuestan", en: "The English sounds Spanish speakers find hardest" },
   planCard: { es: "Tu plan de 12 semanas", en: "Your 12-week plan" },
   planCardSub: { es: "Qué practicar cada semana, a tu ritmo", en: "What to practice each week, at your own pace" },
+  homeGames: { es: "Juega y practica", en: "Play & practice" },
+  lessonsCardSub: { es: "Todas las unidades y sonidos", en: "Every unit and sound" },
+
+  // Review page
+  reviewLoading: { es: "Cargando repaso…", en: "Loading review…" },
+  reviewAllDone: { es: "Estás al día", en: "All caught up" },
+  reviewAllDoneSub: {
+    es: "No tienes nada pendiente ahora. Practica una lección para seguir sumando.",
+    en: "Nothing's due right now. Practice a lesson to keep building.",
+  },
+  backHome: { es: "Volver al inicio", en: "Back home" },
+  reviewLessonTitle: { es: "Repaso", en: "Review" },
+  reviewLessonSub: { es: "Palabras por refrescar", en: "Words to refresh" },
+
+  // Speed round
+  srNeedsMic: { es: "La ronda rápida necesita el micrófono", en: "Speed Round needs the mic" },
+  srNeedsMicSub: {
+    es: "Este navegador no puede calificar tu voz. Abre Clara en Google Chrome para jugar.",
+    en: "This browser can't score speech. Open Clara in Google Chrome to play.",
+  },
+  playAgain: { es: "Jugar otra vez", en: "Play again" },
+  srSayIt: { es: "¡Dilo ya!", en: "Say it!" },
+  srSayThenStop: { es: "Dilo y toca detener", en: "Say it, then tap stop" },
+  srTapFast: { es: "Toca y habla — ¡rápido!", en: "Tap and speak — fast!" },
+
   reviewTitleOne: { es: "palabra lista para repasar", en: "word is ready for review" },
   reviewTitleMany: { es: "palabras listas para repasar", en: "words are ready for review" },
   reviewSub: { es: "Un repaso rápido de los sonidos que se te escapan.", en: "A quick refresh on the sounds you've been missing." },
@@ -38,6 +63,9 @@ const STRINGS = {
   mapTitle: { es: "Tu aventura", en: "Your journey" },
   mapIntro: { es: "Avanza por el camino: cada parada te acerca a hablar inglés americano.", en: "Follow the path — each stop gets you closer to speaking American English." },
   mapFinish: { es: "¡Conversacional!", en: "Conversational!" },
+  mapWorldConv: { es: "Mundo 1 · Conversación", en: "World 1 · Conversation" },
+  mapWorldSounds: { es: "Mundo 2 · Sonidos", en: "World 2 · Sounds" },
+  mapStops: { es: "paradas completas", en: "stops complete" },
 
   // Listening comprehension game
   listenCard: { es: "Oído de acero", en: "Sharp ears" },

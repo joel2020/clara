@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { t } from "@/lib/i18n";
 
 const NAV = [
-  { href: "/", key: "navLessons" as const },
+  { href: "/lessons", key: "navLessons" as const },
   { href: "/dashboard", key: "navSounds" as const },
 ];
 
@@ -26,10 +26,12 @@ export function SiteHeader() {
         <Link href="/" className="flex items-baseline gap-2">
           <span className="font-display text-xl font-semibold tracking-tight">Clara</span>
           <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:inline">
-            Pronunciation
+            American English
           </span>
         </Link>
 
+        {/* On the phone the bottom tab bar owns navigation, so the header stays
+            minimal: logo + sound. Desktop keeps the full nav + instructor. */}
         <nav className="ml-auto flex items-center gap-6">
           {NAV.map((item) => {
             const active = pathname === item.href;
@@ -38,7 +40,7 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative text-sm font-medium transition-colors",
+                  "relative hidden text-sm font-medium transition-colors md:inline",
                   active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -59,8 +61,8 @@ export function SiteHeader() {
             {settings.soundEnabled ? <Volume2 className="size-[18px]" /> : <VolumeX className="size-[18px]" />}
           </button>
 
-          <div className="flex items-center gap-2 border-l border-hairline pl-5">
-            <span className="hidden text-xs font-medium text-muted-foreground sm:inline">Instructor</span>
+          <div className="hidden items-center gap-2 border-l border-hairline pl-5 md:flex">
+            <span className="text-xs font-medium text-muted-foreground">Instructor</span>
             <Switch
               checked={settings.instructorMode}
               onCheckedChange={(v) => update({ instructorMode: v })}

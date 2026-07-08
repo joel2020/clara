@@ -187,7 +187,7 @@ function ResultCard({
       <div className="relative mx-auto w-fit">
         {passed && <SparkleBurst />}
         <Lumi frame="bust" mood={passed ? "cheer" : "think"} className="mx-auto size-28" />
-        <span className="animate-pop-in absolute -right-2 -top-1 rounded-2xl rounded-bl-sm bg-white px-3 py-1.5 text-sm font-semibold text-foreground shadow-md ring-1 ring-black/5">
+        <span className="animate-pop-in absolute -right-2 -top-1 rounded-2xl rounded-bl-sm bg-card px-3 py-1.5 text-sm font-semibold text-card-foreground shadow-md ring-1 ring-border">
           {spanish}
         </span>
       </div>

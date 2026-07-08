@@ -8,6 +8,7 @@ import { ShadowRound } from "@/components/practice/shadow-round";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
+import { Splash } from "@/components/splash";
 
 // Shadowing game: echo Joel's phrases to train the ear and build automaticity.
 // The phrase pool is the whole conversation track (real American chunks, all
@@ -23,7 +24,7 @@ export default function ShadowPage() {
     [],
   );
 
-  if (!ready) return null;
+  if (!ready) return <Splash />;
   if (started) return <ShadowRound items={pool} onExit={() => setStarted(false)} />;
 
   return (

@@ -11,6 +11,8 @@ import { SCENARIOS, type Scenario } from "@/lib/content/scenarios";
 import { createRecognition, type RecognitionHandle } from "@/lib/speech/recognition";
 import { repo } from "@/lib/db";
 import { recordQuestEvent } from "@/lib/quests";
+import { JoelAvatar } from "@/components/joel-avatar";
+import { Splash } from "@/components/splash";
 import type { ConvItem } from "@/lib/db/types";
 
 // Turn a mined phrase into a stable id so the same phrase isn't added twice.
@@ -50,6 +52,7 @@ export default function TalkPage() {
   const [savedPhrase, setSavedPhrase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recRef = useRef<RecognitionHandle | null>(null);
@@ -84,8 +87,13 @@ export default function TalkPage() {
       const el = audioRef.current;
       if (!el) return;
       el.src = url;
-      el.onended = () => URL.revokeObjectURL(url);
-      await el.play().catch(() => {});
+      el.onended = () => {
+        URL.revokeObjectURL(url);
+        setSpeaking(false);
+      };
+      el.onpause = () => setSpeaking(false);
+      setSpeaking(true);
+      await el.play().catch(() => setSpeaking(false));
     } catch {
       /* voice is best-effort; the text is always on screen */
     }
@@ -228,7 +236,7 @@ export default function TalkPage() {
     recRef.current?.stop();
   }, []);
 
-  if (!ready) return null;
+  if (!ready) return <Splash />;
 
   // ── Scenario picker ──────────────────────────────────────────────────────
   if (!scenario) {
@@ -291,7 +299,14 @@ export default function TalkPage() {
 
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto py-4">
         {turns.map((turn, i) => (
-          <Bubble key={i} turn={turn} lang={lang} onReplay={turn.role === "joel" ? () => void speak(turn.en) : undefined} replayLabel={t("talkReplay", lang)} />
+          <Bubble
+            key={i}
+            turn={turn}
+            lang={lang}
+            speaking={turn.role === "joel" && i === turns.length - 1 && speaking}
+            onReplay={turn.role === "joel" ? () => void speak(turn.en) : undefined}
+            replayLabel={t("talkReplay", lang)}
+          />
         ))}
 
         {phase === "thinking" && (
@@ -393,35 +408,40 @@ export default function TalkPage() {
 function Bubble({
   turn,
   lang,
+  speaking,
   onReplay,
   replayLabel,
 }: {
   turn: Turn;
   lang: "es" | "en";
+  speaking?: boolean;
   onReplay?: () => void;
   replayLabel: string;
 }) {
   const isJoel = turn.role === "joel";
   return (
     <div className={cn("flex flex-col gap-1", isJoel ? "items-start" : "items-end")}>
-      <div
-        className={cn(
-          "max-w-[85%] rounded-2xl px-4 py-3 leading-relaxed",
-          isJoel ? "bg-card border border-hairline" : "bg-primary text-primary-foreground",
-        )}
-      >
-        <p className="font-medium">{turn.en}</p>
-        {turn.es && lang === "es" && (
-          <p className={cn("mt-1 text-sm", isJoel ? "text-muted-foreground" : "text-primary-foreground/75")}>
-            {turn.es}
-          </p>
-        )}
+      <div className="flex max-w-[92%] items-end gap-2">
+        {isJoel && <JoelAvatar speaking={speaking} className="mb-1" />}
+        <div
+          className={cn(
+            "rounded-2xl px-4 py-3 leading-relaxed",
+            isJoel ? "rounded-bl-md border border-hairline bg-card" : "bg-primary text-primary-foreground",
+          )}
+        >
+          <p className="font-medium">{turn.en}</p>
+          {turn.es && lang === "es" && (
+            <p className={cn("mt-1 text-sm", isJoel ? "text-muted-foreground" : "text-primary-foreground/75")}>
+              {turn.es}
+            </p>
+          )}
+        </div>
       </div>
       {isJoel && onReplay && (
         <button
           type="button"
           onClick={onReplay}
-          className="inline-flex items-center gap-1 pl-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-1 pl-11 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <Volume2 className="size-3.5" />
           {replayLabel}

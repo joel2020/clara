@@ -11,6 +11,7 @@ import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
 import { sfx } from "@/lib/sfx";
 import { popConfetti, celebrate } from "@/lib/fx";
 import { playPronunciation, pickDrillVoice } from "@/lib/speech/player";
+import { t } from "@/lib/i18n";
 
 const ROUND_LENGTH = 15;
 
@@ -115,15 +116,15 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
     }
   };
 
+  const lang = settings.coachLanguage;
+
   if (support && !support.recognition) {
     return (
       <div className="mx-auto max-w-md px-5 py-24 text-center">
-        <p className="font-display text-2xl font-medium tracking-[-0.01em]">Speed Round needs the mic</p>
-        <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
-          This browser can&apos;t score speech. Open Clara in Google Chrome to play.
-        </p>
+        <p className="font-display text-2xl font-medium tracking-[-0.01em]">{t("srNeedsMic", lang)}</p>
+        <p className="mx-auto mt-3 max-w-sm text-muted-foreground">{t("srNeedsMicSub", lang)}</p>
         <button onClick={onExit} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
-          Back
+          {t("backHome", lang)}
         </button>
       </div>
     );
@@ -133,25 +134,25 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
     const acc = round.length ? Math.round((clears / round.length) * 100) : 0;
     return (
       <div className="animate-scale-in px-5 py-16 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Speed round</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("speedRound", lang)}</p>
         <h1 className="mt-4 font-display text-5xl font-medium tracking-[-0.03em]">{xp} XP</h1>
         <div className="mx-auto mt-8 flex max-w-sm items-stretch divide-x divide-hairline border-y border-hairline">
-          <Cell value={`${clears}/${round.length}`} label="clear" />
-          <Cell value={`${acc}%`} label="accuracy" />
-          <Cell value={`${bestCombo}×`} label="best combo" />
+          <Cell value={`${clears}/${round.length}`} label={t("clear", lang)} />
+          <Cell value={`${acc}%`} label={t("accuracy", lang)} />
+          <Cell value={`${bestCombo}×`} label={t("bestCombo", lang)} />
         </div>
         <div className="mt-9 flex items-center justify-center gap-3">
           <button
             onClick={onExit}
             className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground/80 transition-all hover:border-foreground/30 active:scale-[0.98]"
           >
-            Done
+            {t("finish", lang)}
           </button>
           <button
             onClick={() => window.location.reload()}
             className="rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-all hover:opacity-90 active:scale-[0.98]"
           >
-            Play again
+            {t("playAgain", lang)}
           </button>
         </div>
       </div>
@@ -165,7 +166,7 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
       {/* HUD */}
       <div className="mb-10 flex items-center justify-between">
         <button onClick={onExit} className="text-sm font-medium text-muted-foreground hover:text-foreground">
-          Exit
+          {t("shadowExit", lang)}
         </button>
         <div className="flex items-center gap-4">
           {combo >= 2 && (
@@ -241,12 +242,12 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
         <p className="mt-3 h-5 text-sm font-medium text-muted-foreground">
           {phase === "listening"
             ? recognitionMode() === "record"
-              ? "Say it, then tap stop"
-              : "Say it!"
+              ? t("srSayThenStop", lang)
+              : t("srSayIt", lang)
             : phase === "ready"
               ? recognitionMode() === "record"
-                ? "Tap, speak, then stop"
-                : "Tap and speak — fast!"
+                ? t("tapToRecord", lang)
+                : t("srTapFast", lang)
               : ""}
         </p>
       </div>

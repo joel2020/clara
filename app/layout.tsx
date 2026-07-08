@@ -46,12 +46,19 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#123a93",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#123a93" },
+    { media: "(prefers-color-scheme: dark)", color: "#17181d" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1, // stop iOS zooming/jumping when she taps the mic
   viewportFit: "cover",
 };
+
+// Applies .dark before first paint (no flash) and tracks the system setting
+// live. The design tokens for dark already exist in globals.css.
+const THEME_SCRIPT = `(function(){var m=window.matchMedia('(prefers-color-scheme: dark)');function a(){document.documentElement.classList.toggle('dark',m.matches)}a();m.addEventListener('change',a)})();`;
 
 export default function RootLayout({
   children,
@@ -59,8 +66,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}>
+    // suppressHydrationWarning: the theme script may add .dark before hydration.
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <SettingsProvider>
           <PwaRegister />
           <Onboarding />

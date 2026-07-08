@@ -8,6 +8,7 @@ import { ListenRound } from "@/components/practice/listen-round";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
+import { Splash } from "@/components/splash";
 
 // Listening comprehension game: hear it (no text), pick the meaning. Pool = the
 // conversation track, whose chunks all carry Spanish meanings.
@@ -22,7 +23,7 @@ export default function ListenPage() {
     [],
   );
 
-  if (!ready) return null;
+  if (!ready) return <Splash />;
   if (started) return <ListenRound items={pool} onExit={() => setStarted(false)} />;
 
   return (

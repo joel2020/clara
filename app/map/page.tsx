@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, Lock, Star, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { isMastered } from "@/lib/srs";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import type { Lesson, ItemProgress } from "@/lib/db/types";
+import { Splash } from "@/components/splash";
 
 // The journey: the whole curriculum laid out as a path she travels — a stop per
 // lesson, conversation units first (her fastest route to speaking), then the
@@ -47,8 +48,20 @@ export default function MapPage() {
 
   const states = journey.map((l) => mastery(progress, l));
   const currentIndex = states.findIndex((s) => !s.done);
+  const doneCount = states.filter((s) => s.done).length;
 
-  if (!ready) return null;
+  // Bring her current stop into view — the path is long and she shouldn't
+  // scroll past finished weeks every visit. Runs once per progress load.
+  const currentRef = useRef<HTMLLIElement | null>(null);
+  const scrolled = useRef(false);
+  useEffect(() => {
+    if (!scrolled.current && progress && currentRef.current && currentIndex > 1) {
+      scrolled.current = true;
+      currentRef.current.scrollIntoView({ block: "center", behavior: "instant" as ScrollBehavior });
+    }
+  }, [progress, currentIndex]);
+
+  if (!ready) return <Splash />;
 
   return (
     <div className="mx-auto max-w-xl px-5 pb-28 pt-6 sm:px-6">
@@ -66,6 +79,19 @@ export default function MapPage() {
         </p>
         <h1 className="mt-3 font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{t("mapTitle", lang)}</h1>
         <p className="mt-2 max-w-md text-muted-foreground">{t("mapIntro", lang)}</p>
+
+        {/* Overall progress */}
+        <div className="mt-5 flex items-center gap-3">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-hairline">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-co-yellow via-co-blue to-co-red transition-all duration-700"
+              style={{ width: `${journey.length ? Math.round((doneCount / journey.length) * 100) : 0}%` }}
+            />
+          </div>
+          <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+            {doneCount}/{journey.length} {t("mapStops", lang)}
+          </span>
+        </div>
       </section>
 
       {/* The path */}
@@ -78,8 +104,18 @@ export default function MapPage() {
             const isCurrent = i === currentIndex;
             const locked = currentIndex !== -1 && i > currentIndex && !s.practiced;
             const left = i % 2 === 0;
-            return (
-              <li key={lesson.id} className="relative flex">
+            const track = lesson.track === "conversation" ? "conversation" : "sounds";
+            const prevTrack = i > 0 ? (journey[i - 1].track === "conversation" ? "conversation" : "sounds") : null;
+            const banner = track !== prevTrack ? (
+              <li key={`world-${track}`} className="relative flex justify-center py-2">
+                <span className="star-chip z-10 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] shadow-sm">
+                  {t(track === "conversation" ? "mapWorldConv" : "mapWorldSounds", lang)}
+                </span>
+              </li>
+            ) : null;
+            return [
+              banner,
+              <li key={lesson.id} ref={isCurrent ? currentRef : undefined} className="relative flex">
                 <div className={cn("flex w-1/2", left ? "justify-end pr-5" : "ml-auto justify-start pl-5")}>
                   <div className="relative">
                     <Link
@@ -119,8 +155,8 @@ export default function MapPage() {
                     </Link>
                   </div>
                 </div>
-              </li>
-            );
+              </li>,
+            ];
           })}
 
           {/* Finish */}

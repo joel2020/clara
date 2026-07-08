@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { popConfetti } from "@/lib/fx";
 import { LumiScene } from "@/components/lumi-scene";
+import { Splash } from "@/components/splash";
 import {
   cosmeticsByType,
   isOwned,
@@ -28,7 +29,7 @@ export default function ShopPage() {
   const lang = settings.coachLanguage;
   const [chestMsg, setChestMsg] = useState<number | null>(null);
 
-  if (!player) return null;
+  if (!player) return <Splash />;
 
   const equippedFor = (type: CosmeticType) =>
     type === "background" ? player.equippedBg : type === "accessory" ? player.equippedAccessory : player.equippedEffect;

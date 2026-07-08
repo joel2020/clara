@@ -15,6 +15,7 @@ import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
 import { SparkleBurst } from "@/components/star-reward";
 import { celebrate } from "@/lib/fx";
+import { Splash } from "@/components/splash";
 
 // The guided daily session: warm up → learn → talk, in order. This is the
 // coach's "here's what we're doing today" — the app leading a solo learner
@@ -42,7 +43,7 @@ export default function TodayPage() {
     if (allDone) celebrate();
   }, [allDone]);
 
-  if (!ready || !quests) return null;
+  if (!ready || !quests) return <Splash />;
 
   const steps = [
     {
