@@ -10,6 +10,8 @@ import type { PlayerStats } from "@/lib/db/types";
 export function usePlayer(): PlayerStats | undefined {
   return useLiveQuery(() => {
     if (typeof window === "undefined" || !db) return undefined as unknown as Promise<PlayerStats>;
-    return db.player.get("player").then((p) => p ?? DEFAULT_PLAYER);
+    // Merge defaults so fields added in later versions are always present in the
+    // UI, even for a player row saved before those fields existed.
+    return db.player.get("player").then((p) => ({ ...DEFAULT_PLAYER, ...(p ?? {}) }));
   }, []);
 }

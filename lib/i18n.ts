@@ -31,6 +31,22 @@ const STRINGS = {
   reviewTitleMany: { es: "palabras listas para repasar", en: "words are ready for review" },
   reviewSub: { es: "Un repaso rápido de los sonidos que se te escapan.", en: "A quick refresh on the sounds you've been missing." },
 
+  // Star shop
+  shopCard: { es: "Tienda de estrellas", en: "Star shop" },
+  shopCardSub: { es: "Gasta tus estrellas en Lumi", en: "Spend your stars on Lumi" },
+  shopTitle: { es: "Tienda de Lumi", en: "Lumi's shop" },
+  shopIntro: { es: "Gana estrellas hablando bien y vístela a tu gusto.", en: "Earn stars by speaking clearly, then style her up." },
+  shopBackgrounds: { es: "Fondos", en: "Backgrounds" },
+  shopAccessories: { es: "Accesorios", en: "Accessories" },
+  shopEffects: { es: "Efectos", en: "Effects" },
+  shopEquip: { es: "Poner", en: "Equip" },
+  shopEquipped: { es: "Puesto", en: "Equipped" },
+  shopNeedMore: { es: "Te faltan estrellas", en: "Not enough stars" },
+  chestTitle: { es: "Cofre diario", en: "Daily chest" },
+  chestOpen: { es: "Abrir cofre", en: "Open chest" },
+  chestGot: { es: "¡Ganaste", en: "You got" },
+  chestBack: { es: "Vuelve mañana por más", en: "Come back tomorrow for more" },
+
   // Stars (game currency)
   stars: { es: "estrellas", en: "stars" },
   starsEarned: { es: "estrellas ganadas", en: "stars earned" },

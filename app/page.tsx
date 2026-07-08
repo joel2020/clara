@@ -1,32 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, CalendarDays, MessageCircle, Star } from "lucide-react";
+import { Zap, CalendarDays, MessageCircle, Store } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { LessonList } from "@/components/lesson-list";
 import { ReviewCallout } from "@/components/review-callout";
 import { InstructorEntry } from "@/components/instructor-entry";
 import { PlayerBar } from "@/components/player-bar";
 import { DailyQuests } from "@/components/daily-quests";
 import { Lumi } from "@/components/lumi";
+import { EffectLayer } from "@/components/lumi-scene";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { usePlayer } from "@/lib/hooks/usePlayer";
+import { getCosmetic } from "@/lib/cosmetics";
+import { chestAvailable } from "@/lib/cosmetics";
 import { t } from "@/lib/i18n";
 
 export default function HomePage() {
   const { settings } = useSettings();
+  const player = usePlayer();
   const lang = settings.coachLanguage;
   const name = settings.studentName;
 
+  const bg = getCosmetic(player?.equippedBg ?? "bg-default");
+  const accessory = getCosmetic(player?.equippedAccessory ?? "acc-none");
+  const effect = getCosmetic(player?.equippedEffect ?? "fx-none");
+  const chestReady = player ? chestAvailable(player) : false;
+
   return (
     <div className="mx-auto max-w-3xl px-5 pb-24 pt-14 sm:px-6 sm:pt-20">
-      <section className="game-hero animate-fade-up relative overflow-hidden rounded-3xl px-6 pb-0 pt-6 shadow-sm ring-1 ring-black/5 sm:px-8 sm:pt-8">
-        <div className="flag-bar absolute inset-x-0 top-0 h-[3px]" aria-hidden />
-        {/* floating stars */}
-        <span className="pointer-events-none absolute right-[42%] top-6 text-co-yellow animate-float" aria-hidden style={{ animationDelay: "0.2s" }}>
-          <Star className="size-4" style={{ fill: "currentColor" }} strokeWidth={0} />
-        </span>
-        <span className="pointer-events-none absolute right-[36%] top-20 text-white/80 animate-float" aria-hidden style={{ animationDelay: "0.9s" }}>
-          <Star className="size-3" style={{ fill: "currentColor" }} strokeWidth={0} />
-        </span>
+      <section
+        className={cn(
+          "animate-fade-up relative overflow-hidden rounded-3xl px-6 pb-0 pt-6 shadow-sm ring-1 ring-black/5 sm:px-8 sm:pt-8",
+          !bg?.background && "game-hero",
+        )}
+        style={bg?.background ? { background: bg.background } : undefined}
+      >
+        <div className="flag-bar absolute inset-x-0 top-0 z-20 h-[3px]" aria-hidden />
+        {effect?.effect && <EffectLayer kind={effect.effect} />}
 
         <div className="relative z-10 flex items-end justify-between gap-3">
           <div className="max-w-[58%] pb-7">
@@ -42,8 +53,13 @@ export default function HomePage() {
             <p className="mt-3 text-sm leading-relaxed text-foreground/70 sm:text-base">{t("heroTagline", lang)}</p>
           </div>
 
-          {/* Lumi waves from the corner */}
+          {/* Lumi waves from the corner, wearing her equipped accessory */}
           <div className="relative -mr-2 h-44 w-32 shrink-0 sm:h-56 sm:w-44">
+            {accessory?.emoji && (
+              <span className="animate-float absolute right-0 top-2 z-10 text-2xl drop-shadow-sm" style={{ animationDelay: "0.4s" }}>
+                {accessory.emoji}
+              </span>
+            )}
             <Lumi frame="full" priority />
           </div>
         </div>
@@ -83,6 +99,23 @@ export default function HomePage() {
             <p className="font-medium">{t("speedRound", lang)}</p>
             <p className="text-sm text-muted-foreground">{t("speedRoundSub", lang)}</p>
           </div>
+        </Link>
+        <Link
+          href="/shop"
+          className="group relative flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-colors hover:border-primary/40"
+        >
+          <span className="star-chip grid size-10 shrink-0 place-items-center rounded-xl shadow-sm">
+            <Store className="size-5" />
+          </span>
+          <div className="flex-1">
+            <p className="font-medium">{t("shopCard", lang)}</p>
+            <p className="text-sm text-muted-foreground">{t("shopCardSub", lang)}</p>
+          </div>
+          {chestReady && (
+            <span className="absolute right-4 top-3 grid size-5 place-items-center rounded-full bg-co-red text-[10px] font-bold text-white shadow-sm" aria-hidden>
+              1
+            </span>
+          )}
         </Link>
         <Link
           href="/plan"
