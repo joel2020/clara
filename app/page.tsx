@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, CalendarDays, MessageCircle, Store, PlayCircle } from "lucide-react";
+import { Zap, CalendarDays, MessageCircle, Store, PlayCircle, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LessonList } from "@/components/lesson-list";
 import { ReviewCallout } from "@/components/review-callout";
@@ -130,6 +130,18 @@ export default function HomePage() {
               1
             </span>
           )}
+        </Link>
+        <Link
+          href="/shadow"
+          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-colors hover:border-primary/40 sm:col-span-2"
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <Volume2 className="size-5" />
+          </span>
+          <div className="flex-1">
+            <p className="font-medium">{t("shadowCard", lang)}</p>
+            <p className="text-sm text-muted-foreground">{t("shadowCardSub", lang)}</p>
+          </div>
         </Link>
         <Link
           href="/plan"

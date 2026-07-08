@@ -11,6 +11,18 @@ export const CATEGORIES: SoundCategory[] = [
     blurb: "Spanish has one 'i'. English splits it in two — ship vs sheep. Mixing them up changes the word.",
   },
   {
+    id: "flap-t",
+    label: "The American T",
+    symbols: "t → soft d",
+    blurb: "Between vowels, Americans turn t into a quick soft d — 'water' is 'wader', 'better' is 'bedder'. The most American sound there is.",
+  },
+  {
+    id: "american-r",
+    label: "The American R",
+    symbols: "/ɹ/",
+    blurb: "American English pronounces every R — car, hard, sister. Curl the tongue back and never drop it.",
+  },
+  {
     id: "b-vs-v",
     label: "B vs V",
     symbols: "/b/ vs /v/",

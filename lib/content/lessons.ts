@@ -83,6 +83,8 @@ function phrases(
 
 const SHORT_I_HINT = "Relax your lips and jaw. Short, quick, almost lazy. Don't smile.";
 const LONG_E_HINT = "Smile wide, pull your lips back, tongue high. A long 'eeee' — hold it.";
+const FLAP_HINT = "Between two vowels, don't say a hard T — tap it once so it comes out like a quick, soft D. 'water' → 'wah-der'.";
+const AMER_R_HINT = "Curl your tongue tip up and back without touching anything, and say every R — even at the end. 'car', never 'cah'.";
 
 export const LESSONS: Lesson[] = [
   // ── 1. /ɪ/ vs /iː/ — the flagship ───────────────────────────────────────
@@ -126,6 +128,54 @@ export const LESSONS: Lesson[] = [
         a: { text: "it", ipa: "/ɪt/", phoneme: "ɪ", hint: SHORT_I_HINT },
         b: { text: "eat", ipa: "/iːt/", phoneme: "iː", hint: LONG_E_HINT },
       },
+    ]),
+  },
+
+  // ── The American T (flap) ────────────────────────────────────────────────
+  {
+    id: "flap-t",
+    title: "The American T",
+    subtitle: "t → soft d",
+    description:
+      "The most American sound there is: between vowels, T becomes a quick soft D. 'Water' is 'wader', 'better' is 'bedder'.",
+    kind: "sound-focus",
+    categoryIds: ["flap-t"],
+    order: 1.5,
+    items: words("flap-t", [
+      { text: "water", ipa: "/ˈwɔːtər/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "better", ipa: "/ˈbɛtər/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "letter", ipa: "/ˈlɛtər/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "city", ipa: "/ˈsɪti/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "party", ipa: "/ˈpɑːrti/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "later", ipa: "/ˈleɪtər/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "pretty", ipa: "/ˈprɪti/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "daughter", ipa: "/ˈdɔːtər/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "computer", ipa: "/kəmˈpjuːtər/", phoneme: "flap", hint: FLAP_HINT },
+      { text: "thirty", ipa: "/ˈθɜːrti/", phoneme: "flap", hint: FLAP_HINT },
+    ]),
+  },
+
+  // ── The American R (rhotic) ──────────────────────────────────────────────
+  {
+    id: "american-r",
+    title: "The American R",
+    subtitle: "/ɹ/",
+    description:
+      "American English says every R — even at the end. Curl the tongue back and never drop it: car, hard, sister.",
+    kind: "sound-focus",
+    categoryIds: ["american-r"],
+    order: 1.7,
+    items: words("american-r", [
+      { text: "car", ipa: "/kɑːr/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "hard", ipa: "/hɑːrd/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "work", ipa: "/wɜːrk/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "bird", ipa: "/bɜːrd/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "world", ipa: "/wɜːrld/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "first", ipa: "/fɜːrst/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "sister", ipa: "/ˈsɪstər/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "teacher", ipa: "/ˈtiːtʃər/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "morning", ipa: "/ˈmɔːrnɪŋ/", phoneme: "r", hint: AMER_R_HINT },
+      { text: "girl", ipa: "/ɡɜːrl/", phoneme: "r", hint: AMER_R_HINT },
     ]),
   },
 
@@ -445,6 +495,28 @@ const INTROS: Record<string, LessonIntro> = {
       "Feel it: your face is loose for 'ship', tight and smiling for 'sheep'.",
     ],
     exampleIds: ["i-vs-ii:ship", "i-vs-ii:sheep", "i-vs-ii:live", "i-vs-ii:leave"],
+  },
+  "flap-t": {
+    summary: "The flap T is the most American sound of all: between two vowels, T (and D) become a quick, soft D.",
+    whyTricky:
+      "Textbooks and British English keep a crisp T, so 'water' sounds like 'wa-TER'. Americans tap it — 'wah-der'. Say a hard T and you sound stiff or foreign; miss the tap and fast American speech is hard to follow.",
+    how: [
+      "Find a T (or D) sitting between two vowel sounds: wa-t-er, be-tt-er, ci-t-y.",
+      "Instead of a hard T, tap the ridge behind your teeth once — it comes out like a soft, quick D.",
+      "Keep it light and fast: 'water' → 'wah-der', 'city' → 'si-dee', 'party' → 'par-dee'.",
+    ],
+    exampleIds: ["flap-t:water", "flap-t:better", "flap-t:city", "flap-t:party"],
+  },
+  "american-r": {
+    summary: "American English is rhotic — every R is pronounced, including at the end of a word: car, hard, sister.",
+    whyTricky:
+      "The Spanish R is a tap or trill with the tongue tip forward. The American R is the opposite — the tongue curls back and touches nothing. And unlike British English, Americans never drop the final R.",
+    how: [
+      "Pull your tongue up and back so the tip points at the roof of your mouth — but don't let it touch.",
+      "Round your lips a little and let it 'growl' low in your mouth.",
+      "Say the R at the END too: 'car', 'teacher', 'morning' — never 'cah' or 'teach-uh'.",
+    ],
+    exampleIds: ["american-r:car", "american-r:work", "american-r:sister", "american-r:girl"],
   },
   "b-vs-v": {
     summary: "In English, b and v are two different sounds made in two different places.",

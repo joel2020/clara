@@ -31,6 +31,18 @@ const STRINGS = {
   reviewTitleMany: { es: "palabras listas para repasar", en: "words are ready for review" },
   reviewSub: { es: "Un repaso rápido de los sonidos que se te escapan.", en: "A quick refresh on the sounds you've been missing." },
 
+  // Shadowing / listening game
+  shadowCard: { es: "Repite con Joel", en: "Shadow Joel" },
+  shadowCardSub: { es: "Escucha y repite — entrena tu oído", en: "Listen and echo — train your ear" },
+  shadowTitle: { es: "Repite con Joel", en: "Shadow Joel" },
+  shadowIntro: { es: "Escucha a Joel decir una frase y repítela enseguida, igualito. Así entrenas el oído y sueltas la lengua.", en: "Hear Joel say a phrase, then echo it right back. This trains your ear and makes speech automatic." },
+  shadowStart: { es: "Empezar", en: "Start" },
+  shadowListen: { es: "Escucha a Joel…", en: "Listen to Joel…" },
+  shadowRepeat: { es: "Ahora repite", en: "Now repeat" },
+  shadowReplay: { es: "Escuchar otra vez", en: "Hear it again" },
+  shadowExit: { es: "Salir", en: "Exit" },
+  shadowNeedsMic: { es: "Repetir necesita el micrófono", en: "Shadowing needs the mic" },
+
   // Today's guided session
   todayCard: { es: "Sesión de hoy", en: "Today's session" },
   todayCardSub: { es: "Tu rutina guiada — empieza aquí", en: "Your guided routine — start here" },

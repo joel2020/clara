@@ -10,8 +10,32 @@ import type { LessonIntro } from "@/lib/db/types";
 
 const SHORT_I_ES = "Relaja los labios y la mandíbula. Corta y rapidita, casi perezosa. No sonrías.";
 const LONG_E_ES = "Sonríe ancho, estira los labios hacia atrás, lengua arriba. Alárgala: iiii.";
+const FLAP_ES = "Entre dos vocales, la T no es dura: tócala una vez y sale como una d suave y rápida. 'water' → 'GUA-der'.";
+const AMER_R_ES = "Curva la punta de la lengua hacia arriba y atrás sin tocar nada, y pronuncia TODAS las R — hasta al final. 'car', nunca 'ca'.";
 
 export const HINTS_ES: Record<string, string> = {
+  // The American T (flap)
+  "flap-t:water": FLAP_ES,
+  "flap-t:better": FLAP_ES,
+  "flap-t:letter": FLAP_ES,
+  "flap-t:city": FLAP_ES,
+  "flap-t:party": FLAP_ES,
+  "flap-t:later": FLAP_ES,
+  "flap-t:pretty": FLAP_ES,
+  "flap-t:daughter": FLAP_ES,
+  "flap-t:computer": FLAP_ES,
+  "flap-t:thirty": FLAP_ES,
+  // The American R (rhotic)
+  "american-r:car": AMER_R_ES,
+  "american-r:hard": AMER_R_ES,
+  "american-r:work": AMER_R_ES,
+  "american-r:bird": AMER_R_ES,
+  "american-r:world": AMER_R_ES,
+  "american-r:first": AMER_R_ES,
+  "american-r:sister": AMER_R_ES,
+  "american-r:teacher": AMER_R_ES,
+  "american-r:morning": AMER_R_ES,
+  "american-r:girl": AMER_R_ES,
   // /ɪ/ vs /iː/
   "i-vs-ii:ship": SHORT_I_ES,
   "i-vs-ii:sheep": LONG_E_ES,
@@ -183,6 +207,28 @@ export const INTROS_ES: Record<string, LessonIntro> = {
       "Siéntelo: la cara floja para 'ship', apretada y sonriente para 'sheep'.",
     ],
     exampleIds: ["i-vs-ii:ship", "i-vs-ii:sheep", "i-vs-ii:live", "i-vs-ii:leave"],
+  },
+  "flap-t": {
+    summary: "La T americana es EL sonido más gringo: entre dos vocales, la T (y la D) se vuelven una d suave y rápida.",
+    whyTricky:
+      "Los libros y el inglés británico mantienen la T dura, así que 'water' suena 'wa-TER'. Los americanos la tocan: 'GUA-der'. Si dices la T dura suenas tieso o extranjero; si no oyes ese toquecito, el inglés rápido se vuelve imposible de entender.",
+    how: [
+      "Busca una T (o D) entre dos vocales: wa-t-er, be-tt-er, ci-t-y.",
+      "En vez de una T dura, toca una vez la encía detrás de los dientes — sale como una d suave y rápida.",
+      "Ligera y veloz: 'water' → 'GUA-der', 'city' → 'SI-di', 'party' → 'PAR-di'.",
+    ],
+    exampleIds: ["flap-t:water", "flap-t:better", "flap-t:city", "flap-t:party"],
+  },
+  "american-r": {
+    summary: "El inglés americano es rótico: se pronuncia TODA R, incluso al final de la palabra — car, hard, sister.",
+    whyTricky:
+      "La R del español es un toque o vibración con la punta de la lengua adelante. La R americana es al revés — la lengua se curva hacia atrás y no toca nada. Y a diferencia del británico, los americanos nunca se comen la R final.",
+    how: [
+      "Lleva la lengua arriba y atrás, con la punta apuntando al paladar — pero sin tocarlo.",
+      "Redondea un poco los labios y deja que 'gruña' grave.",
+      "Pronuncia la R también al FINAL: 'car', 'teacher', 'morning' — nunca 'ca' ni 'tícha'.",
+    ],
+    exampleIds: ["american-r:car", "american-r:work", "american-r:sister", "american-r:girl"],
   },
   "b-vs-v": {
     summary: "En inglés, la b y la v son dos sonidos distintos hechos en lugares distintos de la boca.",
