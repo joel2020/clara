@@ -10,6 +10,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
 import { sfx } from "@/lib/sfx";
 import { popConfetti, celebrate } from "@/lib/fx";
+import { juice } from "@/components/juice";
 import { playPronunciation, stopPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
@@ -104,6 +105,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         setClears((c) => c + 1);
         sfx.correct(out.rewards.combo);
         popConfetti({ x: 0.5, y: 0.42 });
+        juice.centerBurst(out.rewards.starsEarned > 0 ? `+${out.rewards.starsEarned} ★` : undefined);
       } else {
         sfx.wrong();
       }

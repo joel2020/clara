@@ -298,6 +298,125 @@
 /* Loading splash appears only after a beat, so fast loads never flash it. */
 .splash-delayed { opacity: 0; animation: fade-in 0.3s ease 0.25s forwards; }
 
+/* ── Juice engine particles (see components/juice.tsx) ────────────────────
+   All particles animate transform/opacity only (GPU-cheap on iPhone). */
+
+@keyframes juice-star-fly {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(0deg); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1) rotate(160deg); }
+}
+.juice-star {
+  position: absolute;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 0 6px currentColor);
+  animation: juice-star-fly var(--dur) cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes juice-ray-grow {
+  0% { opacity: 0; transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(0.2); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(1); }
+}
+.juice-ray {
+  position: absolute;
+  width: 3px;
+  height: var(--len);
+  border-radius: 3px;
+  transform-origin: bottom center;
+  will-change: transform, opacity;
+  animation: juice-ray-grow var(--dur) ease-out forwards;
+}
+
+@keyframes juice-flash-pop {
+  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+}
+.juice-flash {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in oklch, var(--co-yellow) 80%, white) 0%, transparent 70%);
+  will-change: transform, opacity;
+  animation: juice-flash-pop var(--dur) ease-out forwards;
+}
+
+@keyframes juice-float-up {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.7); }
+  20% { opacity: 1; transform: translate(-50%, -14px) scale(1.05); }
+  100% { opacity: 0; transform: translate(-50%, -64px) scale(1); }
+}
+.juice-float {
+  position: absolute;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--co-yellow) 45%, transparent);
+  will-change: transform, opacity;
+  animation: juice-float-up var(--dur) ease-out forwards;
+}
+
+@keyframes juice-sweep-x {
+  0% { opacity: 0; transform: translateX(-40%) skewX(-18deg); }
+  25% { opacity: 0.55; }
+  100% { opacity: 0; transform: translateX(140%) skewX(-18deg); }
+}
+.juice-sweep {
+  position: absolute;
+  inset-block: 0;
+  left: -30%;
+  width: 45%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in oklch, var(--co-yellow) 26%, transparent) 30%,
+    color-mix(in oklch, var(--co-blue) 20%, transparent) 55%,
+    color-mix(in oklch, var(--co-red) 22%, transparent) 75%,
+    transparent
+  );
+  will-change: transform, opacity;
+  animation: juice-sweep-x var(--dur) ease-in-out forwards;
+}
+
+/* ── Arcade polish utilities ──────────────────────────────────────────────── */
+
+/* Soft golden bloom for reward chips and big numbers. */
+.bloom-gold { box-shadow: 0 0 18px color-mix(in oklch, var(--co-yellow) 55%, transparent); }
+
+/* A slow light sheen that glides across primary CTAs. */
+.sheen { position: relative; overflow: hidden; }
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset-block: -20%;
+  left: -35%;
+  width: 30%;
+  transform: skewX(-20deg);
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.22), transparent);
+  animation: sheen-slide 4.5s ease-in-out infinite;
+}
+@keyframes sheen-slide {
+  0%, 55% { left: -35%; }
+  85%, 100% { left: 135%; }
+}
+
+/* Rotating tricolor halo for the "you are here" map node. */
+.arcade-ring { position: relative; }
+.arcade-ring::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 9999px;
+  background: conic-gradient(var(--co-yellow), var(--co-blue), var(--co-red), var(--co-yellow));
+  animation: spin-slow 5s linear infinite;
+  z-index: -1;
+  filter: blur(1px);
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
 .animate-float { animation: float-y 4s ease-in-out infinite; }
 .animate-cheer { animation: cheer-bounce 0.75s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }

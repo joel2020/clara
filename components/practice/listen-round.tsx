@@ -8,6 +8,7 @@ import { repo } from "@/lib/db";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { sfx } from "@/lib/sfx";
 import { popConfetti, celebrate } from "@/lib/fx";
+import { juice } from "@/components/juice";
 import { playPronunciation, stopPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
@@ -97,7 +98,7 @@ export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: 
     }
   }, [done, stars]);
 
-  const choose = (i: number) => {
+  const choose = (i: number, e?: React.MouseEvent<HTMLButtonElement>) => {
     if (phase === "flash" || picked !== null) return;
     stopPronunciation();
     setPicked(i);
@@ -108,6 +109,12 @@ export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: 
       setClears((c) => c + 1);
       sfx.correct(1);
       popConfetti({ x: 0.5, y: 0.5 });
+      // Burst right where she tapped the correct answer.
+      const rect = e?.currentTarget.getBoundingClientRect();
+      const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+      const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+      juice.burst(x, y, { count: 10 });
+      juice.float(x, y - 26, "+1 ★");
     } else {
       sfx.wrong();
     }
@@ -201,7 +208,7 @@ export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: 
               <button
                 key={i}
                 type="button"
-                onClick={() => choose(i)}
+                onClick={(e) => choose(i, e)}
                 disabled={reveal}
                 className={cn(
                   "flex items-center justify-between gap-3 rounded-2xl border px-5 py-3.5 text-left text-[15px] font-medium transition-all active:scale-[0.99]",

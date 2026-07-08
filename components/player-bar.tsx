@@ -36,7 +36,7 @@ export function PlayerBar() {
       <div className="ml-auto flex items-center gap-5">
         {/* Stars — the game currency */}
         <div className="flex items-center gap-2">
-          <span className="star-chip grid size-7 place-items-center rounded-full shadow-sm">
+          <span className="star-chip bloom-gold grid size-7 place-items-center rounded-full">
             <Star className="size-4" style={{ fill: "currentColor" }} strokeWidth={0} />
           </span>
           <div className="leading-tight">

@@ -10,6 +10,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
 import { sfx } from "@/lib/sfx";
 import { popConfetti, celebrate } from "@/lib/fx";
+import { juice } from "@/components/juice";
 import { playPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
 
@@ -82,6 +83,9 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
         setBestCombo((b) => Math.max(b, out.rewards.combo));
         sfx.correct(out.rewards.combo);
         popConfetti({ x: 0.5, y: 0.4 });
+        juice.burst(window.innerWidth / 2, window.innerHeight * 0.32, { count: 10 });
+        juice.float(window.innerWidth / 2, window.innerHeight * 0.32 - 24, `+${out.rewards.xpGain} XP`);
+        if (out.rewards.combo === 5 || out.rewards.combo === 10) juice.sweep();
       } else {
         setCombo(0);
         sfx.wrong();

@@ -9,6 +9,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { popConfetti } from "@/lib/fx";
+import { juice } from "@/components/juice";
 import { LumiScene } from "@/components/lumi-scene";
 import { Splash } from "@/components/splash";
 import {
@@ -51,6 +52,8 @@ export default function ShopPage() {
     if (res.ok) {
       sfx.correct(0);
       popConfetti();
+      juice.centerBurst();
+      juice.sweep();
     }
   };
 
@@ -59,6 +62,8 @@ export default function ShopPage() {
     if (reward > 0) {
       sfx.correct(3);
       popConfetti();
+      juice.centerBurst(`+${reward} ★`);
+      juice.sweep();
       setChestMsg(reward);
     }
   };

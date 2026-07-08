@@ -11,6 +11,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { sfx } from "@/lib/sfx";
 import { t, partnerFeedback, type CoachLang } from "@/lib/i18n";
 import { popConfetti } from "@/lib/fx";
+import { juice } from "@/components/juice";
 import { Lumi } from "@/components/lumi";
 import { StarRating, SparkleBurst } from "@/components/star-reward";
 
@@ -73,6 +74,10 @@ export function ProducePanel({
       if (result.score.passed) {
         sfx.correct(result.rewards.combo);
         popConfetti();
+        // Arcade juice: star explosion + floating reward, and a tricolor light
+        // sweep when she's on a hot streak.
+        juice.centerBurst(result.rewards.starsEarned > 0 ? `+${result.rewards.starsEarned} ★` : undefined);
+        if (result.rewards.combo >= 3) juice.sweep();
       } else {
         sfx.wrong();
       }

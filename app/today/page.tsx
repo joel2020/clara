@@ -15,6 +15,7 @@ import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
 import { SparkleBurst } from "@/components/star-reward";
 import { celebrate } from "@/lib/fx";
+import { juice } from "@/components/juice";
 import { Splash } from "@/components/splash";
 
 // The guided daily session: warm up → learn → talk, in order. This is the
@@ -40,7 +41,11 @@ export default function TodayPage() {
   const allDone = reviewDone && learnDone && talkDone;
 
   useEffect(() => {
-    if (allDone) celebrate();
+    if (allDone) {
+      celebrate();
+      juice.centerBurst();
+      juice.sweep();
+    }
   }, [allDone]);
 
   if (!ready || !quests) return <Splash />;

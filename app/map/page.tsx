@@ -128,7 +128,7 @@ export default function MapPage() {
                           s.done
                             ? "bg-primary text-primary-foreground ring-primary/20"
                             : isCurrent
-                              ? "star-chip ring-co-yellow/30 animate-float"
+                              ? "star-chip arcade-ring ring-co-yellow/30 animate-float bloom-gold"
                               : locked
                                 ? "bg-muted text-muted-foreground/50 ring-transparent"
                                 : "bg-card text-foreground ring-hairline",

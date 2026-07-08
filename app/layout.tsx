@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Onboarding } from "@/components/onboarding";
 import { PwaRegister } from "@/components/pwa-register";
 import { MobileNav } from "@/components/mobile-nav";
+import { JuiceLayer } from "@/components/juice";
 
 const sans = Geist({
   variable: "--font-sans",
@@ -80,6 +81,7 @@ export default function RootLayout({
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <MobileNav />
+          <JuiceLayer />
           <Toaster position="top-center" richColors />
         </SettingsProvider>
       </body>

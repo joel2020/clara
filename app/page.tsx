@@ -18,6 +18,7 @@ import { PlayerBar } from "@/components/player-bar";
 import { DailyQuests } from "@/components/daily-quests";
 import { Lumi } from "@/components/lumi";
 import { EffectLayer } from "@/components/lumi-scene";
+import { AmbientStars } from "@/components/juice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { getCosmetic, chestAvailable } from "@/lib/cosmetics";
@@ -49,6 +50,7 @@ export default function HomePage() {
         style={bg?.background ? { background: bg.background } : undefined}
       >
         <div className="flag-bar absolute inset-x-0 top-0 z-20 h-[3px]" aria-hidden />
+        <AmbientStars />
         {effect?.effect && <EffectLayer kind={effect.effect} />}
         {/* Text-protection scrim: keeps the greeting readable over ANY equipped
             background (Galaxy is nearly black). Uses the theme background color
@@ -86,7 +88,7 @@ export default function HomePage() {
       {/* THE action */}
       <Link
         href="/today"
-        className="group mt-5 flex items-center gap-4 rounded-3xl bg-foreground px-6 py-5 text-background shadow-sm transition-all hover:opacity-95 active:scale-[0.995]"
+        className="sheen group mt-5 flex items-center gap-4 rounded-3xl bg-foreground px-6 py-5 text-background shadow-sm transition-all hover:opacity-95 active:scale-[0.995]"
       >
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-background/15">
           <PlayCircle className="size-6" />
