@@ -68,7 +68,7 @@ const STRINGS = {
   stars: { es: "estrellas", en: "stars" },
   starsEarned: { es: "estrellas ganadas", en: "stars earned" },
   perfectStars: { es: "¡Perfecto! 3 estrellas", en: "Perfect! 3 stars" },
-  heroTagline: { es: "¡Hola! Vamos a jugar y aprender.", en: "Hi! Let's play and learn." },
+  heroTagline: { es: "¡Hola! Aprende inglés americano jugando.", en: "Hi! Learn American English by playing." },
 
   // Player bar
   level: { es: "Nivel", en: "Level" },

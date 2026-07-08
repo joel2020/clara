@@ -54,14 +54,14 @@ export function Onboarding() {
             Bienvenida · Welcome
           </p>
           <h1 className="mt-5 font-display text-4xl font-medium leading-[1.08] tracking-[-0.03em] sm:text-5xl">
-            Tu curso de
+            Inglés
             <br />
-            <span className="text-primary">pronunciación.</span>
+            <span className="text-primary">americano.</span>
           </h1>
           <p className="mt-5 text-muted-foreground">
-            Escucha, habla y gana puntos mientras tu inglés se vuelve claro.
+            Escucha, habla y gánate estrellas mientras aprendes a hablar inglés americano.
             <span className="mt-1 block text-sm text-muted-foreground/70">
-              Listen, speak, and earn points while your English gets clear.
+              Listen, speak, and earn stars while you learn to speak American English.
             </span>
           </p>
 
