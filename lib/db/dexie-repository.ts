@@ -1,6 +1,15 @@
 import { db } from "./dexie";
 import { DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository";
-import type { Attempt, CategoryStat, ItemProgress, Lesson, PlayerStats, Settings } from "./types";
+import type {
+  Attempt,
+  CategoryStat,
+  ConvItem,
+  DailyQuestState,
+  ItemProgress,
+  Lesson,
+  PlayerStats,
+  Settings,
+} from "./types";
 
 const RECENT_WINDOW = 20; // attempts per category counted as "recent"
 
@@ -77,6 +86,22 @@ export class DexieRepository implements DataRepository {
     await db.player.put({ ...stats, id: "player" });
   }
 
+  async getConvItems(): Promise<ConvItem[]> {
+    return db.convItems.orderBy("createdAt").toArray();
+  }
+
+  async saveConvItem(item: ConvItem): Promise<void> {
+    await db.convItems.put(item);
+  }
+
+  async getQuests(day: string): Promise<DailyQuestState | undefined> {
+    return db.quests.get(day);
+  }
+
+  async saveQuests(state: DailyQuestState): Promise<void> {
+    await db.quests.put(state);
+  }
+
   async getCategoryStats(recentWindow = RECENT_WINDOW): Promise<CategoryStat[]> {
     const [attempts, progress] = await Promise.all([
       db.attempts.toArray(),
@@ -129,6 +154,8 @@ export class DexieRepository implements DataRepository {
       db.customLessons.clear(),
       db.settings.clear(),
       db.player.clear(),
+      db.convItems.clear(),
+      db.quests.clear(),
     ]);
   }
 }

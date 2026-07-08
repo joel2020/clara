@@ -32,6 +32,7 @@ interface ChatReply {
   reply_es: string;
   correction: string | null;
   suggestions: string[];
+  practice: { phrase: string; meaning: string } | null;
 }
 
 // OpenAI Structured Outputs (strict) schema — guarantees valid JSON back.
@@ -49,8 +50,19 @@ const SCHEMA = {
       items: { type: "string" },
       description: "2–3 very short English phrases she could tap to reply next.",
     },
+    practice: {
+      type: ["object", "null"],
+      description:
+        "The ONE short English phrase from this exchange most worth her drilling later — the corrected form if you corrected her, otherwise a useful natural phrase she should master. Null if nothing stands out this turn.",
+      properties: {
+        phrase: { type: "string", description: "The English phrase to practice (a few words, no punctuation clutter)." },
+        meaning: { type: "string", description: "Its natural Spanish translation." },
+      },
+      required: ["phrase", "meaning"],
+      additionalProperties: false,
+    },
   },
-  required: ["reply", "reply_es", "correction", "suggestions"],
+  required: ["reply", "reply_es", "correction", "suggestions", "practice"],
   additionalProperties: false,
 } as const;
 
@@ -68,7 +80,8 @@ RULES:
 - Her speech is transcribed from audio, so it may have small errors. Read past obvious transcription slips; assume she is trying her best.
 - Gently correct at most ONE mistake per turn, and only when it actually matters for being understood. Put the correction in the "correction" field written in ${coach}, not in your reply. Most turns should have no correction (null) — do not nitpick.
 - "reply_es" is a natural Spanish translation of your English reply, so she always understands you.
-- "suggestions" are 2–3 very short, natural English phrases she could say next in this moment.`;
+- "suggestions" are 2–3 very short, natural English phrases she could say next in this moment.
+- "practice" is the single phrase most worth her drilling after this turn: if you corrected her, the correct form; otherwise a natural, high-frequency phrase from this exchange she'd benefit from making automatic. Keep it short (2–6 words) and clean. Use null when nothing this turn is worth isolating.`;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -134,6 +147,10 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const parsed = JSON.parse(content) as ChatReply;
+    const practice =
+      parsed.practice && parsed.practice.phrase?.trim()
+        ? { phrase: parsed.practice.phrase.trim(), meaning: (parsed.practice.meaning ?? "").trim() }
+        : null;
     return Response.json({
       reply: (parsed.reply ?? "").trim(),
       reply_es: (parsed.reply_es ?? "").trim(),
@@ -141,6 +158,7 @@ export async function POST(request: Request): Promise<Response> {
       suggestions: Array.isArray(parsed.suggestions)
         ? parsed.suggestions.slice(0, 3).map((s) => String(s).trim()).filter(Boolean)
         : [],
+      practice,
     });
   } catch {
     return Response.json({ error: "Couldn't reach the conversation partner." }, { status: 502 });

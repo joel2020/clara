@@ -6,6 +6,7 @@ import { LessonList } from "@/components/lesson-list";
 import { ReviewCallout } from "@/components/review-callout";
 import { InstructorEntry } from "@/components/instructor-entry";
 import { PlayerBar } from "@/components/player-bar";
+import { DailyQuests } from "@/components/daily-quests";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 
@@ -33,6 +34,10 @@ export default function HomePage() {
 
       <div className="mt-10">
         <PlayerBar />
+      </div>
+
+      <div className="mt-4">
+        <DailyQuests />
       </div>
 
       <Link

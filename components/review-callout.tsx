@@ -2,22 +2,23 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { useAllProgress } from "@/lib/hooks/useData";
-import { ITEM_BY_ID } from "@/lib/content/lessons";
+import { useAllProgress, useConvItems } from "@/lib/hooks/useData";
+import { countDueReview } from "@/lib/review";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 
-// Surfaces how many words are due to resurface right now (the SRS payoff).
-// Hidden until there's actually something due, so the home screen stays calm.
+// Surfaces how many words are due to resurface right now (the SRS payoff) —
+// including phrases mined from live conversations. Hidden until there's actually
+// something due, so the home screen stays calm.
 
 export function ReviewCallout() {
   const progress = useAllProgress();
+  const convItems = useConvItems();
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
-  if (!progress) return null;
+  if (!progress || !convItems) return null;
 
-  const now = Date.now();
-  const due = progress.filter((p) => p.attempts > 0 && p.dueAt <= now && ITEM_BY_ID.has(p.itemId)).length;
+  const due = countDueReview(progress, convItems);
 
   if (due === 0) return null;
 

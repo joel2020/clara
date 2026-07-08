@@ -107,6 +107,30 @@ export interface ItemProgress {
   updatedAt: number;
 }
 
+/**
+ * A phrase mined from a live `/talk` conversation — either the corrected form of
+ * something she said, or a natural phrase from the exchange worth mastering. It
+ * IS a PracticeItem (so it flows through the exact same review/scoring pipeline),
+ * plus provenance so we can show "from your conversation".
+ */
+export interface ConvItem extends PracticeItem {
+  source: "talk";
+  scenarioId: string;
+  createdAt: number;
+}
+
+/**
+ * One day's progress on the three daily missions. Keyed by local day; rolls over
+ * automatically. `claimed` guards the one-time completion bonus.
+ */
+export interface DailyQuestState {
+  day: string; // local YYYY-MM-DD
+  talk: number; // conversation exchanges today
+  review: number; // items reviewed today
+  learn: number; // new items practiced today
+  claimed: boolean; // completion bonus already awarded
+}
+
 export interface Settings {
   id: string; // always "app"
   instructorMode: boolean;
@@ -148,6 +172,10 @@ export interface PlayerStats {
   totalPasses: number;
   bestCombo: number;
   achievements: string[]; // unlocked achievement ids
+  /** Streak "freezes" banked — one covers a single missed day so the streak survives. */
+  streakFreezes: number;
+  /** The day a freeze was last spent, so we don't double-spend within one day. */
+  freezeUsedDay: string | null;
   updatedAt: number;
 }
 

@@ -1,6 +1,8 @@
 import type {
   Attempt,
   CategoryStat,
+  ConvItem,
+  DailyQuestState,
   ItemProgress,
   Lesson,
   PlayerStats,
@@ -41,6 +43,14 @@ export interface DataRepository {
   getPlayerStats(): Promise<PlayerStats>;
   savePlayerStats(stats: PlayerStats): Promise<void>;
 
+  // --- Phrases mined from live conversations (feed the review deck) ---
+  getConvItems(): Promise<ConvItem[]>;
+  saveConvItem(item: ConvItem): Promise<void>;
+
+  // --- Daily quests ---
+  getQuests(day: string): Promise<DailyQuestState | undefined>;
+  saveQuests(state: DailyQuestState): Promise<void>;
+
   // --- Derived analytics ---
   getCategoryStats(recentWindow?: number): Promise<CategoryStat[]>;
 
@@ -72,5 +82,7 @@ export const DEFAULT_PLAYER: PlayerStats = {
   totalPasses: 0,
   bestCombo: 0,
   achievements: [],
+  streakFreezes: 0,
+  freezeUsedDay: null,
   updatedAt: 0,
 };

@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { PracticeSession } from "@/components/practice/practice-session";
-import { repo } from "@/lib/db";
-import { ITEM_BY_ID } from "@/lib/content/lessons";
-import type { Lesson, PracticeItem } from "@/lib/db/types";
+import { getDueReviewItems } from "@/lib/review";
+import type { Lesson } from "@/lib/db/types";
 
 // A review session pulls every due item across all lessons into one focused
 // pass — the spaced-repetition payoff. Built as a synthetic sound-focus lesson.
@@ -17,15 +16,8 @@ export default function ReviewPage() {
 
   useEffect(() => {
     let active = true;
-    repo.getAllProgress().then((all) => {
+    getDueReviewItems().then((dueItems) => {
       if (!active) return;
-      const now = Date.now();
-      const dueItems: PracticeItem[] = all
-        .filter((p) => p.attempts > 0 && p.dueAt <= now)
-        .sort((a, b) => a.dueAt - b.dueAt)
-        .map((p) => ITEM_BY_ID.get(p.itemId))
-        .filter((i): i is PracticeItem => Boolean(i));
-
       if (dueItems.length > 0) {
         setLesson({
           id: "review",

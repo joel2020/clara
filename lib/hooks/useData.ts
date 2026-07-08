@@ -3,7 +3,9 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/dexie";
 import { repo } from "@/lib/db";
-import type { Attempt, CategoryStat, ItemProgress } from "@/lib/db/types";
+import { dayKey } from "@/lib/gamification";
+import { emptyQuests } from "@/lib/quests";
+import type { Attempt, CategoryStat, ConvItem, DailyQuestState, ItemProgress } from "@/lib/db/types";
 
 // Reactive read hooks. These wrap Dexie's live queries so any write updates the
 // UI instantly. This is the one layer (besides lib/db) that's backend-aware —
@@ -42,6 +44,17 @@ export function useRecentAttempts(limit = 25): Attempt[] | undefined {
 
 export function useAllAttempts(): Attempt[] | undefined {
   return clientQuery(() => db.attempts.orderBy("at").toArray());
+}
+
+export function useConvItems(): ConvItem[] | undefined {
+  return clientQuery(() => db.convItems.toArray());
+}
+
+export function useTodayQuests(): DailyQuestState | undefined {
+  return clientQuery(async () => {
+    const day = dayKey();
+    return (await db.quests.get(day)) ?? emptyQuests(day);
+  });
 }
 
 export function useItemAttempts(itemId: string, limit = 10): Attempt[] | undefined {

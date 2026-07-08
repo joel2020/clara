@@ -2,13 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Mic, Square, RotateCcw, Volume2, Loader2 } from "lucide-react";
+import { ArrowLeft, Mic, Square, RotateCcw, Volume2, Loader2, BookmarkPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { SCENARIOS, type Scenario } from "@/lib/content/scenarios";
 import { createRecognition, type RecognitionHandle } from "@/lib/speech/recognition";
+import { repo } from "@/lib/db";
+import { recordQuestEvent } from "@/lib/quests";
+import type { ConvItem } from "@/lib/db/types";
+
+// Turn a mined phrase into a stable id so the same phrase isn't added twice.
+function convItemId(phrase: string): string {
+  const slug = phrase
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  return `conv:${slug || "phrase"}`;
+}
 
 // The live conversation partner. She picks a situation, then really talks with
 // Joel: she speaks, the server transcribes + asks Claude for Joel's next line,
@@ -32,6 +47,7 @@ export default function TalkPage() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [correction, setCorrection] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [savedPhrase, setSavedPhrase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
 
@@ -108,6 +124,7 @@ export default function TalkPage() {
       setPhase("thinking");
       setCorrection(null);
       setSuggestions([]);
+      setSavedPhrase(null);
       setError(null);
       // History excludes the opener (the server seeds that itself).
       const history = nextTurns.slice(1).map((turn) => ({
@@ -136,6 +153,7 @@ export default function TalkPage() {
           reply_es: string;
           correction: string | null;
           suggestions: string[];
+          practice: { phrase: string; meaning: string } | null;
         };
         setTurns((prev) => [...prev, { role: "joel", en: data.reply, es: data.reply_es }]);
         setCorrection(data.correction);
@@ -143,6 +161,26 @@ export default function TalkPage() {
         setPhase("idle");
         sfx.tap();
         void speak(data.reply);
+        // Learning loop: this exchange counts toward the daily "talk" quest, and
+        // the phrase worth drilling is saved into her review deck as homework.
+        void recordQuestEvent("talk");
+        if (data.practice?.phrase) {
+          const item: ConvItem = {
+            id: convItemId(data.practice.phrase),
+            text: data.practice.phrase,
+            ipa: "",
+            mouthHint: "",
+            kind: "phrase",
+            categoryId: "conversation",
+            phoneme: "chunk",
+            meaning: data.practice.meaning || undefined,
+            source: "talk",
+            scenarioId: scenario.id,
+            createdAt: Date.now(),
+          };
+          void repo.saveConvItem(item);
+          setSavedPhrase(data.practice.phrase);
+        }
       } catch {
         setError(t("talkError", lang));
         setPhase("idle");
@@ -274,6 +312,15 @@ export default function TalkPage() {
           <div className="rounded-2xl border border-primary/25 bg-primary/[0.05] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">{t("talkTip", lang)}</p>
             <p className="mt-1.5 text-sm leading-relaxed text-foreground">{correction}</p>
+          </div>
+        )}
+
+        {savedPhrase && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <BookmarkPlus className="size-4 text-success" />
+            <span>
+              {t("talkSaved", lang)} <span className="font-medium text-foreground">&ldquo;{savedPhrase}&rdquo;</span>
+            </span>
           </div>
         )}
 

@@ -4,6 +4,7 @@ import { applyResult, freshProgress } from "@/lib/srs";
 import { scoreAttempt, type ScoreResult } from "@/lib/speech/scoring";
 import { partnerOf } from "@/lib/content/lessons";
 import { applyAttempt, type AttemptRewards } from "@/lib/gamification";
+import { recordQuestEvent } from "@/lib/quests";
 import { pushAttempt, pushProgress, pushPlayer } from "@/lib/sync/supabase-sync";
 
 // One place that knows how an attempt becomes saved state: score it, append to
@@ -51,8 +52,9 @@ export async function recordPracticeAttempt(args: {
   };
   await repo.recordAttempt(attempt);
 
+  const existing = await repo.getProgress(item.id);
   const prev =
-    (await repo.getProgress(item.id)) ??
+    existing ??
     freshProgress(
       { itemId: item.id, lessonId, categoryId: item.categoryId, phoneme: item.phoneme },
       now,
@@ -76,6 +78,9 @@ export async function recordPracticeAttempt(args: {
     pushProgress(settings.profileId, nextProgress);
     pushPlayer(settings.profileId, stats);
   }
+
+  // Learning-loop quests: a previously-seen item counts as review; a new one as learning.
+  void recordQuestEvent(existing ? "review" : "learn");
 
   return { score: result, rewards };
 }

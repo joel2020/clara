@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame } from "lucide-react";
+import { Flame, Snowflake } from "lucide-react";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { levelProgress } from "@/lib/gamification";
@@ -41,6 +41,15 @@ export function PlayerBar() {
             <p className="font-display text-lg font-medium tabular-nums leading-none">{player.currentStreak}</p>
             <p className="text-[11px] text-muted-foreground">{t("dayStreak", lang)}</p>
           </div>
+          {player.streakFreezes > 0 && (
+            <span
+              title={t("freezeTip", lang)}
+              className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-primary"
+            >
+              <Snowflake className="size-3" />
+              {player.streakFreezes}
+            </span>
+          )}
         </div>
 
         {/* Daily goal */}

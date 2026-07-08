@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Attempt, ItemProgress, Lesson, PlayerStats, Settings } from "./types";
+import type { Attempt, ConvItem, DailyQuestState, ItemProgress, Lesson, PlayerStats, Settings } from "./types";
 
 /**
  * Local-first storage via IndexedDB. This is the ONLY file that knows we use
@@ -13,6 +13,8 @@ export class ClaraDB extends Dexie {
   customLessons!: Table<Lesson, string>;
   settings!: Table<Settings, string>;
   player!: Table<PlayerStats, string>;
+  convItems!: Table<ConvItem, string>;
+  quests!: Table<DailyQuestState, string>;
 
   constructor() {
     super("clara");
@@ -27,6 +29,12 @@ export class ClaraDB extends Dexie {
     // v2 adds the player progression store (XP, streaks, achievements).
     this.version(2).stores({
       player: "id",
+    });
+    // v3 adds the learning-loop stores: phrases mined from live conversations
+    // (they feed the review deck) and per-day quest progress.
+    this.version(3).stores({
+      convItems: "id, createdAt",
+      quests: "day",
     });
   }
 }

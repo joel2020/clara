@@ -60,6 +60,16 @@ function previousDayKey(key: string): string {
   return dayKey(date);
 }
 
+/** Whole calendar days between two day keys (toKey later). 1 = consecutive days. */
+function dayGap(fromKey: string, toKey: string): number {
+  const [fy, fm, fd] = fromKey.split("-").map(Number);
+  const [ty, tm, td] = toKey.split("-").map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
+}
+
+/** Most freezes a learner can bank at once. */
+export const MAX_FREEZES = 3;
+
 // ── Achievements ───────────────────────────────────────────────────────────
 
 export interface Achievement {
@@ -114,6 +124,8 @@ export interface AttemptRewards {
   combo: number;
   streakIncreased: boolean;
   currentStreak: number;
+  freezeUsed: boolean; // a missed day was covered by a banked freeze
+  freezeEarned: boolean; // a new freeze was just banked (streak milestone)
   dailyGoalMet: boolean; // crossed the goal on this attempt
   unlocked: string[]; // newly unlocked achievement ids
 }
@@ -137,11 +149,32 @@ export function applyAttempt(
   let streakIncreased = false;
   let todayKey = prev.todayKey;
   let todayXp = prev.todayXp;
+  let streakFreezes = prev.streakFreezes ?? 0;
+  let freezeUsedDay = prev.freezeUsedDay ?? null;
+  let freezeUsed = false;
+  let freezeEarned = false;
 
   if (prev.lastActiveDay !== today) {
-    currentStreak = prev.lastActiveDay && previousDayKey(today) === prev.lastActiveDay ? prev.currentStreak + 1 : 1;
-    streakIncreased = currentStreak !== prev.currentStreak || prev.lastActiveDay === null;
+    if (!prev.lastActiveDay) {
+      currentStreak = 1;
+    } else if (previousDayKey(today) === prev.lastActiveDay) {
+      currentStreak = prev.currentStreak + 1; // practiced yesterday — streak grows
+    } else if (dayGap(prev.lastActiveDay, today) === 2 && streakFreezes > 0) {
+      // Missed exactly one day, but a banked freeze covers it — streak survives.
+      streakFreezes -= 1;
+      freezeUsedDay = today;
+      freezeUsed = true;
+      currentStreak = prev.currentStreak + 1;
+    } else {
+      currentStreak = 1; // missed too long (or no freeze) — start over
+    }
+    streakIncreased = prev.lastActiveDay === null || currentStreak > prev.currentStreak;
     longestStreak = Math.max(longestStreak, currentStreak);
+    // Bank a freeze on each new 7-day milestone, up to the cap.
+    if (streakIncreased && currentStreak % 7 === 0 && streakFreezes < MAX_FREEZES) {
+      streakFreezes += 1;
+      freezeEarned = true;
+    }
   }
   if (todayKey !== today) {
     todayKey = today;
@@ -165,6 +198,8 @@ export function applyAttempt(
     totalAttempts: prev.totalAttempts + 1,
     totalPasses: prev.totalPasses + (opts.passed ? 1 : 0),
     bestCombo,
+    streakFreezes,
+    freezeUsedDay,
     updatedAt: now.getTime(),
   };
 
@@ -184,6 +219,8 @@ export function applyAttempt(
       combo: opts.combo,
       streakIncreased,
       currentStreak,
+      freezeUsed,
+      freezeEarned,
       dailyGoalMet: todayXpBefore < opts.dailyGoal && todayXp >= opts.dailyGoal,
       unlocked,
     },

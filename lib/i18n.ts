@@ -132,6 +132,21 @@ const STRINGS = {
   talkChange: { es: "Cambiar situación", en: "Change situation" },
   talkReplay: { es: "Repetir", en: "Replay" },
   talkError: { es: "Ups, algo falló. Intenta de nuevo.", en: "Oops, something went wrong. Try again." },
+  talkSaved: { es: "Guardado para tu práctica:", en: "Saved to your practice:" },
+
+  // Daily quests
+  questsTitle: { es: "Misiones de hoy", en: "Today's missions" },
+  questsSub: { es: "Un poquito cada día — así se vuelve fluida.", en: "A little every day — that's how fluency comes." },
+  questsAllDone: { es: "¡Misiones completas! +30 XP", en: "Missions complete! +30 XP" },
+  questTalk: { es: "Conversa con Joel", en: "Have a conversation" },
+  questReview: { es: "Repasa 5 palabras", en: "Review 5 words" },
+  questLearn: { es: "Aprende 5 palabras nuevas", en: "Learn 5 new words" },
+
+  // Streak freeze
+  freezeTip: {
+    es: "Protección de racha: cubre un día perdido para que tu racha no se pierda.",
+    en: "Streak freeze: covers one missed day so your streak survives.",
+  },
   talkNotConfiguredTitle: { es: "Casi listo", en: "Almost ready" },
   talkNotConfigured: {
     es: "El compañero de conversación necesita una llave de API de Anthropic para funcionar. Añádela y estará lista.",
