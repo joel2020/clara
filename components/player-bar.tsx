@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, Snowflake } from "lucide-react";
+import { Flame, Snowflake, Star } from "lucide-react";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { levelProgress } from "@/lib/gamification";
@@ -34,6 +34,17 @@ export function PlayerBar() {
       </div>
 
       <div className="ml-auto flex items-center gap-5">
+        {/* Stars — the game currency */}
+        <div className="flex items-center gap-2">
+          <span className="star-chip grid size-7 place-items-center rounded-full shadow-sm">
+            <Star className="size-4" style={{ fill: "currentColor" }} strokeWidth={0} />
+          </span>
+          <div className="leading-tight">
+            <p className="font-display text-lg font-medium tabular-nums leading-none">{player.stars ?? 0}</p>
+            <p className="text-[11px] text-muted-foreground">{t("stars", lang)}</p>
+          </div>
+        </div>
+
         {/* Streak */}
         <div className="flex items-center gap-2">
           <Flame className={cn("size-5", player.currentStreak > 0 ? "text-warn" : "text-muted-foreground/40")} />

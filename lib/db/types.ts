@@ -172,6 +172,8 @@ export interface PlayerStats {
   totalPasses: number;
   bestCombo: number;
   achievements: string[]; // unlocked achievement ids
+  /** Stars — the game currency. Earned 1–3 per clear answer by how clean it was. */
+  stars: number;
   /** Streak "freezes" banked — one covers a single missed day so the streak survives. */
   streakFreezes: number;
   /** The day a freeze was last spent, so we don't double-spend within one day. */

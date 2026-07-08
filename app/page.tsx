@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, CalendarDays, MessageCircle } from "lucide-react";
+import { Zap, CalendarDays, MessageCircle, Star } from "lucide-react";
 import { LessonList } from "@/components/lesson-list";
 import { ReviewCallout } from "@/components/review-callout";
 import { InstructorEntry } from "@/components/instructor-entry";
 import { PlayerBar } from "@/components/player-bar";
 import { DailyQuests } from "@/components/daily-quests";
+import { Lumi } from "@/components/lumi";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 
@@ -17,19 +18,35 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-24 pt-14 sm:px-6 sm:pt-20">
-      <section className="animate-fade-up">
-        <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          <span className="flag-dots" aria-hidden>
-            <i /><i /><i />
-          </span>
-          {name ? `Hola, ${name}` : "Hola"} · {t("heroEyebrow", lang)}
-        </p>
-        <h1 className="mt-5 font-display text-[2.75rem] font-medium leading-[1.05] tracking-[-0.03em] sm:text-6xl">
-          {t("heroTitleTop", lang)}
-          <br />
-          <span className="text-primary">{t("heroTitleBottom", lang)}</span>
-        </h1>
-        <p className="mt-6 max-w-md text-lg leading-relaxed text-muted-foreground">{t("heroBody", lang)}</p>
+      <section className="game-hero animate-fade-up relative overflow-hidden rounded-3xl px-6 pb-0 pt-6 shadow-sm ring-1 ring-black/5 sm:px-8 sm:pt-8">
+        <div className="flag-bar absolute inset-x-0 top-0 h-[3px]" aria-hidden />
+        {/* floating stars */}
+        <span className="pointer-events-none absolute right-[42%] top-6 text-co-yellow animate-float" aria-hidden style={{ animationDelay: "0.2s" }}>
+          <Star className="size-4" style={{ fill: "currentColor" }} strokeWidth={0} />
+        </span>
+        <span className="pointer-events-none absolute right-[36%] top-20 text-white/80 animate-float" aria-hidden style={{ animationDelay: "0.9s" }}>
+          <Star className="size-3" style={{ fill: "currentColor" }} strokeWidth={0} />
+        </span>
+
+        <div className="relative z-10 flex items-end justify-between gap-3">
+          <div className="max-w-[58%] pb-7">
+            <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/70">
+              <span className="flag-dots" aria-hidden>
+                <i /><i /><i />
+              </span>
+              {name ? `¡Hola, ${name}!` : "¡Hola!"}
+            </p>
+            <h1 className="mt-3 font-display text-3xl font-semibold leading-[1.03] tracking-[-0.03em] sm:text-5xl">
+              {t("heroTitleBottom", lang)}
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-foreground/70 sm:text-base">{t("heroTagline", lang)}</p>
+          </div>
+
+          {/* Lumi waves from the corner */}
+          <div className="relative -mr-2 h-44 w-32 shrink-0 sm:h-56 sm:w-44">
+            <Lumi frame="full" priority />
+          </div>
+        </div>
       </section>
 
       <div className="mt-10">

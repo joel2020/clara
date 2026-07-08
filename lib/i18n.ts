@@ -31,6 +31,12 @@ const STRINGS = {
   reviewTitleMany: { es: "palabras listas para repasar", en: "words are ready for review" },
   reviewSub: { es: "Un repaso rápido de los sonidos que se te escapan.", en: "A quick refresh on the sounds you've been missing." },
 
+  // Stars (game currency)
+  stars: { es: "estrellas", en: "stars" },
+  starsEarned: { es: "estrellas ganadas", en: "stars earned" },
+  perfectStars: { es: "¡Perfecto! 3 estrellas", en: "Perfect! 3 stars" },
+  heroTagline: { es: "¡Hola! Vamos a jugar y aprender.", en: "Hi! Let's play and learn." },
+
   // Player bar
   level: { es: "Nivel", en: "Level" },
   xpToNext: { es: "XP para subir", en: "XP to next" },

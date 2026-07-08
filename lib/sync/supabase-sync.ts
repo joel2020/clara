@@ -214,6 +214,7 @@ export async function pullProfileData(profileId: string): Promise<PulledData | n
         totalPasses: pd.total_passes,
         bestCombo: pd.best_combo,
         achievements: pd.achievements ?? [],
+        stars: pd.stars ?? 0,
         streakFreezes: pd.streak_freezes ?? 0,
         freezeUsedDay: pd.freeze_used_day ?? null,
         updatedAt: pd.updated_at,

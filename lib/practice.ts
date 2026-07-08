@@ -68,6 +68,7 @@ export async function recordPracticeAttempt(args: {
     passed: result.passed,
     combo: result.passed ? combo : 0,
     dailyGoal: settings.dailyGoal,
+    score: result.score,
   });
   await repo.savePlayerStats(stats);
 

@@ -82,6 +82,7 @@ export const DEFAULT_PLAYER: PlayerStats = {
   totalPasses: 0,
   bestCombo: 0,
   achievements: [],
+  stars: 0,
   streakFreezes: 0,
   freezeUsedDay: null,
   updatedAt: 0,

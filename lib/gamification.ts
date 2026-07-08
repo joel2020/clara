@@ -47,6 +47,16 @@ export function xpForAttempt(passed: boolean, combo: number): number {
   return PASS_XP + bonus;
 }
 
+// ── Stars (the game currency) ────────────────────────────────────────────────
+
+/** Star rating for one attempt: 0 on a miss, else 1–3 by how clean it was. */
+export function starRating(passed: boolean, score: number): number {
+  if (!passed) return 0;
+  if (score >= 92) return 3;
+  if (score >= 80) return 2;
+  return 1;
+}
+
 // ── Days & streaks ─────────────────────────────────────────────────────────
 
 export function dayKey(d: Date = new Date()): string {
@@ -122,6 +132,8 @@ export interface AttemptRewards {
   oldLevel: number;
   newLevel: number;
   combo: number;
+  starsEarned: number; // stars won on this attempt (0–3)
+  starTotal: number; // running star balance after this attempt
   streakIncreased: boolean;
   currentStreak: number;
   freezeUsed: boolean; // a missed day was covered by a banked freeze
@@ -136,11 +148,13 @@ export interface AttemptRewards {
  */
 export function applyAttempt(
   prev: PlayerStats,
-  opts: { passed: boolean; combo: number; dailyGoal: number; now?: Date },
+  opts: { passed: boolean; combo: number; dailyGoal: number; score?: number; now?: Date },
 ): { stats: PlayerStats; rewards: AttemptRewards } {
   const now = opts.now ?? new Date();
   const today = dayKey(now);
   const xpGain = xpForAttempt(opts.passed, opts.combo);
+  const starsEarned = starRating(opts.passed, opts.score ?? (opts.passed ? 80 : 0));
+  const starTotal = (prev.stars ?? 0) + starsEarned;
   const oldLevel = levelForXp(prev.xp);
 
   // Streak / daily bookkeeping.
@@ -198,6 +212,7 @@ export function applyAttempt(
     totalAttempts: prev.totalAttempts + 1,
     totalPasses: prev.totalPasses + (opts.passed ? 1 : 0),
     bestCombo,
+    stars: starTotal,
     streakFreezes,
     freezeUsedDay,
     updatedAt: now.getTime(),
@@ -217,6 +232,8 @@ export function applyAttempt(
       oldLevel,
       newLevel,
       combo: opts.combo,
+      starsEarned,
+      starTotal,
       streakIncreased,
       currentStreak,
       freezeUsed,

@@ -10,6 +10,8 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { sfx } from "@/lib/sfx";
 import { t, partnerFeedback, type CoachLang } from "@/lib/i18n";
 import { popConfetti } from "@/lib/fx";
+import { Lumi } from "@/components/lumi";
+import { StarRating, SparkleBurst } from "@/components/star-reward";
 
 type Phase = "idle" | "listening" | "scoring" | "result";
 
@@ -180,22 +182,34 @@ function ResultCard({
     : NUDGES[Math.floor(Math.random() * NUDGES.length)];
   return (
     <div className="animate-fade-up text-center" role="status" aria-live="polite">
-      <p className={cn("text-[11px] font-semibold uppercase tracking-[0.2em]", passed ? "text-primary" : "text-muted-foreground")}>
-        {spanish}
-      </p>
-      <div className="mt-2 flex items-center justify-center gap-3">
-        <span
-          className={cn("size-2.5 rounded-full", passed ? "bg-success" : result.heardPartner ? "bg-destructive" : "bg-warn")}
-          aria-hidden
-        />
+      {/* Lumi reacts — cheering on a win, cheering her on after a miss */}
+      <div className="relative mx-auto w-fit">
+        {passed && <SparkleBurst />}
+        <Lumi frame="bust" mood={passed ? "cheer" : "think"} className="mx-auto size-28" />
+        <span className="animate-pop-in absolute -right-2 -top-1 rounded-2xl rounded-bl-sm bg-white px-3 py-1.5 text-sm font-semibold text-foreground shadow-md ring-1 ring-black/5">
+          {spanish}
+        </span>
+      </div>
+
+      {/* Star rating — the reward at the center of the game */}
+      <div className="mt-4">
+        <StarRating rating={rewards.starsEarned} />
+      </div>
+
+      <div className="mt-3 flex items-center justify-center gap-3">
         <h3 className="font-display text-2xl font-medium tracking-[-0.01em]">
           {passed ? t("resultClear", lang) : result.heardPartner ? t("resultWrongTwin", lang) : t("resultAlmost", lang)}
         </h3>
         <span className="font-mono text-base tabular-nums text-muted-foreground">{result.score}%</span>
       </div>
 
-      {/* Reward line: XP + combo */}
-      <div className="mt-3 flex items-center justify-center gap-2">
+      {/* Reward line: stars + XP + combo */}
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        {passed && rewards.starsEarned > 0 && (
+          <span className="star-chip animate-pop-in inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
+            +{rewards.starsEarned} ★
+          </span>
+        )}
         <span
           className={cn(
             "animate-scale-in rounded-full px-2.5 py-1 font-mono text-xs font-semibold tabular-nums",
