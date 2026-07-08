@@ -110,6 +110,34 @@ const STRINGS = {
     en: "Recording and scoring aren't supported in this browser, so you can listen but can't be scored. Use Google Chrome for the full loop.",
   },
 
+  // Live conversation partner
+  talkCard: { es: "Conversación en vivo", en: "Live conversation" },
+  talkCardSub: { es: "Habla de verdad con Joel, tu compañero de IA", en: "Really talk with Joel, your AI partner" },
+  talkEyebrow: { es: "Habla con Joel", en: "Talk with Joel" },
+  talkTitle: { es: "Conversación en vivo", en: "Live conversation" },
+  talkIntro: {
+    es: "Elige una situación y habla con Joel como en la vida real. Él te responde con su voz, te entiende, y te da un empujoncito cuando lo necesitas.",
+    en: "Pick a situation and talk with Joel like in real life. He answers in his own voice, understands you, and nudges you when you need it.",
+  },
+  talkChoose: { es: "Elige una situación", en: "Choose a situation" },
+  talkStart: { es: "Empezar", en: "Start" },
+  talkYourTurn: { es: "Tu turno — toca y habla", en: "Your turn — tap and speak" },
+  talkListening: { es: "Escuchando… habla ahora", en: "Listening… speak now" },
+  talkStop: { es: "Detener", en: "Stop" },
+  talkThinking: { es: "Joel está pensando…", en: "Joel is thinking…" },
+  talkYouSaid: { es: "Dijiste", en: "You said" },
+  talkTip: { es: "Un consejito", en: "A little tip" },
+  talkTrySaying: { es: "Puedes decir…", en: "You could say…" },
+  talkRestart: { es: "Reiniciar", en: "Restart" },
+  talkChange: { es: "Cambiar situación", en: "Change situation" },
+  talkReplay: { es: "Repetir", en: "Replay" },
+  talkError: { es: "Ups, algo falló. Intenta de nuevo.", en: "Oops, something went wrong. Try again." },
+  talkNotConfiguredTitle: { es: "Casi listo", en: "Almost ready" },
+  talkNotConfigured: {
+    es: "El compañero de conversación necesita una llave de API de Anthropic para funcionar. Añádela y estará lista.",
+    en: "The conversation partner needs an Anthropic API key to work. Add it and it's ready to go.",
+  },
+
   // Feedback lines (mirror scoring.ts buildFeedback)
   fbPerfect: { es: "Perfecto — exactamente así.", en: "Perfect — that's exactly it." },
   fbNice: { es: "Muy bien — se entendió clarito. Sigue así.", en: "Nice — that's clear. Keep it up." },

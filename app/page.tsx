@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, CalendarDays } from "lucide-react";
+import { Zap, CalendarDays, MessageCircle } from "lucide-react";
 import { LessonList } from "@/components/lesson-list";
 import { ReviewCallout } from "@/components/review-callout";
 import { InstructorEntry } from "@/components/instructor-entry";
@@ -34,6 +34,19 @@ export default function HomePage() {
       <div className="mt-10">
         <PlayerBar />
       </div>
+
+      <Link
+        href="/talk"
+        className="group mt-4 flex items-center gap-4 rounded-2xl border border-primary/30 bg-primary/[0.06] px-5 py-5 transition-colors hover:border-primary/60"
+      >
+        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+          <MessageCircle className="size-6" />
+        </span>
+        <div className="flex-1">
+          <p className="font-display text-lg font-medium tracking-[-0.01em]">{t("talkCard", lang)}</p>
+          <p className="text-sm text-muted-foreground">{t("talkCardSub", lang)}</p>
+        </div>
+      </Link>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <ReviewCallout />
