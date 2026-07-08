@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, CalendarDays, MessageCircle, Store } from "lucide-react";
+import { Zap, CalendarDays, MessageCircle, Store, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LessonList } from "@/components/lesson-list";
 import { ReviewCallout } from "@/components/review-callout";
@@ -65,7 +65,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="mt-10">
+      <Link
+        href="/today"
+        className="group mt-6 flex items-center gap-4 rounded-3xl bg-foreground px-6 py-5 text-background shadow-sm transition-all hover:opacity-95 active:scale-[0.995]"
+      >
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-background/15">
+          <PlayCircle className="size-6" />
+        </span>
+        <div className="flex-1">
+          <p className="font-display text-lg font-semibold tracking-[-0.01em]">{t("todayCard", lang)}</p>
+          <p className="text-sm text-background/70">{t("todayCardSub", lang)}</p>
+        </div>
+        <span className="text-background/60 transition-transform group-hover:translate-x-0.5">→</span>
+      </Link>
+
+      <div className="mt-6">
         <PlayerBar />
       </div>
 

@@ -82,8 +82,8 @@ export default function PlanPage() {
         </h1>
         <p className="mt-5 max-w-lg text-muted-foreground">
           {es
-            ? `El plan${name ? ` de ${name}` : ""}: 20–30 minutos diarios en la app (la unidad de la semana + tu repaso), y dos clases en vivo por semana que son PURA conversación — la app enseña, la clase practica.`
-            : `The plan${name ? ` for ${name}` : ""}: 20–30 minutes a day in the app (the week's unit + your review queue), and two live sessions a week that are PURE conversation — the app teaches, class practices.`}
+            ? `El plan${name ? ` de ${name}` : ""}: 15–30 minutos al día. Cada día haces tu sesión guiada — repaso, la unidad de la semana y una conversación con Joel. La app te enseña, te corrige y te lleva de la mano.`
+            : `The plan${name ? ` for ${name}` : ""}: 15–30 minutes a day. Each day you do your guided session — review, the week's unit, and a conversation with Joel. The app teaches, corrects, and walks you through it.`}
         </p>
       </header>
 
@@ -97,19 +97,19 @@ export default function PlanPage() {
           <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-foreground/85">
             <li>{es ? "1 · Tu repaso pendiente (primero, siempre)" : "1 · Your review queue (first, always)"}</li>
             <li>{es ? "2 · La unidad de conversación de la semana" : "2 · The week's conversation unit"}</li>
-            <li>{es ? "3 · La lección de sonidos de la semana" : "3 · The week's sound lesson"}</li>
-            <li>{es ? "4 · Una ronda rápida si quieres el combo" : "4 · A speed round if you're chasing the combo"}</li>
+            <li>{es ? "3 · Una conversación con Joel sobre esa unidad" : "3 · A conversation with Joel about that unit"}</li>
+            <li>{es ? "4 · La lección de sonidos de la semana" : "4 · The week's sound lesson"}</li>
           </ul>
         </div>
         <div className="rounded-2xl border border-hairline bg-card p-5">
           <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
             <Users className="size-4" />
-            {es ? "2 veces por semana · en vivo (1 hora)" : "Twice a week · live (1 hour)"}
+            {es ? "Conversación con Joel (IA)" : "Conversation with Joel (AI)"}
           </p>
           <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-foreground/85">
-            <li>{es ? "10 min · calentar con las frases de la semana" : "10 min · warm up with the week's chunks"}</li>
-            <li>{es ? "35 min · el juego de rol de la semana — solo inglés" : "35 min · the week's roleplay — English only"}</li>
-            <li>{es ? "15 min · correcciones y metas para la app" : "15 min · corrections and app goals"}</li>
+            <li>{es ? "Elige un escenario: café, direcciones, planes…" : "Pick a scenario: café, directions, plans…"}</li>
+            <li>{es ? "Habla de verdad — Joel responde con su voz" : "Really talk — Joel answers in his voice"}</li>
+            <li>{es ? "Te corrige con cariño y guarda lo difícil para repasar" : "He corrects gently and saves the hard bits to review"}</li>
           </ul>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function PlanPage() {
                     {es ? w.sounds.es : w.sounds.en}
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-foreground/80">
-                    <span className="font-medium text-primary">{es ? "En vivo: " : "Live: "}</span>
+                    <span className="font-medium text-primary">{es ? "Con Joel: " : "With Joel: "}</span>
                     {es ? w.live.es : w.live.en}
                   </p>
                 </div>

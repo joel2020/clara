@@ -26,10 +26,27 @@ const STRINGS = {
   trackSounds: { es: "Sonidos", en: "Sounds" },
   trackSoundsSub: { es: "Los sonidos del inglés que más nos cuestan", en: "The English sounds Spanish speakers find hardest" },
   planCard: { es: "Tu plan de 12 semanas", en: "Your 12-week plan" },
-  planCardSub: { es: "Qué practicar cada semana, junto a tus clases", en: "What to practice each week, alongside your live classes" },
+  planCardSub: { es: "Qué practicar cada semana, a tu ritmo", en: "What to practice each week, at your own pace" },
   reviewTitleOne: { es: "palabra lista para repasar", en: "word is ready for review" },
   reviewTitleMany: { es: "palabras listas para repasar", en: "words are ready for review" },
   reviewSub: { es: "Un repaso rápido de los sonidos que se te escapan.", en: "A quick refresh on the sounds you've been missing." },
+
+  // Today's guided session
+  todayCard: { es: "Sesión de hoy", en: "Today's session" },
+  todayCardSub: { es: "Tu rutina guiada — empieza aquí", en: "Your guided routine — start here" },
+  todayTitle: { es: "Tu sesión de hoy", en: "Your session today" },
+  todayIntro: { es: "Sigue los pasos y en ~15 minutos habrás practicado todo lo que necesitas hoy.", en: "Follow the steps — in ~15 minutes you'll have practiced everything you need today." },
+  todayStart: { es: "Empezar", en: "Start" },
+  todayContinue: { es: "Continuar", en: "Continue" },
+  todayReview: { es: "Calentamiento", en: "Warm up" },
+  todayReviewSub: { es: "Repasa lo que ya viste", en: "Refresh what you've seen" },
+  todayReviewNone: { es: "Nada que repasar hoy — ¡listo!", en: "Nothing to review today — done!" },
+  todayLearn: { es: "Aprende", en: "Learn" },
+  todayTalk: { es: "Conversa con Joel", en: "Talk with Joel" },
+  todayDoneTitle: { es: "¡Sesión completa!", en: "Session complete!" },
+  todayDoneSub: { es: "Lo hiciste todo hoy. Nos vemos mañana.", en: "You did it all today. See you tomorrow." },
+  todayStarsToday: { es: "estrellas hoy", en: "stars today" },
+  todayStep: { es: "Paso", en: "Step" },
 
   // Star shop
   shopCard: { es: "Tienda de estrellas", en: "Star shop" },
