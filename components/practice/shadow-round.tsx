@@ -10,7 +10,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
 import { sfx } from "@/lib/sfx";
 import { popConfetti, celebrate } from "@/lib/fx";
-import { playPronunciation, stopPronunciation } from "@/lib/speech/player";
+import { playPronunciation, stopPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
 import { StarRating } from "@/components/star-reward";
@@ -38,6 +38,9 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
   const handleRef = useRef<ReturnType<typeof createRecognition> | null>(null);
 
   const current = round[idx];
+  // A different American voice per phrase, so her ear trains across speakers.
+  // Fixed per item (recomputes only when the phrase changes) so replay matches.
+  const voiceSlug = useMemo(() => pickDrillVoice(0.25).slug, [idx]);
 
   const playModel = useCallback(() => {
     if (!current) return;
@@ -45,12 +48,12 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
     playPronunciation({
       id: current.id,
       text: current.text,
-      voice: "joel",
+      voice: voiceSlug,
       rate: settings.speechRate,
       voiceURI: settings.voiceURI,
       onEnd: () => setPhase((p) => (p === "listen" ? "ready" : p)),
     });
-  }, [current, settings.speechRate, settings.voiceURI]);
+  }, [current, voiceSlug, settings.speechRate, settings.voiceURI]);
 
   // Auto-play Joel when a new phrase appears.
   useEffect(() => {

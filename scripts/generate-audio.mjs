@@ -27,12 +27,18 @@ const CONCURRENCY = 5;
 const FORCE = process.argv.includes("--force");
 const ONLY_VOICE = process.argv.includes("--voice") ? process.argv[process.argv.indexOf("--voice") + 1] : null;
 
-// The cast. Joel is primary (root dir); the rest are the supporting voices.
+// The cast. Joel (the instructor's cloned voice) is primary (root dir); the rest
+// are a deliberately DIVERSE set of American voices — different genders, ages,
+// and timbres — so her ear generalizes across real American speakers instead of
+// memorizing one voice. All American-accent voices from the ElevenLabs library.
 const VOICES = [
-  { slug: "joel", name: "Joel", id: "OH0RKOa9ViI9M4CAHBcv", primary: true },
-  { slug: "mariana", name: "Mariana", id: "OB0Jj6v9DGLLgz8dD57i", primary: false },
-  { slug: "hope", name: "Hope", id: "tnSpp4vdxKPjI9w0GnoV", primary: false },
-  { slug: "eric", name: "Eric", id: "cjVigY5qzO86Huf0OWal", primary: false },
+  { slug: "joel", name: "Joel", id: "OH0RKOa9ViI9M4CAHBcv", primary: true }, // cloned (instructor)
+  { slug: "sarah", name: "Sarah", id: "EXAVITQu4vr4xnSDxMaL", primary: false }, // F, young, clear
+  { slug: "jessica", name: "Jessica", id: "cgSgspJ2msm6clMCkdW9", primary: false }, // F, young, casual
+  { slug: "hope", name: "Hope", id: "tnSpp4vdxKPjI9w0GnoV", primary: false }, // F, young, upbeat
+  { slug: "brooklyn", name: "Brooklyn", id: "zWoalRDt5TZrmW4ROIA7", primary: false }, // F, warm, distinct
+  { slug: "roger", name: "Roger", id: "CwhRBWXzGAHq8TQ4Fs17", primary: false }, // M, mature, laid-back
+  { slug: "eric", name: "Eric", id: "cjVigY5qzO86Huf0OWal", primary: false }, // M, middle, smooth
 ];
 
 function loadEnv() {

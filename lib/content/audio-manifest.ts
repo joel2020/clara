@@ -4,8 +4,11 @@
 
 export const AUDIO_VOICE = "Joel";
 export const ALT_VOICES: { slug: string; name: string }[] = [
-  { slug: "mariana", name: "Mariana" },
+  { slug: "sarah", name: "Sarah" },
+  { slug: "jessica", name: "Jessica" },
   { slug: "hope", name: "Hope" },
+  { slug: "brooklyn", name: "Brooklyn" },
+  { slug: "roger", name: "Roger" },
   { slug: "eric", name: "Eric" },
 ];
 export const AUDIO_KEYS: string[] = [

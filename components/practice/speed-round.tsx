@@ -43,7 +43,7 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
           playPronunciation({
             id: current.id,
             text: current.text,
-            voice: pickDrillVoice(0.7).slug,
+            voice: pickDrillVoice().slug,
             rate: settings.speechRate,
             voiceURI: settings.voiceURI,
           }),

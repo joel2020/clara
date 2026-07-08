@@ -32,12 +32,12 @@ const STRINGS = {
   reviewSub: { es: "Un repaso rápido de los sonidos que se te escapan.", en: "A quick refresh on the sounds you've been missing." },
 
   // Shadowing / listening game
-  shadowCard: { es: "Repite con Joel", en: "Shadow Joel" },
-  shadowCardSub: { es: "Escucha y repite — entrena tu oído", en: "Listen and echo — train your ear" },
-  shadowTitle: { es: "Repite con Joel", en: "Shadow Joel" },
-  shadowIntro: { es: "Escucha a Joel decir una frase y repítela enseguida, igualito. Así entrenas el oído y sueltas la lengua.", en: "Hear Joel say a phrase, then echo it right back. This trains your ear and makes speech automatic." },
+  shadowCard: { es: "Escucha y repite", en: "Listen & echo" },
+  shadowCardSub: { es: "Distintas voces americanas — entrena tu oído", en: "Different American voices — train your ear" },
+  shadowTitle: { es: "Escucha y repite", en: "Listen & echo" },
+  shadowIntro: { es: "Escucha una frase y repítela enseguida, igualito. Oirás distintas voces americanas — así entrenas el oído para el inglés real.", en: "Hear a phrase, then echo it right back. You'll hear different American voices — that's how you train your ear for real English." },
   shadowStart: { es: "Empezar", en: "Start" },
-  shadowListen: { es: "Escucha a Joel…", en: "Listen to Joel…" },
+  shadowListen: { es: "Escucha bien…", en: "Listen closely…" },
   shadowRepeat: { es: "Ahora repite", en: "Now repeat" },
   shadowReplay: { es: "Escuchar otra vez", en: "Hear it again" },
   shadowExit: { es: "Salir", en: "Exit" },
