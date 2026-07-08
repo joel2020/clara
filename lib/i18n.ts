@@ -31,6 +31,14 @@ const STRINGS = {
   reviewTitleMany: { es: "palabras listas para repasar", en: "words are ready for review" },
   reviewSub: { es: "Un repaso rápido de los sonidos que se te escapan.", en: "A quick refresh on the sounds you've been missing." },
 
+  // Adventure map / journey
+  mapCard: { es: "Tu aventura", en: "Your journey" },
+  mapCardSub: { es: "El camino, paso a paso", en: "Your path, step by step" },
+  mapEyebrow: { es: "El camino", en: "The path" },
+  mapTitle: { es: "Tu aventura", en: "Your journey" },
+  mapIntro: { es: "Avanza por el camino: cada parada te acerca a hablar inglés americano.", en: "Follow the path — each stop gets you closer to speaking American English." },
+  mapFinish: { es: "¡Conversacional!", en: "Conversational!" },
+
   // Shadowing / listening game
   shadowCard: { es: "Escucha y repite", en: "Listen & echo" },
   shadowCardSub: { es: "Distintas voces americanas — entrena tu oído", en: "Different American voices — train your ear" },
