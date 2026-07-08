@@ -39,6 +39,23 @@ const STRINGS = {
   mapIntro: { es: "Avanza por el camino: cada parada te acerca a hablar inglés americano.", en: "Follow the path — each stop gets you closer to speaking American English." },
   mapFinish: { es: "¡Conversacional!", en: "Conversational!" },
 
+  // Listening comprehension game
+  listenCard: { es: "Oído de acero", en: "Sharp ears" },
+  listenCardSub: { es: "Escucha sin leer y adivina el significado", en: "Hear it — no reading — and pick the meaning" },
+  listenTitle: { es: "Oído de acero", en: "Sharp ears" },
+  listenIntro: {
+    es: "Escucha la frase — sin verla escrita — y elige qué significa. Así se entiende el inglés de la vida real.",
+    en: "Hear the phrase — no text — and choose what it means. That's how you learn to understand real-life English.",
+  },
+  listenWhich: { es: "¿Qué significa?", en: "What does it mean?" },
+
+  // Bottom navigation (mobile)
+  navHome: { es: "Inicio", en: "Home" },
+  navToday: { es: "Hoy", en: "Today" },
+  navTalk: { es: "Hablar", en: "Talk" },
+  navListenTab: { es: "Oído", en: "Ears" },
+  navMap: { es: "Mapa", en: "Map" },
+
   // Shadowing / listening game
   shadowCard: { es: "Escucha y repite", en: "Listen & echo" },
   shadowCardSub: { es: "Distintas voces americanas — entrena tu oído", en: "Different American voices — train your ear" },
@@ -211,6 +228,12 @@ const STRINGS = {
     es: "El compañero de conversación necesita una llave de API de Anthropic para funcionar. Añádela y estará lista.",
     en: "The conversation partner needs an Anthropic API key to work. Add it and it's ready to go.",
   },
+
+  // Pinpoint sound diagnosis (result card)
+  fixSound: { es: "El sonido a arreglar", en: "The sound to fix" },
+  fixSounded: { es: "sonó como", en: "sounded like" },
+  fixDropped: { es: "se perdió", en: "got dropped" },
+  fixPractice: { es: "Practicar este sonido", en: "Practice this sound" },
 
   // Feedback lines (mirror scoring.ts buildFeedback)
   fbPerfect: { es: "Perfecto — exactamente así.", en: "Perfect — that's exactly it." },

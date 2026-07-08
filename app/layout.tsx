@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/site-header";
 import { Onboarding } from "@/components/onboarding";
 import { PwaRegister } from "@/components/pwa-register";
+import { MobileNav } from "@/components/mobile-nav";
 
 const sans = Geist({
   variable: "--font-sans",
@@ -65,6 +66,7 @@ export default function RootLayout({
           <Onboarding />
           <SiteHeader />
           <main className="flex-1">{children}</main>
+          <MobileNav />
           <Toaster position="top-center" richColors />
         </SettingsProvider>
       </body>

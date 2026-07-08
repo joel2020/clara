@@ -2,6 +2,7 @@ import { repo } from "@/lib/db";
 import type { Attempt, ItemProgress, PracticeItem } from "@/lib/db/types";
 import { applyResult, freshProgress } from "@/lib/srs";
 import { scoreAttempt, type ScoreResult } from "@/lib/speech/scoring";
+import { diagnose, type Diagnosis } from "@/lib/speech/diagnose";
 import { partnerOf } from "@/lib/content/lessons";
 import { applyAttempt, type AttemptRewards } from "@/lib/gamification";
 import { recordQuestEvent } from "@/lib/quests";
@@ -14,6 +15,8 @@ import { pushAttempt, pushProgress, pushPlayer } from "@/lib/sync/supabase-sync"
 export interface PracticeOutcome {
   score: ScoreResult;
   rewards: AttemptRewards;
+  /** Which word went wrong and which sound to fix — the pinpoint feedback. */
+  diagnosis: Diagnosis;
 }
 
 export async function recordPracticeAttempt(args: {
@@ -83,5 +86,9 @@ export async function recordPracticeAttempt(args: {
   // Learning-loop quests: a previously-seen item counts as review; a new one as learning.
   void recordQuestEvent(existing ? "review" : "learn");
 
-  return { score: result, rewards };
+  // Pinpoint feedback: which word missed, and which sound pattern explains it.
+  // Only meaningful on a miss; cheap enough to compute always.
+  const diagnosis = result.passed ? { misses: [], sound: null } : diagnose(item.text, result.heard);
+
+  return { score: result, rewards, diagnosis };
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Mic, Square, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Mic, Square, Loader2, Target, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PracticeItem } from "@/lib/db/types";
 import { createRecognition, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
@@ -253,6 +254,36 @@ function ResultCard({
           </span>
         )}
       </div>
+
+      {/* Pinpoint: which word, which sound, and the lesson that fixes it */}
+      {!passed && outcome.diagnosis.sound && (
+        <div className="mx-auto mt-4 max-w-sm rounded-2xl border border-primary/25 bg-primary/[0.05] p-4 text-left">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+            <Target className="size-3.5" />
+            {t("fixSound", lang)}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-foreground">
+            <span className="font-semibold">“{outcome.diagnosis.sound.wrong.expected}”</span>{" "}
+            {outcome.diagnosis.sound.wrong.heard ? (
+              <>
+                {t("fixSounded", lang)}{" "}
+                <span className="font-semibold text-destructive">“{outcome.diagnosis.sound.wrong.heard}”</span>
+              </>
+            ) : (
+              t("fixDropped", lang)
+            )}
+            {" — "}
+            {lang === "es" ? outcome.diagnosis.sound.tip.es : outcome.diagnosis.sound.tip.en}
+          </p>
+          <Link
+            href={`/lesson/${outcome.diagnosis.sound.categoryId}`}
+            className="mt-2.5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            {t("fixPractice", lang)}
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+      )}
 
       <div className="mt-6 flex items-center justify-center gap-3">
         <button
