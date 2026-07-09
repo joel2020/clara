@@ -60,7 +60,7 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
     if (phase !== "ready") return;
     setPhase("listening");
     sfx.tap();
-    const h = createRecognition({ lang: settings.recognitionLang });
+    const h = createRecognition({ lang: settings.recognitionLang, target: current.text });
     handleRef.current = h;
     try {
       const r = await h.result;
@@ -72,6 +72,7 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
         alternatives: r.alternatives,
         combo: combo + 1,
         itemPool: items,
+        assessment: r.assessment,
       });
       const passed = out.score.passed;
       setGain(out.rewards.xpGain);

@@ -99,10 +99,35 @@ export interface ScoreInput {
   kind: "word" | "phrase";
   /** The minimal-pair partner's text, if any (e.g. target "sheep" → "ship"). */
   partnerText?: string;
+  /** Phoneme-level acoustic scores (Azure), when the attempt went through /api/assess. */
+  assessment?: { display: string; pronScore: number; completenessScore?: number };
 }
 
 export function scoreAttempt(input: ScoreInput): ScoreResult {
   const { target, transcript, alternatives = [], kind, partnerText } = input;
+
+  // Acoustic scoring path: Azure measured HOW she pronounced it — trust that
+  // over transcript similarity. The minimal-pair check still runs on what the
+  // recognizer heard, since landing on the twin stays the teachable moment.
+  if (input.assessment) {
+    const heard = input.assessment.display || transcript;
+    let heardPartner = false;
+    if (partnerText && kind === "word") {
+      heardPartner = similarity(partnerText, heard) >= 80 && similarity(target, heard) < 80;
+    }
+    const threshold = kind === "phrase" ? 65 : 70;
+    const score = Math.max(0, Math.min(100, input.assessment.pronScore));
+    const passed = score >= threshold && !heardPartner;
+    const feedbackKey = pickFeedbackKey(passed, score, heardPartner);
+    return {
+      score,
+      passed,
+      heard,
+      heardPartner,
+      feedback: buildFeedback(feedbackKey, target, partnerText),
+      feedbackKey,
+    };
+  }
   const candidates = [transcript, ...alternatives].filter(Boolean);
   const threshold = kind === "phrase" ? PHRASE_PASS : WORD_PASS;
 

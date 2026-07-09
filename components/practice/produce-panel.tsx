@@ -56,7 +56,7 @@ export function ProducePanel({
     setOutcome(null);
     setPhase("listening");
     sfx.tap();
-    const h = createRecognition({ lang: settings.recognitionLang });
+    const h = createRecognition({ lang: settings.recognitionLang, target: item.text });
     setHandle(h);
     try {
       const r = await h.result;
@@ -68,6 +68,7 @@ export function ProducePanel({
         alternatives: r.alternatives,
         combo: combo + 1,
         itemPool,
+        assessment: r.assessment,
       });
       setOutcome(result);
       setPhase("result");
@@ -231,6 +232,23 @@ function ResultCard({
         )}
       </div>
 
+      {/* Acoustic sub-scores — only when Azure actually measured the audio */}
+      {outcome.assessment && (
+        <div className="mt-2 flex items-center justify-center gap-3 font-mono text-[11px] tabular-nums text-muted-foreground">
+          <span>
+            {t("scorePron", lang)} {outcome.assessment.pronScore}
+          </span>
+          {typeof outcome.assessment.fluencyScore === "number" && outcome.assessment.fluencyScore > 0 && (
+            <>
+              <span className="text-hairline">·</span>
+              <span>
+                {t("scoreFluency", lang)} {outcome.assessment.fluencyScore}
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
       <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
         {lang === "es"
           ? result.feedbackKey === "partner"
@@ -274,6 +292,8 @@ function ResultCard({
                 {t("fixSounded", lang)}{" "}
                 <span className="font-semibold text-destructive">“{outcome.diagnosis.sound.wrong.heard}”</span>
               </>
+            ) : outcome.diagnosis.sound.wrong.mispronounced ? (
+              t("fixMispronounced", lang)
             ) : (
               t("fixDropped", lang)
             )}

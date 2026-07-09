@@ -11,6 +11,8 @@ import { normalize, similarity } from "./scoring";
 export interface WordMiss {
   expected: string;
   heard: string | null; // null = the word was dropped entirely
+  /** True when acoustic assessment flagged the word as mispronounced (not dropped). */
+  mispronounced?: boolean;
 }
 
 export interface SoundDiagnosis {
@@ -58,7 +60,80 @@ const TIPS: Record<string, { es: string; en: string }> = {
     es: "La H — un soplido suave al inicio, sin raspar la garganta (y no te la comas).",
     en: "The H — a soft breath at the start; don't scrape it, don't drop it.",
   },
+  schwa: {
+    es: "La schwa — relaja las vocales sin acento en un 'uh' perezoso: a-BOUT, ba-NA-na.",
+    en: "The schwa — relax unstressed vowels into a lazy 'uh': a-BOUT, ba-NA-na.",
+  },
+  "american-r": {
+    es: "La R americana — curva la lengua hacia atrás sin tocar nada, y dila hasta al final.",
+    en: "The American R — curl the tongue back touching nothing, and say it even at the end.",
+  },
+  "flap-t": {
+    es: "La T americana — entre vocales es una d suave y rápida: 'water' → 'GUA-der'.",
+    en: "The American T — between vowels it's a quick soft d: 'water' → 'wah-der'.",
+  },
 };
+
+// Azure returns IPA phonemes; map the ones with a dedicated lesson.
+const PHONEME_CATEGORY: Record<string, string> = {
+  "θ": "th",
+  "ð": "th",
+  v: "b-vs-v",
+  b: "b-vs-v",
+  "dʒ": "dj-vs-y",
+  j: "dj-vs-y",
+  "ɪ": "i-vs-ii",
+  i: "i-vs-ii",
+  "iː": "i-vs-ii",
+  h: "h",
+  "ə": "schwa",
+  "ɹ": "american-r",
+  r: "american-r",
+  "ɾ": "flap-t",
+};
+
+interface AssessedWordLike {
+  word: string;
+  accuracy: number;
+  errorType: string;
+  phonemes: { p: string; accuracy: number }[];
+}
+
+/**
+ * Turn phoneme-level assessment into pinpoint feedback: the worst-scoring word,
+ * and — when its weakest phoneme has a dedicated lesson — the sound to fix.
+ */
+export function diagnoseAssessment(words: AssessedWordLike[], targetText: string): Diagnosis {
+  const problems = words
+    .filter((w) => w.errorType === "Omission" || w.errorType === "Mispronunciation" || w.accuracy < 70)
+    .sort((a, b) => a.accuracy - b.accuracy);
+  if (!problems.length) return { misses: [], sound: null };
+
+  const misses: WordMiss[] = problems.map((w) => ({
+    expected: w.word,
+    heard: null,
+    mispronounced: w.errorType !== "Omission",
+  }));
+
+  for (const w of problems) {
+    if (w.errorType === "Omission") {
+      const textual = detect(w.word, null);
+      if (textual) return { misses, sound: textual };
+      continue;
+    }
+    const worst = [...w.phonemes].sort((a, b) => a.accuracy - b.accuracy).find((p) => p.accuracy < 60);
+    const categoryId = worst ? PHONEME_CATEGORY[worst.p] : undefined;
+    if (categoryId && TIPS[categoryId]) {
+      return {
+        misses,
+        sound: { categoryId, wrong: { expected: w.word, heard: null, mispronounced: true }, tip: TIPS[categoryId] },
+      };
+    }
+  }
+  // No lesson-mapped phoneme — fall back to naming the worst word only.
+  void targetText;
+  return { misses, sound: null };
+}
 
 function d(categoryId: string, wrong: WordMiss): SoundDiagnosis {
   return { categoryId, wrong, tip: TIPS[categoryId] };

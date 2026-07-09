@@ -1,15 +1,22 @@
 "use client";
 
 import { getSpeechRecognitionCtor, hasMediaRecording } from "./support";
+import { assessEnabled, assessEnabledSync, assessRecording, type Assessment } from "./azure";
+import { startWavRecording, type WavHandle } from "./wav-recorder";
 
 // Promise-based wrapper around the one-shot SpeechRecognition flow: start
 // listening, capture the best transcript, stop. Surfaces alternatives too, so
 // scoring can tell whether she actually hit the target or its minimal-pair twin.
+// When Azure phoneme assessment is configured AND the caller knows the target
+// text, attempts record WAV and go through /api/assess instead — same handle
+// shape, plus an `assessment` with real acoustic scores.
 
 export interface RecognitionResult {
   transcript: string;
   confidence: number;
   alternatives: string[];
+  /** Present when the attempt went through phoneme-level assessment. */
+  assessment?: Assessment;
 }
 
 export class RecognitionError extends Error {
@@ -241,19 +248,107 @@ export function startCloudRecognition(): RecognitionHandle {
   };
 }
 
+/**
+ * Azure assessment path: record 16 kHz WAV, then send it with the target text
+ * for phoneme-level scoring. She taps stop (like the cloud path); a safety
+ * timer auto-stops so a forgotten tap can't hang the flow.
+ */
+function startAzureRecognition(target: string): RecognitionHandle {
+  let wav: WavHandle | null = null;
+  let settled = false;
+  let stopping = false;
+  let cancelled = false;
+  let autoStop: ReturnType<typeof setTimeout> | null = null;
+
+  let resolveFn!: (r: RecognitionResult) => void;
+  let rejectFn!: (e: RecognitionError) => void;
+  const result = new Promise<RecognitionResult>((resolve, reject) => {
+    resolveFn = resolve;
+    rejectFn = reject;
+  });
+
+  const finish = async () => {
+    if (settled || stopping || !wav) return;
+    stopping = true;
+    if (autoStop) clearTimeout(autoStop);
+    try {
+      const blob = await wav.stop();
+      const assessment = await assessRecording(blob, target);
+      if (settled) return;
+      settled = true;
+      if (!assessment.display && assessment.pronScore === 0 && !assessment.words.length) {
+        rejectFn(new RecognitionError("no-speech", "I didn't catch anything — try again."));
+      } else {
+        resolveFn({
+          transcript: assessment.display,
+          confidence: 1,
+          alternatives: assessment.display ? [assessment.display] : [],
+          assessment,
+        });
+      }
+    } catch {
+      if (!settled) {
+        settled = true;
+        rejectFn(new RecognitionError("network", "Couldn't score that. Check your connection and try again."));
+      }
+    }
+  };
+
+  void (async () => {
+    try {
+      wav = await startWavRecording();
+      if (cancelled) {
+        wav.cancel();
+        return;
+      }
+      autoStop = setTimeout(finish, MAX_RECORD_MS);
+      if (stopping) {
+        stopping = false;
+        void finish();
+      }
+    } catch {
+      if (!settled) {
+        settled = true;
+        rejectFn(new RecognitionError("not-allowed", "Microphone access is blocked. Allow the mic and try again."));
+      }
+    }
+  })();
+
+  return {
+    result,
+    stop: () => {
+      if (wav) void finish();
+      else stopping = true; // stop arrived before the recorder finished starting
+    },
+    cancel: () => {
+      cancelled = true;
+      settled = true;
+      if (autoStop) clearTimeout(autoStop);
+      wav?.cancel();
+      rejectFn(new RecognitionError("cancelled", "Cancelled."));
+    },
+  };
+}
+
 /** How an attempt will actually be captured, so the UI can adjust its prompts. */
 export type RecognitionMode = "instant" | "record";
 
 export function recognitionMode(): RecognitionMode {
+  if (assessEnabledSync()) return "record"; // Azure path: she taps stop
   return getSpeechRecognitionCtor() ? "instant" : "record";
 }
 
 /**
- * Start recognition with the best method available: the Web Speech API when it
- * exists (desktop Chrome — instant, free), otherwise record-and-transcribe
- * (iOS Safari and the rest).
+ * Start recognition with the best method available: phoneme-level assessment
+ * when Azure is configured and the target is known; otherwise the Web Speech
+ * API (desktop Chrome — instant, free) or record-and-transcribe (iOS Safari).
  */
-export function createRecognition(opts: { lang?: string } = {}): RecognitionHandle {
+export function createRecognition(opts: { lang?: string; target?: string } = {}): RecognitionHandle {
+  // Warm the capability probe so the second attempt onward can use Azure.
+  void assessEnabled();
+  if (opts.target && assessEnabledSync() && hasMediaRecording()) {
+    return startAzureRecognition(opts.target);
+  }
   if (getSpeechRecognitionCtor()) return startRecognition(opts);
   if (hasMediaRecording()) return startCloudRecognition();
   return {

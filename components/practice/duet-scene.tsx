@@ -93,7 +93,7 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
     setHeard(null);
     setHerPhase("recording");
     sfx.tap();
-    const h = createRecognition({ lang: settings.recognitionLang });
+    const h = createRecognition({ lang: settings.recognitionLang, target: item.text });
     handleRef.current = h;
     try {
       const r = await h.result;
@@ -104,6 +104,7 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
         transcript: r.transcript,
         alternatives: r.alternatives,
         combo: 1,
+        assessment: r.assessment,
       });
       if (out.score.passed) {
         setStars((s) => s + out.rewards.starsEarned);

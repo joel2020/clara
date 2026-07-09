@@ -2,7 +2,8 @@ import { repo } from "@/lib/db";
 import type { Attempt, ItemProgress, PracticeItem } from "@/lib/db/types";
 import { applyResult, freshProgress } from "@/lib/srs";
 import { scoreAttempt, type ScoreResult } from "@/lib/speech/scoring";
-import { diagnose, type Diagnosis } from "@/lib/speech/diagnose";
+import { diagnose, diagnoseAssessment, type Diagnosis } from "@/lib/speech/diagnose";
+import type { Assessment } from "@/lib/speech/azure";
 import { partnerOf } from "@/lib/content/lessons";
 import { applyAttempt, type AttemptRewards } from "@/lib/gamification";
 import { recordQuestEvent } from "@/lib/quests";
@@ -17,6 +18,8 @@ export interface PracticeOutcome {
   rewards: AttemptRewards;
   /** Which word went wrong and which sound to fix — the pinpoint feedback. */
   diagnosis: Diagnosis;
+  /** Acoustic sub-scores (pronunciation/fluency), when Azure assessed the attempt. */
+  assessment?: Assessment;
 }
 
 export async function recordPracticeAttempt(args: {
@@ -27,8 +30,10 @@ export async function recordPracticeAttempt(args: {
   /** Consecutive passes this session including this attempt (0 if this failed). */
   combo: number;
   itemPool?: PracticeItem[];
+  /** Phoneme-level acoustic scores, when the recording went through Azure. */
+  assessment?: Assessment;
 }): Promise<PracticeOutcome> {
-  const { item, lessonId, transcript, alternatives, combo, itemPool } = args;
+  const { item, lessonId, transcript, alternatives, combo, itemPool, assessment } = args;
   const partner = partnerOf(item, itemPool);
 
   const result = scoreAttempt({
@@ -37,6 +42,7 @@ export async function recordPracticeAttempt(args: {
     alternatives,
     kind: item.kind,
     partnerText: partner?.text,
+    assessment,
   });
 
   const now = Date.now();
@@ -86,9 +92,13 @@ export async function recordPracticeAttempt(args: {
   // Learning-loop quests: a previously-seen item counts as review; a new one as learning.
   void recordQuestEvent(existing ? "review" : "learn");
 
-  // Pinpoint feedback: which word missed, and which sound pattern explains it.
-  // Only meaningful on a miss; cheap enough to compute always.
-  const diagnosis = result.passed ? { misses: [], sound: null } : diagnose(item.text, result.heard);
+  // Pinpoint feedback: which word missed, and which sound explains it. Acoustic
+  // (phoneme) diagnosis when available; transcript alignment otherwise.
+  const diagnosis = result.passed
+    ? { misses: [], sound: null }
+    : assessment
+      ? diagnoseAssessment(assessment.words, item.text)
+      : diagnose(item.text, result.heard);
 
-  return { score: result, rewards, diagnosis };
+  return { score: result, rewards, diagnosis, assessment };
 }

@@ -323,6 +323,9 @@ const STRINGS = {
   fixSounded: { es: "sonó como", en: "sounded like" },
   fixDropped: { es: "se perdió", en: "got dropped" },
   fixPractice: { es: "Practicar este sonido", en: "Practice this sound" },
+  fixMispronounced: { es: "necesita trabajo", en: "needs work" },
+  scorePron: { es: "Pronunciación", en: "Pronunciation" },
+  scoreFluency: { es: "Fluidez", en: "Fluency" },
 
   // Feedback lines (mirror scoring.ts buildFeedback)
   fbPerfect: { es: "Perfecto — exactamente así.", en: "Perfect — that's exactly it." },

@@ -84,7 +84,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
     stopPronunciation();
     setPhase("recording");
     sfx.tap();
-    const h = createRecognition({ lang: settings.recognitionLang });
+    const h = createRecognition({ lang: settings.recognitionLang, target: current.text });
     handleRef.current = h;
     try {
       const r = await h.result;
@@ -96,6 +96,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         alternatives: r.alternatives,
         combo: clears + 1,
         itemPool: items,
+        assessment: r.assessment,
       });
       const passed = out.score.passed;
       const stars = out.rewards.starsEarned;
