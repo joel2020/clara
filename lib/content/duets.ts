@@ -92,6 +92,48 @@ const DUETS_RAW: Duet[] = [
       { speaker: "her", itemId: "conv-american:10" }, // No worries
     ],
   },
+  {
+    id: "shopping",
+    emoji: "🛍️",
+    title: { es: "De compras", en: "Shopping trip" },
+    blurb: { es: "Dos amigas de compras — precios y decisiones.", en: "Two friends shopping — prices and decisions." },
+    lines: [
+      { speaker: "joel", itemId: "conv-shopping:1" }, // How much is this?
+      { speaker: "her", itemId: "conv-shopping:2" }, // That's too expensive
+      { speaker: "joel", itemId: "conv-shopping:4" }, // Can I try it on?
+      { speaker: "her", itemId: "conv-american:9" }, // Sounds good!
+      { speaker: "joel", itemId: "conv-shopping:6" }, // I'll take it
+      { speaker: "her", itemId: "conv-cafe:10" }, // Keep the change
+    ],
+  },
+  {
+    id: "casual",
+    emoji: "🤙",
+    title: { es: "Casual total", en: "Totally casual" },
+    blurb: { es: "El inglés de la calle: dunno, wanna, see ya.", en: "Street English: dunno, wanna, see ya." },
+    lines: [
+      { speaker: "joel", itemId: "conv-american-2:11" }, // What's the plan?
+      { speaker: "her", itemId: "conv-american-2:2" }, // I dunno
+      { speaker: "joel", itemId: "conv-american:4" }, // Do you wanna come?
+      { speaker: "her", itemId: "conv-american-2:9" }, // I'm down
+      { speaker: "joel", itemId: "conv-american:3" }, // I'm gonna go
+      { speaker: "her", itemId: "conv-american-2:12" }, // See ya!
+    ],
+  },
+  {
+    id: "tourist",
+    emoji: "🗺️",
+    title: { es: "Turista en apuros", en: "Tourist in trouble" },
+    blurb: { es: "Tú preguntas el camino — Joel te guía.", en: "You ask the way — Joel guides you." },
+    lines: [
+      { speaker: "her", itemId: "conv-directions:2" }, // How do I get to the airport?
+      { speaker: "joel", itemId: "conv-directions:4" }, // Turn left at the corner
+      { speaker: "her", itemId: "conv-directions:3" }, // Is it far from here?
+      { speaker: "joel", itemId: "conv-directions:5" }, // It's next to the bank
+      { speaker: "her", itemId: "conv-american:12" }, // Awesome, thanks!
+      { speaker: "joel", itemId: "conv-american:11" }, // You got it
+    ],
+  },
 ];
 
 /** Only scenes whose every line resolves to a real curriculum item. */

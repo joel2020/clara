@@ -230,6 +230,28 @@ export const INTROS_ES: Record<string, LessonIntro> = {
     ],
     exampleIds: ["american-r:car", "american-r:work", "american-r:sister", "american-r:girl"],
   },
+  "conv-american": {
+    summary: "El inglés americano real no es el del libro: la gente dice 'gonna', 'wanna', 'gotta'. Apréndelos y sonarás natural — y por fin entenderás el inglés rápido.",
+    whyTricky:
+      "Los libros enseñan 'going to' y 'want to', pero ningún americano los dice completos al conversar. Si solo conoces las formas lentas, te congelas cuando escuchas las reales — y suenas a libro de texto.",
+    how: [
+      "Aprende la forma reducida como UN solo sonido: gonna, wanna, gotta, lemme, gimme.",
+      "La T americana entre vocales es una d suave: 'gotta' = 'GA-da', 'you got it' = 'ya-GA-dit'.",
+      "Mantén la R americana fuerte en todas partes: 'worries', 'here', 'for'.",
+    ],
+    exampleIds: ["conv-american:3", "conv-american:1"],
+  },
+  "conv-american-2": {
+    summary: "Segunda ronda del inglés real de la calle: las frasecitas casuales que los amigos se dicen todo el día.",
+    whyTricky:
+      "Casi nunca salen en los libros, pero los americanos las usan sin parar — si no reconoces 'gotcha' o 'I dunno', media conversación casual se te escapa.",
+    how: [
+      "Aprende cada una como un solo sonido con un sentimiento, no palabra por palabra.",
+      "'kinda' = kind of, 'dunno' = don't know, 'gotcha' = got you, 'ya' = you.",
+      "Dilas rápido y relajado — pronunciarlas con cuidado las arruina.",
+    ],
+    exampleIds: ["conv-american-2:2", "conv-american-2:9"],
+  },
   "b-vs-v": {
     summary: "En inglés, la b y la v son dos sonidos distintos hechos en lugares distintos de la boca.",
     whyTricky:

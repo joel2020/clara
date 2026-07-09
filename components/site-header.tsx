@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { Switch } from "@/components/ui/switch";
@@ -60,6 +60,17 @@ export function SiteHeader() {
           >
             {settings.soundEnabled ? <Volume2 className="size-[18px]" /> : <VolumeX className="size-[18px]" />}
           </button>
+
+          <Link
+            href="/settings"
+            aria-label={t("settingsTitle", lang)}
+            className={cn(
+              "text-muted-foreground transition-colors hover:text-foreground",
+              pathname === "/settings" && "text-foreground",
+            )}
+          >
+            <Settings2 className="size-[18px]" />
+          </Link>
 
           <div className="hidden items-center gap-2 border-l border-hairline pl-5 md:flex">
             <span className="text-xs font-medium text-muted-foreground">Instructor</span>

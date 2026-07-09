@@ -67,6 +67,27 @@ const STRINGS = {
   mapWorldSounds: { es: "Mundo 2 · Sonidos", en: "World 2 · Sounds" },
   mapStops: { es: "paradas completas", en: "stops complete" },
 
+  // Student settings
+  settingsTitle: { es: "Ajustes", en: "Settings" },
+  settingsName: { es: "Tu nombre", en: "Your name" },
+  settingsCoach: { es: "Idioma de las explicaciones", en: "Coaching language" },
+  settingsGoal: { es: "Meta diaria de XP", en: "Daily XP goal" },
+  settingsSound: { es: "Sonidos del juego", en: "Game sounds" },
+  settingsSync: { es: "Tu código de sincronización", en: "Your sync code" },
+  settingsSyncSub: {
+    es: "Guárdalo: identifica tu progreso si cambias de teléfono.",
+    en: "Keep it safe — it identifies your progress if you switch phones.",
+  },
+  settingsCopy: { es: "Copiar", en: "Copy" },
+  settingsCopied: { es: "¡Copiado!", en: "Copied!" },
+  settingsDanger: { es: "Zona de peligro", en: "Danger zone" },
+  settingsReset: { es: "Borrar todo mi progreso", en: "Erase all my progress" },
+  settingsResetSub: {
+    es: "Borra estrellas, rachas y todo el avance en este dispositivo. No se puede deshacer.",
+    en: "Erases stars, streaks, and all progress on this device. Cannot be undone.",
+  },
+  settingsResetConfirm: { es: "¿Segura? Toca otra vez para borrar todo.", en: "Sure? Tap again to erase everything." },
+
   // Sentence builder
   buildCard: { es: "Arma la frase", en: "Build it" },
   buildCardSub: { es: "Escucha y ordena las palabras", en: "Hear it, then order the words" },
