@@ -67,6 +67,23 @@ const STRINGS = {
   mapWorldSounds: { es: "Mundo 2 · Sonidos", en: "World 2 · Sounds" },
   mapStops: { es: "paradas completas", en: "stops complete" },
 
+  // Media zone (Cine y música + easy news)
+  mediaCard: { es: "Cine y música", en: "Movies & music" },
+  mediaCardSub: { es: "Tráilers, canciones y noticias de verdad", en: "Real trailers, songs, and news" },
+  mediaTitle: { es: "Cine y música", en: "Movies & music" },
+  mediaIntro: {
+    es: "Inglés americano de verdad: tráilers oficiales, canciones del momento y noticias fáciles. Mira, caza palabras y gana estrellas.",
+    en: "Real American English: official trailers, current songs, and easy news. Watch, hunt words, and earn stars.",
+  },
+  mediaSongs: { es: "Música", en: "Music" },
+  mediaTrailers: { es: "Cine", en: "Movies" },
+  mediaNews: { es: "Noticias de hoy — en inglés fácil", en: "Today's news — in easy English" },
+  mediaNewsLoading: { es: "Buscando las noticias…", en: "Fetching the news…" },
+  mediaHunt: { es: "Caza de palabras — toca cada palabra cuando la escuches", en: "Word hunt — tap each word when you hear it" },
+  mediaHuntDone: { es: "¡Cazadas todas! Oído de acero.", en: "Got them all! Ears of steel." },
+  mediaWatch: { es: "Ver", en: "Watch" },
+  mediaClose: { es: "Cerrar", en: "Close" },
+
   // Listening comprehension game
   listenCard: { es: "Oído de acero", en: "Sharp ears" },
   listenCardSub: { es: "Escucha sin leer y adivina el significado", en: "Hear it — no reading — and pick the meaning" },

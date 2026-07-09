@@ -11,6 +11,7 @@ import {
   Map as MapIcon,
   Headphones,
   BookOpen,
+  Clapperboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReviewCallout } from "@/components/review-callout";
@@ -117,6 +118,7 @@ export default function HomePage() {
         <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em]">{t("homeGames", lang)}</h2>
         <div className="mt-4 grid grid-cols-3 gap-3">
           <Tile href="/talk" icon={MessageCircle} label="navTalk" lang={lang} accent />
+          <Tile href="/media" icon={Clapperboard} label="mediaCard" lang={lang} />
           <Tile href="/listen" icon={Headphones} label="listenCard" lang={lang} />
           <Tile href="/shadow" icon={Volume2} label="shadowCard" lang={lang} />
           <Tile href="/play" icon={Zap} label="speedRound" lang={lang} />
