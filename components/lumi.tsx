@@ -9,13 +9,17 @@ import { cn } from "@/lib/utils";
 // framing layer on top. `full` shows the whole sticker; `bust` crops to her
 // face for reaction moments (result card, etc.).
 
-export type LumiMood = "idle" | "wave" | "cheer" | "think";
+export type LumiMood = "idle" | "wave" | "cheer" | "think" | "encourage" | "clap" | "point" | "love";
 
 const MOOD_ART: Record<LumiMood, string> = {
   idle: "/character/lumi.png",
   wave: "/character/lumi.png",
   cheer: "/character/lumi-cheer.png",
   think: "/character/lumi-think.png",
+  encourage: "/character/lumi-encourage.png",
+  clap: "/character/lumi-clap.png",
+  point: "/character/lumi-point.png",
+  love: "/character/lumi-love.png",
 };
 
 export function Lumi({
@@ -52,8 +56,15 @@ export function Lumi({
           priority={priority}
           className={cn(
             "object-cover",
-            // Each artwork frames her face differently; crop per pose.
-            mood === "cheer" ? "scale-[1.5] object-[center_30%]" : mood === "think" ? "scale-[1.4] object-[center_12%]" : "scale-[1.35] object-[center_8%]",
+            // Each artwork frames her face differently; crop per pose to keep
+            // her face centered in the bust circle.
+            mood === "cheer"
+              ? "scale-[1.5] object-[center_30%]"
+              : mood === "think"
+                ? "scale-[1.4] object-[center_12%]"
+                : mood === "encourage" || mood === "clap" || mood === "point" || mood === "love"
+                  ? "scale-[1.3] object-[center_13%]"
+                  : "scale-[1.35] object-[center_8%]",
           )}
         />
       </div>

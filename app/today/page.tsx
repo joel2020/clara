@@ -116,7 +116,7 @@ export default function TodayPage() {
         <section className="animate-fade-up mt-6 overflow-hidden rounded-3xl border border-hairline bg-card p-8 text-center">
           <div className="relative mx-auto w-fit">
             <SparkleBurst />
-            <Lumi frame="bust" mood="cheer" className="mx-auto size-28" />
+            <Lumi frame="bust" mood="love" className="mx-auto size-28" />
           </div>
           <h1 className="mt-5 font-display text-3xl font-semibold tracking-[-0.02em]">{t("todayDoneTitle", lang)}</h1>
           <p className="mx-auto mt-2 max-w-sm text-muted-foreground">{t("todayDoneSub", lang)}</p>

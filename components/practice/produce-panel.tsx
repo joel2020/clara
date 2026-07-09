@@ -189,10 +189,10 @@ function ResultCard({
     : NUDGES[Math.floor(Math.random() * NUDGES.length)];
   return (
     <div className="animate-fade-up text-center" role="status" aria-live="polite">
-      {/* Lumi reacts — cheering on a win, cheering her on after a miss */}
+      {/* Lumi reacts — cheering on a win, warmly encouraging after a miss */}
       <div className="relative mx-auto w-fit">
         {passed && <SparkleBurst />}
-        <Lumi frame="bust" mood={passed ? "cheer" : "think"} className="mx-auto size-28" />
+        <Lumi frame="bust" mood={passed ? "cheer" : "encourage"} className="mx-auto size-28" />
         <span className="animate-pop-in absolute -right-2 -top-1 rounded-2xl rounded-bl-sm bg-card px-3 py-1.5 text-sm font-semibold text-card-foreground shadow-md ring-1 ring-border">
           {spanish}
         </span>

@@ -453,9 +453,9 @@ function DoneCard({
 
   return (
     <div className="animate-scale-in py-8 text-center">
-      {/* Lumi leads the payoff */}
+      {/* Lumi leads the payoff — clapping proud on a clear, warm on a review */}
       <div className="relative mx-auto w-fit">
-        <Lumi frame="bust" mood="cheer" className="mx-auto size-24" priority />
+        <Lumi frame="bust" mood={attempted > 0 && clear === attempted ? "clap" : "cheer"} className="mx-auto size-24" priority />
         {sessionStars > 0 && (
           <span className="star-chip bloom-gold absolute -right-9 top-0 animate-star-pop rounded-full px-3 py-1 font-display text-sm font-semibold">
             +{sessionStars} ★

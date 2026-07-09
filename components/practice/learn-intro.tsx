@@ -26,7 +26,7 @@ type Card =
 const CARD_ART: Record<Card["kind"], { mood: LumiMood; icon: typeof Lightbulb }> = {
   idea: { mood: "wave", icon: Lightbulb },
   why: { mood: "think", icon: Puzzle },
-  how: { mood: "idle", icon: ListOrdered },
+  how: { mood: "point", icon: ListOrdered },
   hear: { mood: "cheer", icon: Headphones },
 };
 
