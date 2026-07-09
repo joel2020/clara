@@ -379,6 +379,30 @@
   animation: juice-sweep-x var(--dur) ease-in-out forwards;
 }
 
+/* Adventure map: dashed tricolor trail with a slow flowing shimmer. */
+.map-trail {
+  background: linear-gradient(to bottom, var(--co-yellow), var(--co-blue) 45%, var(--co-red) 90%, var(--co-yellow));
+  background-size: 100% 320px;
+  mask-image: repeating-linear-gradient(to bottom, black 0px, black 14px, transparent 14px, transparent 26px);
+  animation: map-trail-flow 7s linear infinite;
+  opacity: 0.55;
+}
+@keyframes map-trail-flow {
+  to { background-position: 0 320px; }
+}
+
+/* Mini-class deck: direction-aware card entrances. */
+@keyframes intro-card-in {
+  from { opacity: 0; transform: translateX(28px) scale(0.98); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes intro-card-in-back {
+  from { opacity: 0; transform: translateX(-28px) scale(0.98); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.intro-card-in { animation: intro-card-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.intro-card-in-back { animation: intro-card-in-back 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
 /* ── Ambient layer: continuous life across every screen ─────────────────── */
 
 @keyframes ambient-rise {

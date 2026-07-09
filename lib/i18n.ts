@@ -246,6 +246,15 @@ const STRINGS = {
   howToMakeIt: { es: "Cómo se hace", en: "How to make it" },
   hearIt: { es: "Escúchalo — toca para oír", en: "Hear it — tap to listen" },
   letsPractice: { es: "Listo — a practicar", en: "Listo — let's practice" },
+  introIdea: { es: "La idea", en: "The idea" },
+  introNext: { es: "Siguiente", en: "Next" },
+  introBack: { es: "Atrás", en: "Back" },
+  introCardOf: { es: "de", en: "of" },
+  mapHere: { es: "¡Aquí vas!", en: "You're here!" },
+  todayChest: { es: "Cofre diario", en: "Daily chest" },
+  todayChestLocked: { es: "Completa los 3 pasos para abrirlo", en: "Finish the 3 steps to open it" },
+  todayChestReady: { es: "¡Listo! Ábrelo en la tienda", en: "Ready! Open it in the shop" },
+  todayChestOpened: { es: "Abierto hoy — vuelve mañana", en: "Opened today — come back tomorrow" },
 
   // Listen / record controls
   listen: { es: "Escucha", en: "Listen" },

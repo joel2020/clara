@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Flame, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Flame, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,8 @@ import { DistinguishDrill } from "./distinguish-drill";
 import { SpeechSupportNotice } from "./speech-support-notice";
 import { LevelUpOverlay } from "./level-up-overlay";
 import { LearnIntro } from "./learn-intro";
+import { Lumi } from "@/components/lumi";
+import { juice } from "@/components/juice";
 
 // A full lesson runs in stages: Learn (mini-class) → Ear (minimal pairs) →
 // Words (speak each one) → Sentences (the sound in connected speech) → Done.
@@ -43,6 +45,7 @@ export function PracticeSession({ lesson }: { lesson: Lesson }) {
   const [combo, setCombo] = useState(0);
   const [sessionBestCombo, setSessionBestCombo] = useState(0);
   const [sessionXp, setSessionXp] = useState(0);
+  const [sessionStars, setSessionStars] = useState(0);
   const [levelUp, setLevelUp] = useState<number | null>(null);
 
   const pairs = useMemo(() => buildPairs(lesson.items), [lesson.items]);
@@ -83,6 +86,7 @@ export function PracticeSession({ lesson }: { lesson: Lesson }) {
     setCombo(o.rewards.combo);
     setSessionBestCombo((b) => Math.max(b, o.rewards.combo));
     setSessionXp((x) => x + o.rewards.xpGain);
+    setSessionStars((s) => s + o.rewards.starsEarned);
     const r = o.rewards;
     if (r.leveledUp) {
       setLevelUp(r.newLevel);
@@ -263,6 +267,7 @@ export function PracticeSession({ lesson }: { lesson: Lesson }) {
           results={results}
           total={totalItems}
           sessionXp={sessionXp}
+          sessionStars={sessionStars}
           bestCombo={sessionBestCombo}
           onRestart={restart}
           lang={lang}
@@ -278,6 +283,7 @@ export function PracticeSession({ lesson }: { lesson: Lesson }) {
     setCombo(0);
     setSessionBestCombo(0);
     setSessionXp(0);
+    setSessionStars(0);
     setStage(hasLearn ? "learn" : firstDrillStage);
   }
 }
@@ -376,6 +382,7 @@ function DoneCard({
   results,
   total,
   sessionXp,
+  sessionStars,
   bestCombo,
   onRestart,
   lang,
@@ -385,6 +392,7 @@ function DoneCard({
   results: Record<string, boolean>;
   total: number;
   sessionXp: number;
+  sessionStars: number;
   bestCombo: number;
   onRestart: () => void;
   lang: CoachLang;
@@ -400,6 +408,8 @@ function DoneCard({
     firedRef.current = true;
     celebrate();
     sfx.finish();
+    juice.centerBurst(sessionStars > 0 ? `+${sessionStars} ★` : undefined);
+    if (attempted > 0 && clear === attempted) juice.sweep();
 
     void (async () => {
       const ids: string[] = [];
@@ -431,18 +441,29 @@ function DoneCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const spoken = lesson.items.filter((i) => i.id in results);
+
   return (
-    <div className="animate-scale-in py-10 text-center">
-      <div className="flag-bar mx-auto mb-6 h-[3px] w-24 rounded-full" aria-hidden />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("lessonComplete", lang)}</p>
-      <h2 className="mt-4 font-display text-4xl font-medium tracking-[-0.02em]">
+    <div className="animate-scale-in py-8 text-center">
+      {/* Lumi leads the payoff */}
+      <div className="relative mx-auto w-fit">
+        <Lumi frame="bust" mood="cheer" className="mx-auto size-24" priority />
+        {sessionStars > 0 && (
+          <span className="star-chip bloom-gold absolute -right-9 top-0 animate-star-pop rounded-full px-3 py-1 font-display text-sm font-semibold">
+            +{sessionStars} ★
+          </span>
+        )}
+      </div>
+
+      <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("lessonComplete", lang)}</p>
+      <h2 className="mt-3 font-display text-4xl font-medium tracking-[-0.02em]">
         {attempted > 0 && clear === attempted
           ? "¡Impecable!"
           : studentName
             ? `¡Muy bien, ${studentName}!`
             : "¡Muy bien!"}
       </h2>
-      <p className="mx-auto mt-4 max-w-sm text-muted-foreground">
+      <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
         {attempted > 0
           ? lang === "es"
             ? `Dijiste ${attempted} y te salieron claras ${clear}. Cada repetición cuenta.`
@@ -453,10 +474,30 @@ function DoneCard({
       </p>
 
       {attempted > 0 && (
-        <div className="mx-auto mt-8 flex max-w-sm items-stretch divide-x divide-hairline border-y border-hairline">
-          <Stat value={`+${sessionXp}`} label={t("xpEarned", lang)} />
-          <Stat value={`${Math.round((clear / attempted) * 100)}%`} label={t("accuracy", lang)} />
-          <Stat value={`${bestCombo}×`} label={t("bestCombo", lang)} />
+        <div className="mx-auto mt-8 grid max-w-sm grid-cols-3 gap-2.5">
+          <RecapStat value={`+${sessionXp}`} label={t("xpEarned", lang)} tone="blue" delay={0} />
+          <RecapStat value={`${Math.round((clear / attempted) * 100)}%`} label={t("accuracy", lang)} tone="gold" delay={90} />
+          <RecapStat value={`${bestCombo}×`} label={t("bestCombo", lang)} tone="red" delay={180} />
+        </div>
+      )}
+
+      {/* What she said this session — wins and the ones coming back */}
+      {spoken.length > 0 && (
+        <div className="mx-auto mt-7 flex max-w-md flex-wrap justify-center gap-2">
+          {spoken.map((item) => (
+            <span
+              key={item.id}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium",
+                results[item.id]
+                  ? "border-success/30 bg-success/[0.07] text-foreground"
+                  : "border-hairline bg-secondary/50 text-muted-foreground",
+              )}
+            >
+              {results[item.id] ? <Check className="size-3 text-success" /> : <X className="size-3" />}
+              {item.text}
+            </span>
+          ))}
         </div>
       )}
 
@@ -477,11 +518,30 @@ function DoneCard({
   );
 }
 
-function Stat({ value, label }: { value: string | number; label: string }) {
+const RECAP_TONES = {
+  blue: "border-primary/25 bg-primary/[0.06]",
+  gold: "border-[color-mix(in_oklch,var(--co-yellow)_45%,transparent)] bg-[color-mix(in_oklch,var(--co-yellow)_14%,transparent)]",
+  red: "border-[color-mix(in_oklch,var(--co-red)_30%,transparent)] bg-[color-mix(in_oklch,var(--co-red)_9%,transparent)]",
+} as const;
+
+function RecapStat({
+  value,
+  label,
+  tone,
+  delay,
+}: {
+  value: string;
+  label: string;
+  tone: keyof typeof RECAP_TONES;
+  delay: number;
+}) {
   return (
-    <div className="flex-1 px-3 py-4">
+    <div
+      className={cn("animate-pop-in rounded-2xl border px-3 py-4", RECAP_TONES[tone])}
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="font-display text-2xl font-medium tabular-nums">{value}</div>
-      <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, RotateCcw, Sparkles, MessageCircle, Check, Star, Flame } from "lucide-react";
+import { ArrowLeft, ArrowRight, RotateCcw, Sparkles, MessageCircle, Check, Star, Flame, Gift, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -11,6 +11,7 @@ import { countDueReview } from "@/lib/review";
 import { pickNextLesson, pickScenario } from "@/lib/today";
 import { dayKey } from "@/lib/gamification";
 import { questDone } from "@/lib/quests";
+import { chestAvailable, chestReward } from "@/lib/cosmetics";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
 import { SparkleBurst } from "@/components/star-reward";
@@ -18,9 +19,28 @@ import { celebrate } from "@/lib/fx";
 import { juice } from "@/components/juice";
 import { Splash } from "@/components/splash";
 
-// The guided daily session: warm up → learn → talk, in order. This is the
-// coach's "here's what we're doing today" — the app leading a solo learner
-// through a complete, sized daily routine instead of leaving her to decide.
+// The guided daily session: warm up → learn → talk, drawn as a little quest
+// path that ends in the daily chest. This is the coach's "here's what we're
+// doing today" — the app leading a solo learner through a complete, sized
+// daily routine instead of leaving her to decide.
+
+// A rotating daily word from the coach — tiny, warm, different each day.
+const COACH_MSGS = {
+  es: [
+    "Hoy hablamos con calma y claro. ¡Tú puedes!",
+    "Quince minuticos hoy valen más que una hora el domingo.",
+    "Tu boca aprende repitiendo. Vamos paso a paso.",
+    "Cada frase de hoy es una que ya no te va a faltar.",
+    "Respira, sonríe y dilo a tu manera. ¡Empezamos!",
+  ],
+  en: [
+    "Today we speak calm and clear. You've got this!",
+    "Fifteen little minutes today beat an hour on Sunday.",
+    "Your mouth learns by repeating. Step by step.",
+    "Every phrase today is one you'll never be missing again.",
+    "Breathe, smile, and say it your way. Let's go!",
+  ],
+};
 
 export default function TodayPage() {
   const { settings, ready } = useSettings();
@@ -81,6 +101,7 @@ export default function TodayPage() {
   ];
 
   const currentIndex = steps.findIndex((s) => !s.done);
+  const chestOpen = chestAvailable(player ?? { lastChestDay: null });
 
   return (
     <div className="mx-auto max-w-2xl px-5 pb-24 pt-6 sm:px-6">
@@ -113,57 +134,110 @@ export default function TodayPage() {
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{t("todayIntro", lang)}</p>
             </div>
           </div>
+          {/* Lumi's word of the day — a coach in her corner, not just a checklist */}
+          <div className="relative ml-6 mt-3 w-fit rounded-2xl rounded-tl-sm border border-primary/20 bg-primary/[0.05] px-4 py-2.5">
+            <p className="text-sm leading-relaxed text-foreground/85">
+              {COACH_MSGS[lang][dayKey().split("-").reduce((a, b) => a + Number(b), 0) % COACH_MSGS[lang].length]}
+            </p>
+          </div>
         </section>
       )}
 
-      <ol className="mt-8 space-y-3">
-        {steps.map((step, i) => {
-          const isCurrent = i === currentIndex;
-          const Icon = step.icon;
-          return (
-            <li key={step.key}>
-              <Link
-                href={step.href}
-                className={cn(
-                  "group flex items-center gap-4 rounded-2xl border p-4 transition-all active:scale-[0.99]",
-                  step.done
-                    ? "border-hairline bg-card"
-                    : isCurrent
-                      ? "border-primary bg-primary/[0.05] shadow-sm"
-                      : "border-hairline bg-card hover:border-primary/40",
-                )}
-              >
+      {/* The quest path: three stops and a chest at the end */}
+      <div className="relative mt-8">
+        <div className="map-trail pointer-events-none absolute bottom-12 left-[25px] top-3 w-1.5 rounded-full" aria-hidden />
+
+        <ol className="relative space-y-4">
+          {steps.map((step, i) => {
+            const isCurrent = i === currentIndex;
+            const Icon = step.icon;
+            return (
+              <li key={step.key} className="relative flex items-center gap-4">
                 <span
                   className={cn(
-                    "grid size-11 shrink-0 place-items-center rounded-xl",
-                    step.done ? "bg-success/15 text-success" : "bg-primary/10 text-primary",
+                    "z-10 grid size-[52px] shrink-0 place-items-center rounded-full shadow-sm ring-4",
+                    step.done
+                      ? "text-white ring-primary/25"
+                      : isCurrent
+                        ? "star-chip arcade-ring bloom-gold animate-float ring-co-yellow/30"
+                        : "bg-muted text-muted-foreground/60 shadow-none ring-transparent",
+                  )}
+                  style={
+                    step.done
+                      ? { background: "linear-gradient(145deg, color-mix(in oklch, var(--co-blue) 88%, white), var(--co-blue))" }
+                      : undefined
+                  }
+                >
+                  {step.done ? <Check className="size-6" strokeWidth={2.5} /> : <Icon className="size-5" />}
+                </span>
+
+                <Link
+                  href={step.href}
+                  className={cn(
+                    "group flex min-w-0 flex-1 items-center gap-3 rounded-2xl border p-4 transition-all active:scale-[0.99]",
+                    step.done
+                      ? "border-hairline bg-card opacity-80"
+                      : isCurrent
+                        ? "border-primary bg-primary/[0.05] shadow-sm"
+                        : "border-hairline bg-card hover:border-primary/40",
                   )}
                 >
-                  {step.done ? <Check className="size-5" /> : <Icon className="size-5" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      {t("todayStep", lang)} {i + 1}
+                    </p>
+                    <p className={cn("font-display text-lg font-medium tracking-[-0.01em]", step.done && "text-muted-foreground")}>
+                      {step.title}
+                    </p>
+                    <p className="truncate text-sm text-muted-foreground">{step.sub}</p>
+                  </div>
+                  {isCurrent && (
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background">
+                      {currentIndex > 0 ? t("todayContinue", lang) : t("todayStart", lang)}
+                      <ArrowRight className="size-4" />
+                    </span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+
+          {/* The chest at the end of the path */}
+          <li className="relative flex items-center gap-4">
+            <span
+              className={cn(
+                "z-10 grid size-[52px] shrink-0 place-items-center rounded-full shadow-sm ring-4",
+                allDone && chestOpen
+                  ? "star-chip bloom-gold animate-float ring-co-yellow/40"
+                  : "bg-muted text-muted-foreground/60 shadow-none ring-transparent",
+              )}
+            >
+              {allDone && chestOpen ? <Gift className="size-6" /> : allDone ? <Check className="size-6" /> : <Lock className="size-5" />}
+            </span>
+            <Link
+              href="/shop"
+              className={cn(
+                "flex min-w-0 flex-1 items-center gap-3 rounded-2xl border p-4 transition-all active:scale-[0.99]",
+                allDone && chestOpen
+                  ? "border-co-yellow/50 bg-[color-mix(in_oklch,var(--co-yellow)_10%,transparent)] shadow-sm"
+                  : "border-dashed border-hairline bg-card opacity-90",
+              )}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{t("todayChest", lang)}</p>
+                <p className="font-display text-lg font-medium tracking-[-0.01em]">
+                  {allDone ? (chestOpen ? t("todayChestReady", lang) : t("todayChestOpened", lang)) : t("todayChestLocked", lang)}
+                </p>
+              </div>
+              {allDone && chestOpen && (
+                <span className="star-chip shrink-0 rounded-full px-3 py-1.5 font-display text-sm font-semibold">
+                  +{chestReward(player ?? { currentStreak: 0 })} ★
                 </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    {t("todayStep", lang)} {i + 1}
-                  </p>
-                  <p className={cn("font-display text-lg font-medium tracking-[-0.01em]", step.done && "text-muted-foreground")}>
-                    {step.title}
-                  </p>
-                  <p className="truncate text-sm text-muted-foreground">{step.sub}</p>
-                </div>
-                {isCurrent && (
-                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background">
-                    {currentIndex > 0 ? t("todayContinue", lang) : t("todayStart", lang)}
-                    <ArrowRight className="size-4" />
-                  </span>
-                )}
-                {step.done && (
-                  <span className="shrink-0 text-xs font-semibold text-success">✓</span>
-                )}
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
+              )}
+            </Link>
+          </li>
+        </ol>
+      </div>
     </div>
   );
 }

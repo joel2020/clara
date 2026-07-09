@@ -11,6 +11,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import type { Lesson, ItemProgress } from "@/lib/db/types";
 import { Splash } from "@/components/splash";
+import { Lumi } from "@/components/lumi";
 
 // The journey: the whole curriculum laid out as a path she travels — a stop per
 // lesson, conversation units first (her fastest route to speaking), then the
@@ -29,6 +30,27 @@ function mastery(progress: Map<string, ItemProgress> | undefined, lesson: Lesson
     }
   }
   return { total, mastered, practiced, done: total > 0 && mastered >= total };
+}
+
+/** 0–3 stars for a stop, from how much of the lesson is mastered. */
+function stopStars(s: { total: number; mastered: number; practiced: number }): number {
+  if (!s.practiced || s.total === 0) return 0;
+  return Math.max(s.mastered > 0 ? 1 : 0, Math.round((s.mastered / s.total) * 3));
+}
+
+function StarRow({ earned }: { earned: number }) {
+  return (
+    <span className="mt-1 inline-flex gap-0.5" aria-label={`${earned}/3`}>
+      {[0, 1, 2].map((i) => (
+        <Star
+          key={i}
+          className={cn("size-3.5", i < earned ? "text-co-yellow drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)]" : "text-muted-foreground/25")}
+          style={{ fill: "currentColor" }}
+          strokeWidth={0}
+        />
+      ))}
+    </span>
+  );
 }
 
 export default function MapPage() {
@@ -96,7 +118,7 @@ export default function MapPage() {
 
       {/* The path */}
       <div className="relative mt-10">
-        <div className="pointer-events-none absolute bottom-6 left-1/2 top-2 w-1 -translate-x-1/2 rounded-full bg-hairline" aria-hidden />
+        <div className="map-trail pointer-events-none absolute bottom-6 left-1/2 top-2 w-1.5 -translate-x-1/2 rounded-full" aria-hidden />
 
         <ol className="relative space-y-7">
           {journey.map((lesson, i) => {
@@ -107,50 +129,85 @@ export default function MapPage() {
             const track = lesson.track === "conversation" ? "conversation" : "sounds";
             const prevTrack = i > 0 ? (journey[i - 1].track === "conversation" ? "conversation" : "sounds") : null;
             const banner = track !== prevTrack ? (
-              <li key={`world-${track}`} className="relative flex justify-center py-2">
-                <span className="star-chip z-10 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] shadow-sm">
+              <li key={`world-${track}`} className="relative flex justify-center py-3">
+                {/* soft world tint behind the banner so each section feels like new scenery */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 -top-2 h-24 opacity-50"
+                  style={{
+                    background: `radial-gradient(60% 100% at 50% 0%, color-mix(in oklch, ${
+                      track === "conversation" ? "var(--co-blue)" : "var(--co-red)"
+                    } 14%, transparent), transparent)`,
+                  }}
+                />
+                <span className="star-chip z-10 rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-[0.14em] shadow-md">
                   {t(track === "conversation" ? "mapWorldConv" : "mapWorldSounds", lang)}
                 </span>
               </li>
             ) : null;
+            const earned = stopStars(s);
             return [
               banner,
               <li key={lesson.id} ref={isCurrent ? currentRef : undefined} className="relative flex">
                 <div className={cn("flex w-1/2", left ? "justify-end pr-5" : "ml-auto justify-start pl-5")}>
                   <div className="relative">
+                    {/* Lumi camps at the current stop */}
+                    {isCurrent && (
+                      <div
+                        className={cn(
+                          "pointer-events-none absolute -top-4 z-10 flex flex-col items-center",
+                          left ? "-right-24" : "-left-24",
+                        )}
+                      >
+                        <span className="mb-1 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold text-background shadow-md">
+                          {t("mapHere", lang)}
+                        </span>
+                        <Lumi frame="bust" mood="wave" className="size-14" />
+                      </div>
+                    )}
                     <Link
                       href={`/lesson/${lesson.id}`}
                       className={cn("flex flex-col items-center gap-2 text-center", left ? "items-end" : "items-start")}
                     >
                       <span
                         className={cn(
-                          "grid size-16 place-items-center rounded-full shadow-sm ring-4 transition-transform active:scale-95",
+                          "grid size-[4.25rem] place-items-center rounded-full shadow-md ring-4 transition-transform active:scale-95",
                           s.done
-                            ? "bg-primary text-primary-foreground ring-primary/20"
+                            ? "text-primary-foreground ring-primary/25"
                             : isCurrent
                               ? "star-chip arcade-ring ring-co-yellow/30 animate-float bloom-gold"
                               : locked
-                                ? "bg-muted text-muted-foreground/50 ring-transparent"
+                                ? "bg-muted text-muted-foreground/50 shadow-none ring-transparent"
                                 : "bg-card text-foreground ring-hairline",
                         )}
+                        style={
+                          s.done
+                            ? {
+                                background:
+                                  "linear-gradient(145deg, color-mix(in oklch, var(--co-blue) 88%, white), var(--co-blue))",
+                              }
+                            : undefined
+                        }
                       >
                         {s.done ? (
-                          <Check className="size-7" />
+                          <Check className="size-8" strokeWidth={2.5} />
                         ) : locked ? (
                           <Lock className="size-5" />
                         ) : isCurrent ? (
-                          <Star className="size-7" style={{ fill: "currentColor" }} strokeWidth={0} />
+                          <Star className="size-8" style={{ fill: "currentColor" }} strokeWidth={0} />
                         ) : (
                           <span className="font-display text-xl font-semibold tabular-nums">{i + 1}</span>
                         )}
                       </span>
-                      <div className={cn("w-36", left ? "text-right" : "text-left")}>
+                      <div className={cn("flex w-36 flex-col", left ? "items-end text-right" : "items-start text-left")}>
                         <p className={cn("font-display text-sm font-medium leading-tight", locked && "text-muted-foreground")}>
                           {lesson.title}
                         </p>
-                        <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
-                          {s.practiced ? `${s.mastered}/${s.total} ★` : lesson.subtitle}
-                        </p>
+                        {!locked && (s.practiced || isCurrent) ? (
+                          <StarRow earned={earned} />
+                        ) : (
+                          <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">{lesson.subtitle}</p>
+                        )}
                       </div>
                     </Link>
                   </div>
