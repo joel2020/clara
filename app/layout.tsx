@@ -8,6 +8,7 @@ import { Onboarding } from "@/components/onboarding";
 import { PwaRegister } from "@/components/pwa-register";
 import { MobileNav } from "@/components/mobile-nav";
 import { JuiceLayer, AmbientFx } from "@/components/juice";
+import { CinematicLayer } from "@/components/cinematic";
 
 const sans = Geist({
   variable: "--font-sans",
@@ -72,6 +73,7 @@ export default function RootLayout({
           <MobileNav />
           <AmbientFx />
           <JuiceLayer />
+          <CinematicLayer />
           <Toaster position="top-center" richColors />
         </SettingsProvider>
       </body>

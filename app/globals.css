@@ -435,6 +435,103 @@
 .intro-card-in { animation: intro-card-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .intro-card-in-back { animation: intro-card-in-back 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* ── Lumi as a 3D standee: perspective sway + ground contact shadow ─────── */
+.lumi-stage {
+  perspective: 700px;
+}
+.lumi-3d {
+  transform-style: preserve-3d;
+  transform-origin: 50% 88%;
+  will-change: transform;
+  animation: lumi-sway 6s ease-in-out infinite;
+}
+@keyframes lumi-sway {
+  0% { transform: translateY(0) rotateY(-7deg) rotateX(1.5deg); }
+  50% { transform: translateY(-6px) rotateY(7deg) rotateX(-1deg); }
+  100% { transform: translateY(0) rotateY(-7deg) rotateX(1.5deg); }
+}
+.lumi-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  width: 58%;
+  height: 8%;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.26), transparent 70%);
+  filter: blur(3px);
+  animation: lumi-shadow-pulse 6s ease-in-out infinite;
+}
+@keyframes lumi-shadow-pulse {
+  0% { transform: translateX(-50%) scale(1); opacity: 0.55; }
+  50% { transform: translateX(-50%) scale(0.86); opacity: 0.4; }
+  100% { transform: translateX(-50%) scale(1); opacity: 0.55; }
+}
+
+/* ── Cinematic win cutscene: letterbox, light rays, hero zoom ──────────── */
+.cine-overlay {
+  animation: cine-inout 2s ease-in-out forwards;
+}
+@keyframes cine-inout {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  84% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.cine-scrim {
+  background: radial-gradient(120% 90% at 50% 40%, rgba(18, 34, 90, 0.55), rgba(6, 12, 34, 0.82));
+  backdrop-filter: blur(2px);
+}
+.cine-bar {
+  height: 12%;
+  background: #05070f;
+}
+.cine-bar-top {
+  animation: cine-bar-top 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.cine-bar-bottom {
+  animation: cine-bar-bottom 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes cine-bar-top {
+  0% { transform: translateY(-100%); }
+  16% { transform: translateY(0); }
+  86% { transform: translateY(0); }
+  100% { transform: translateY(-100%); }
+}
+@keyframes cine-bar-bottom {
+  0% { transform: translateY(100%); }
+  16% { transform: translateY(0); }
+  86% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+.cine-rays {
+  width: 150vmin;
+  height: 150vmin;
+  border-radius: 9999px;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in oklch, var(--co-yellow) 40%, transparent) 0deg,
+    transparent 7deg,
+    transparent 14deg
+  );
+  mask-image: radial-gradient(circle, black 8%, transparent 62%);
+  animation: cine-ray-spin 9s linear infinite;
+  opacity: 0.65;
+}
+@keyframes cine-ray-spin {
+  to { transform: rotate(360deg); }
+}
+.cine-lumi {
+  animation: cine-pop 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes cine-pop {
+  0% { transform: scale(0.5) translateY(30px); opacity: 0; }
+  20% { transform: scale(1.06) translateY(0); opacity: 1; }
+  32% { transform: scale(1); }
+  84% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.04); opacity: 0; }
+}
+
 /* ── Ambient layer: continuous life across every screen ─────────────────── */
 
 @keyframes ambient-rise {

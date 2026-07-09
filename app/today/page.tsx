@@ -17,6 +17,7 @@ import { Lumi } from "@/components/lumi";
 import { SparkleBurst } from "@/components/star-reward";
 import { celebrate } from "@/lib/fx";
 import { juice } from "@/components/juice";
+import { cinematic } from "@/components/cinematic";
 import { Splash } from "@/components/splash";
 
 // The guided daily session: warm up → learn → talk, drawn as a little quest
@@ -65,8 +66,9 @@ export default function TodayPage() {
       celebrate();
       juice.centerBurst();
       juice.sweep();
+      cinematic.play({ title: t("todayDoneTitle", lang), subtitle: t("todayDoneSub", lang) });
     }
-  }, [allDone]);
+  }, [allDone, lang]);
 
   if (!ready || !quests) return <Splash />;
 

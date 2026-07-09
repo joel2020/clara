@@ -23,11 +23,15 @@ export function Lumi({
   frame = "full",
   className,
   priority,
+  depth,
 }: {
   mood?: LumiMood;
   frame?: "full" | "bust";
   className?: string;
   priority?: boolean;
+  /** Full-frame only: a gentle perspective sway + ground shadow so she reads
+   *  as a standing figure on a stage rather than a flat sticker. */
+  depth?: boolean;
 }) {
   if (frame === "bust") {
     return (
@@ -52,6 +56,25 @@ export function Lumi({
             mood === "cheer" ? "scale-[1.5] object-[center_30%]" : mood === "think" ? "scale-[1.4] object-[center_12%]" : "scale-[1.35] object-[center_8%]",
           )}
         />
+      </div>
+    );
+  }
+
+  if (depth) {
+    return (
+      <div className={cn("lumi-stage relative h-full w-full select-none", className)}>
+        {/* ground contact shadow — sells that she's standing on a surface */}
+        <span className="lumi-shadow" aria-hidden />
+        <div className={cn("lumi-3d absolute inset-0", mood === "cheer" ? "animate-cheer" : "")}>
+          <Image
+            src={MOOD_ART[mood]}
+            alt="Lumi, tu amiga de estudio"
+            fill
+            sizes="(max-width: 640px) 45vw, 320px"
+            priority={priority}
+            className="object-contain drop-shadow-[0_18px_26px_rgba(0,0,0,0.22)]"
+          />
+        </div>
       </div>
     );
   }

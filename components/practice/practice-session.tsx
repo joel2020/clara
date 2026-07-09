@@ -27,6 +27,7 @@ import { LevelUpOverlay } from "./level-up-overlay";
 import { LearnIntro } from "./learn-intro";
 import { Lumi } from "@/components/lumi";
 import { juice } from "@/components/juice";
+import { cinematic } from "@/components/cinematic";
 
 // A full lesson runs in stages: Learn (mini-class) → Ear (minimal pairs) →
 // Words (speak each one) → Sentences (the sound in connected speech) → Done.
@@ -411,6 +412,12 @@ function DoneCard({
     sfx.finish();
     juice.centerBurst(sessionStars > 0 ? `+${sessionStars} ★` : undefined);
     if (attempted > 0 && clear === attempted) juice.sweep();
+    // The movie moment — a brief cheer cutscene over the recap.
+    cinematic.play({
+      title: attempted > 0 && clear === attempted ? "¡Impecable!" : "¡Muy bien!",
+      subtitle: t("lessonComplete", lang),
+      stars: sessionStars,
+    });
 
     void (async () => {
       const ids: string[] = [];

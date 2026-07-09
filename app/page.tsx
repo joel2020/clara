@@ -83,7 +83,7 @@ export default function HomePage() {
                 {accessory.emoji}
               </span>
             )}
-            <Lumi frame="full" priority />
+            <Lumi frame="full" priority depth />
           </div>
         </div>
       </section>
