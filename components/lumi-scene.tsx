@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Lumi, type LumiMood } from "@/components/lumi";
 import { getCosmetic, type EffectKind } from "@/lib/cosmetics";
+import { SceneArt } from "@/components/scene-art";
 
 // Lumi on her equipped "stage" — the chosen background, ambient effect, and a
 // prop accessory. Used on the home hero and as the live preview in the shop, so
@@ -65,6 +66,7 @@ export function LumiScene({
   const fx = getCosmetic(effectId);
   return (
     <div className={cn("relative overflow-hidden rounded-3xl", className)} style={{ background: bg?.background }}>
+      <SceneArt bgId={bgId} />
       {fx?.effect && <EffectLayer kind={fx.effect} />}
       <div className="absolute inset-x-0 bottom-0 top-3">
         <Lumi frame="full" mood={mood} />

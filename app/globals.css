@@ -379,6 +379,38 @@
   animation: juice-sweep-x var(--dur) ease-in-out forwards;
 }
 
+/* Tricolor rim — a colored hairline plus a faint flag wash on the surface. */
+.rim-tricolor {
+  border: 1px solid color-mix(in oklch, var(--co-blue) 24%, var(--hairline));
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in oklch, var(--co-yellow) 8%, var(--card)),
+    var(--card) 45%,
+    color-mix(in oklch, var(--co-blue) 6%, var(--card))
+  );
+}
+
+/* Soft lift for interactive cards — depth without heaviness. */
+.card-lift {
+  box-shadow: 0 10px 24px -14px rgba(18, 58, 147, 0.28), 0 2px 6px -2px rgba(18, 58, 147, 0.1);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.2s ease;
+}
+.card-lift:hover {
+  box-shadow: 0 16px 34px -14px rgba(18, 58, 147, 0.38), 0 3px 10px -3px rgba(18, 58, 147, 0.14);
+  transform: translateY(-1px);
+}
+
+/* Candy-node gloss: a top highlight and bottom shade that read as 3D. */
+.node-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background:
+    radial-gradient(65% 45% at 32% 16%, rgba(255, 255, 255, 0.7), transparent 62%),
+    radial-gradient(85% 42% at 50% 102%, rgba(0, 0, 0, 0.12), transparent 58%);
+  pointer-events: none;
+}
+
 /* Adventure map: dashed tricolor trail with a slow flowing shimmer. */
 .map-trail {
   background: linear-gradient(to bottom, var(--co-yellow), var(--co-blue) 45%, var(--co-red) 90%, var(--co-yellow));

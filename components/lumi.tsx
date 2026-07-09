@@ -3,12 +3,20 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-// Lumi — the app's anime study-buddy character. One illustration, reused
-// everywhere; her "moods" are conveyed by animation and framing so she always
-// looks like the same girl. `full` shows the whole hero sticker; `bust` crops
-// to her face + waving hand for reaction moments (result card, etc.).
+// Lumi — the app's anime study-buddy character. Three real illustrations
+// (same girl, generated from the same reference): waving, mid-jump cheering,
+// and thinking with a hand on her chin. Moods map to artwork; animation and
+// framing layer on top. `full` shows the whole sticker; `bust` crops to her
+// face for reaction moments (result card, etc.).
 
 export type LumiMood = "idle" | "wave" | "cheer" | "think";
+
+const MOOD_ART: Record<LumiMood, string> = {
+  idle: "/character/lumi.png",
+  wave: "/character/lumi.png",
+  cheer: "/character/lumi-cheer.png",
+  think: "/character/lumi-think.png",
+};
 
 export function Lumi({
   mood = "idle",
@@ -33,12 +41,16 @@ export function Lumi({
         {/* soft candy backdrop behind her */}
         <div className="absolute inset-0 game-hero" aria-hidden />
         <Image
-          src="/character/lumi.png"
+          src={MOOD_ART[mood]}
           alt="Lumi"
           fill
           sizes="160px"
           priority={priority}
-          className="scale-[1.35] object-cover object-[center_8%]"
+          className={cn(
+            "object-cover",
+            // Each artwork frames her face differently; crop per pose.
+            mood === "cheer" ? "scale-[1.5] object-[center_30%]" : mood === "think" ? "scale-[1.4] object-[center_12%]" : "scale-[1.35] object-[center_8%]",
+          )}
         />
       </div>
     );
@@ -47,7 +59,7 @@ export function Lumi({
   return (
     <div className={cn("relative h-full w-full select-none", mood !== "cheer" && "animate-float", mood === "cheer" && "animate-cheer", className)}>
       <Image
-        src="/character/lumi.png"
+        src={MOOD_ART[mood]}
         alt="Lumi, tu amiga de estudio"
         fill
         sizes="(max-width: 640px) 45vw, 320px"

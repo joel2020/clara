@@ -11,6 +11,7 @@ import { sfx } from "@/lib/sfx";
 import { popConfetti } from "@/lib/fx";
 import { juice } from "@/components/juice";
 import { LumiScene } from "@/components/lumi-scene";
+import { SceneArt } from "@/components/scene-art";
 import { Splash } from "@/components/splash";
 import {
   cosmeticsByType,
@@ -179,7 +180,11 @@ export default function ShopPage() {
 // or a labeled effect tile.
 function Swatch({ cosmetic }: { cosmetic: Cosmetic }) {
   if (cosmetic.type === "background") {
-    return <div className="h-16 w-full rounded-xl ring-1 ring-black/5" style={{ background: cosmetic.background }} aria-hidden />;
+    return (
+      <div className="relative h-16 w-full overflow-hidden rounded-xl ring-1 ring-black/5" style={{ background: cosmetic.background }} aria-hidden>
+        <SceneArt bgId={cosmetic.id} />
+      </div>
+    );
   }
   return (
     <div className="grid h-16 w-full place-items-center rounded-xl bg-muted text-3xl" aria-hidden>

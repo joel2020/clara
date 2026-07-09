@@ -181,10 +181,8 @@ function Tile({
     <Link
       href={href}
       className={cn(
-        "group relative flex flex-col items-center gap-2 rounded-2xl border px-3 py-4 text-center transition-all active:scale-[0.98]",
-        accent
-          ? "border-primary/30 bg-primary/[0.06] hover:border-primary/60"
-          : "border-hairline bg-card hover:border-primary/40",
+        "group relative flex flex-col items-center gap-2 rounded-2xl px-3 py-4 text-center active:scale-[0.98]",
+        accent ? "border border-primary/30 bg-primary/[0.06] card-lift hover:border-primary/60" : "rim-tricolor card-lift",
       )}
     >
       <span

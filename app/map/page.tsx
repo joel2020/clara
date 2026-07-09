@@ -12,6 +12,7 @@ import { t } from "@/lib/i18n";
 import type { Lesson, ItemProgress } from "@/lib/db/types";
 import { Splash } from "@/components/splash";
 import { Lumi } from "@/components/lumi";
+import { WORLD_SCENERY } from "@/components/map-scenery";
 
 // The journey: the whole curriculum laid out as a path she travels — a stop per
 // lesson, conversation units first (her fastest route to speaking), then the
@@ -146,9 +147,22 @@ export default function MapPage() {
               </li>
             ) : null;
             const earned = stopStars(s);
+            // Scenery lives on the side the node leaves free, every other stop.
+            const SceneryPiece = i % 2 === 1 ? WORLD_SCENERY[track][Math.floor(i / 2) % WORLD_SCENERY[track].length] : null;
             return [
               banner,
               <li key={lesson.id} ref={isCurrent ? currentRef : undefined} className="relative flex">
+                {SceneryPiece && (
+                  <div
+                    aria-hidden
+                    className={cn(
+                      "pointer-events-none absolute top-1/2 -translate-y-1/2",
+                      left ? "right-2 sm:right-6" : "left-2 sm:left-6",
+                    )}
+                  >
+                    <SceneryPiece />
+                  </div>
+                )}
                 <div className={cn("flex w-1/2", left ? "justify-end pr-5" : "ml-auto justify-start pl-5")}>
                   <div className="relative">
                     {/* Lumi camps at the current stop */}
@@ -171,7 +185,7 @@ export default function MapPage() {
                     >
                       <span
                         className={cn(
-                          "grid size-[4.25rem] place-items-center rounded-full shadow-md ring-4 transition-transform active:scale-95",
+                          "relative grid size-[4.25rem] place-items-center rounded-full shadow-md ring-4 transition-transform active:scale-95",
                           s.done
                             ? "text-primary-foreground ring-primary/25"
                             : isCurrent
@@ -189,6 +203,7 @@ export default function MapPage() {
                             : undefined
                         }
                       >
+                        {!locked && <span className="node-shine" aria-hidden />}
                         {s.done ? (
                           <Check className="size-8" strokeWidth={2.5} />
                         ) : locked ? (
