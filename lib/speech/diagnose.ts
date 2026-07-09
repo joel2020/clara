@@ -89,6 +89,8 @@ const PHONEME_CATEGORY: Record<string, string> = {
   "ə": "schwa",
   "ɹ": "american-r",
   r: "american-r",
+  "ɝ": "american-r",
+  "ɚ": "american-r",
   "ɾ": "flap-t",
 };
 
