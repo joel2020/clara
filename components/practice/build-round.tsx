@@ -122,10 +122,18 @@ export function BuildRound({ items, onExit }: { items: PracticeItem[]; onExit: (
       juice.centerBurst(`+${gain} ★`);
       setTimeout(advance, 1000);
     } else {
+      // Stay on the sentence: show the right order, then let her rebuild it.
       setState("wrong");
       sfx.wrong();
-      setTimeout(advance, 1700);
     }
+  };
+
+  const retry = () => {
+    if (state !== "wrong") return;
+    sfx.tap();
+    setPlaced([]);
+    setState("building");
+    play();
   };
 
   const tapChip = (chip: Chip, e: React.MouseEvent<HTMLButtonElement>) => {
@@ -226,13 +234,31 @@ export function BuildRound({ items, onExit }: { items: PracticeItem[]; onExit: (
           ))}
         </div>
 
-        {/* On a miss, show the correct sentence so it teaches */}
-        <div className="mt-3 h-6">
+        {/* On a miss, show the correct sentence so it teaches — then she rebuilds it */}
+        <div className="mt-3 min-h-6">
           {state === "wrong" && (
-            <p className="animate-fade-in inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-              <X className="size-4 text-destructive" />
-              “<span className="font-medium text-foreground">{current.text}</span>”
-            </p>
+            <div className="animate-fade-in flex flex-col items-center gap-2.5">
+              <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                <X className="size-4 text-destructive" />
+                “<span className="font-medium text-foreground">{current.text}</span>”
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={retry}
+                  className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background transition-all hover:opacity-90 active:scale-[0.98]"
+                >
+                  {t("tryAgain", lang)}
+                </button>
+                <button
+                  type="button"
+                  onClick={advance}
+                  className="rounded-full border border-hairline px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {t("skipToNext", lang)}
+                </button>
+              </div>
+            </div>
           )}
         </div>
 

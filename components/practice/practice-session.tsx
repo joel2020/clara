@@ -18,6 +18,7 @@ import { celebrate, levelUpBurst } from "@/lib/fx";
 import type { PracticeOutcome } from "@/lib/practice";
 import { t, type CoachLang } from "@/lib/i18n";
 import { hintFor, introFor, achievementText } from "@/lib/content/es";
+import { meaningFor } from "@/lib/content/word-es";
 import { ListenButton } from "./listen-button";
 import { ProducePanel } from "./produce-panel";
 import { DistinguishDrill } from "./distinguish-drill";
@@ -354,8 +355,8 @@ function ProduceItemCard({
         {item.text}
       </h1>
       <p className="mt-5 font-mono text-base text-muted-foreground">{item.ipa}</p>
-      {item.meaning && (
-        <p className="mt-3 max-w-md text-base italic text-primary/90">{item.meaning}</p>
+      {meaningFor(item.text, item.meaning) && (
+        <p className="mt-3 max-w-md text-base italic text-primary/90">{meaningFor(item.text, item.meaning)}</p>
       )}
       {partner && (
         <p className="mt-3 text-sm text-muted-foreground">

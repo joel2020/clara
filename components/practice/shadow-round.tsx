@@ -82,6 +82,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
   const echo = async () => {
     if (phase !== "ready") return;
     stopPronunciation();
+    setFlash(null);
     setPhase("recording");
     sfx.tap();
     const h = createRecognition({ lang: settings.recognitionLang, target: current.text });
@@ -107,19 +108,20 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         sfx.correct(out.rewards.combo);
         popConfetti({ x: 0.5, y: 0.42 });
         juice.centerBurst(out.rewards.starsEarned > 0 ? `+${out.rewards.starsEarned} ★` : undefined);
+        setPhase("flash");
+        setTimeout(advance, 1100);
       } else {
+        // A miss keeps her on the phrase — mic ready to try again, skip optional.
         sfx.wrong();
+        setPhase("ready");
       }
-      setPhase("flash");
-      setTimeout(advance, 1100);
     } catch (e) {
       if (e instanceof RecognitionError && e.code === "cancelled") {
         setPhase("ready");
         return;
       }
       setFlash({ passed: false, stars: 0 });
-      setPhase("flash");
-      setTimeout(advance, 900);
+      setPhase("ready");
     } finally {
       handleRef.current = null;
     }
@@ -222,8 +224,17 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
             flash.passed ? (
               <StarRating rating={flash.stars} size={28} />
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground">
-                <X className="size-4" /> {t("tryAgain", lang)}
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground">
+                  <X className="size-4" /> {t("tryAgain", lang)}
+                </span>
+                <button
+                  type="button"
+                  onClick={advance}
+                  className="rounded-full border border-hairline px-3 py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {t("skipToNext", lang)}
+                </button>
               </span>
             )
           )}

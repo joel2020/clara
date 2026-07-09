@@ -58,6 +58,7 @@ export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: 
   const [idx, setIdx] = useState(0);
   const [phase, setPhase] = useState<Phase>("listening");
   const [picked, setPicked] = useState<number | null>(null);
+  const [missed, setMissed] = useState<number[]>([]);
   const [stars, setStars] = useState(0);
   const [clears, setClears] = useState(0);
   const [done, setDone] = useState(false);
@@ -99,27 +100,33 @@ export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: 
   }, [done, stars]);
 
   const choose = (i: number, e?: React.MouseEvent<HTMLButtonElement>) => {
-    if (phase === "flash" || picked !== null) return;
+    if (phase === "flash" || picked !== null || missed.includes(i)) return;
+    const right = i === q.correct;
+    if (!right) {
+      // A wrong pick stays on the question: mark it and let her choose again.
+      setMissed((m) => [...m, i]);
+      sfx.wrong();
+      return;
+    }
     stopPronunciation();
     setPicked(i);
     setPhase("flash");
-    const right = i === q.correct;
-    if (right) {
+    const firstTry = missed.length === 0;
+    if (firstTry) {
       setStars((s) => s + 1);
       setClears((c) => c + 1);
-      sfx.correct(1);
-      popConfetti({ x: 0.5, y: 0.5 });
-      // Burst right where she tapped the correct answer.
-      const rect = e?.currentTarget.getBoundingClientRect();
-      const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
-      const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
-      juice.burst(x, y, { count: 10 });
-      juice.float(x, y - 26, "+1 ★");
-    } else {
-      sfx.wrong();
     }
+    sfx.correct(1);
+    popConfetti({ x: 0.5, y: 0.5 });
+    // Burst right where she tapped the correct answer.
+    const rect = e?.currentTarget.getBoundingClientRect();
+    const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+    juice.burst(x, y, { count: 10 });
+    if (firstTry) juice.float(x, y - 26, "+1 ★");
     setTimeout(() => {
       setPicked(null);
+      setMissed([]);
       if (idx + 1 >= round.length) {
         setDone(true);
         sfx.finish();
@@ -128,7 +135,7 @@ export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         setIdx((v) => v + 1);
         setPhase("listening");
       }
-    }, right ? 900 : 1600);
+    }, 900);
   };
 
   if (done) {
@@ -202,37 +209,35 @@ export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         <div className="mt-8 grid w-full gap-2.5">
           {q.options.map((opt, i) => {
             const isRight = i === q.correct;
-            const isPicked = picked === i;
             const reveal = phase === "flash";
+            const wasMissed = missed.includes(i);
             return (
               <button
                 key={i}
                 type="button"
                 onClick={(e) => choose(i, e)}
-                disabled={reveal}
+                disabled={reveal || wasMissed}
                 className={cn(
                   "flex items-center justify-between gap-3 rounded-2xl border px-5 py-3.5 text-left text-[15px] font-medium transition-all active:scale-[0.99]",
                   reveal && isRight
                     ? "border-success bg-success/10 text-success"
-                    : reveal && isPicked
-                      ? "border-destructive bg-destructive/10 text-destructive"
+                    : wasMissed
+                      ? "border-destructive/50 bg-destructive/[0.06] text-destructive/70"
                       : "border-hairline bg-card hover:border-primary/40",
                 )}
               >
                 {opt}
                 {reveal && isRight && <Check className="size-4 shrink-0" />}
-                {reveal && isPicked && !isRight && <X className="size-4 shrink-0" />}
+                {wasMissed && <X className="size-4 shrink-0" />}
               </button>
             );
           })}
         </div>
 
-        {/* After a wrong pick, show what was actually said so it teaches. */}
+        {/* After a wrong pick, a nudge to listen again and keep trying. */}
         <div className="mt-5 h-6">
-          {phase === "flash" && picked !== null && picked !== q.correct && (
-            <p className="animate-fade-in text-sm text-muted-foreground">
-              “<span className="font-medium text-foreground">{q.item.text}</span>”
-            </p>
+          {phase !== "flash" && missed.length > 0 && (
+            <p className="animate-fade-in text-sm text-muted-foreground">{t("tryAgain", lang)}</p>
           )}
         </div>
       </div>

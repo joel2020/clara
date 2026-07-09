@@ -13,6 +13,7 @@ import { popConfetti, celebrate } from "@/lib/fx";
 import { juice } from "@/components/juice";
 import { playPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
+import { meaningFor } from "@/lib/content/word-es";
 
 const ROUND_LENGTH = 15;
 
@@ -203,6 +204,9 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
           {current.text}
         </h1>
         <p className="mt-4 font-mono text-sm text-muted-foreground">{current.ipa}</p>
+        {meaningFor(current.text, current.meaning) && (
+          <p className="mt-2 text-sm italic text-primary/85">{meaningFor(current.text, current.meaning)}</p>
+        )}
 
         {/* Floating XP gain */}
         <div className="mt-6 flex h-8 items-center justify-center">
