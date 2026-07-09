@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, KeyRound, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { sfx } from "@/lib/sfx";
 import { ensureProfile } from "@/lib/sync/supabase-sync";
+import { restoreProfile } from "@/lib/sync/restore";
 
 // A short, friendly, passwordless "sync code" — name slug + 4 random chars —
 // that identifies the student across devices (e.g. "mariana-7k2p").
@@ -29,6 +30,10 @@ export function Onboarding() {
   const { settings, update, ready } = useSettings();
   const [name, setName] = useState("");
   const [lang, setLang] = useState<"es" | "en">("es");
+  const [mode, setMode] = useState<"new" | "restore">("new");
+  const [code, setCode] = useState("");
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState(false);
 
   if (!ready || settings.studentName) return null;
 
@@ -40,6 +45,32 @@ export function Onboarding() {
     await update({ studentName: trimmed, coachLanguage: lang, profileId });
     // Create the cloud profile row (no-op if Supabase isn't configured).
     void ensureProfile({ id: profileId, name: trimmed, coachLanguage: lang }).catch(() => {});
+  };
+
+  const restore = async () => {
+    const trimmed = code.trim().toLowerCase();
+    if (!trimmed || restoring) return;
+    sfx.tap();
+    setRestoring(true);
+    setRestoreError(false);
+    try {
+      const summary = await restoreProfile(trimmed);
+      if (!summary) {
+        setRestoreError(true);
+        return;
+      }
+      await update({
+        studentName: summary.profile.name,
+        coachLanguage: summary.profile.coachLanguage,
+        profileId: summary.profile.id,
+      });
+      // Full reload so every live query starts from the restored data.
+      window.location.href = "/";
+    } catch {
+      setRestoreError(true);
+    } finally {
+      setRestoring(false);
+    }
   };
 
   return (
@@ -65,6 +96,55 @@ export function Onboarding() {
             </span>
           </p>
 
+          {mode === "restore" ? (
+            <div className="mt-10">
+              <label htmlFor="sync-code" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Tu código de progreso · Your sync code
+              </label>
+              <input
+                id="sync-code"
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  setRestoreError(false);
+                }}
+                onKeyDown={(e) => e.key === "Enter" && restore()}
+                placeholder="mariana-7k2p"
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="mt-2 w-full border-b border-border bg-transparent pb-2 font-mono text-2xl tracking-wide outline-none placeholder:text-muted-foreground/30 focus:border-primary"
+              />
+              <p className="mt-3 text-sm text-muted-foreground">
+                Está en Ajustes → Código de sincronización del dispositivo donde practicabas.
+              </p>
+              {restoreError && (
+                <p className="mt-3 text-sm font-medium text-destructive">
+                  No encontramos ese código. Revísalo e intenta otra vez. · We couldn&apos;t find that code.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={restore}
+                disabled={!code.trim() || restoring}
+                className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-7 py-3.5 text-sm font-medium text-background transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-30"
+              >
+                {restoring ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
+                Recuperar mi progreso · Restore my progress
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sfx.tap();
+                  setMode("new");
+                }}
+                className="mt-4 w-full text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Soy nueva — empezar de cero · I&apos;m new — start fresh
+              </button>
+            </div>
+          ) : (
+            <>
           <div className="mt-10">
             <label htmlFor="student-name" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               ¿Cómo te llamas? · Your name
@@ -109,6 +189,19 @@ export function Onboarding() {
             Empezar · Start
             <ArrowRight className="size-4" />
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              sfx.tap();
+              setMode("restore");
+            }}
+            className="mt-4 inline-flex w-full items-center justify-center gap-1.5 text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <KeyRound className="size-3.5" />
+            Ya tengo un código — recuperar mi progreso · I have a code
+          </button>
+            </>
+          )}
         </div>
       </div>
     </div>

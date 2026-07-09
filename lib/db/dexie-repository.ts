@@ -84,6 +84,14 @@ export class DexieRepository implements DataRepository {
 
   async savePlayerStats(stats: PlayerStats): Promise<void> {
     await db.player.put({ ...stats, id: "player" });
+    // Mirror to the cloud from the one place every star/cosmetic write funnels
+    // through (shop, chest, game rounds) — not just lesson practice.
+    void (async () => {
+      const settings = await this.getSettings();
+      if (!settings.profileId) return;
+      const { pushPlayer } = await import("@/lib/sync/supabase-sync");
+      pushPlayer(settings.profileId, stats);
+    })().catch(() => {});
   }
 
   async getConvItems(): Promise<ConvItem[]> {

@@ -134,6 +134,32 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Scoring strictness */}
+        <section>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{t("settingsDifficulty", lang)}</p>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            {(["gentle", "normal"] as const).map((level) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => void update({ difficulty: level })}
+                className={cn(
+                  "rounded-2xl border p-4 text-left transition-all active:scale-[0.99]",
+                  settings.difficulty === level ? "border-primary bg-primary/[0.05]" : "border-hairline bg-card hover:border-foreground/30",
+                )}
+                aria-pressed={settings.difficulty === level}
+              >
+                <span className={cn("font-display text-lg font-medium", settings.difficulty === level && "text-primary")}>
+                  {t(level === "gentle" ? "diffGentle" : "diffNormal", lang)}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                  {t(level === "gentle" ? "diffGentleSub" : "diffNormalSub", lang)}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* Daily goal */}
         <section>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{t("settingsGoal", lang)}</p>

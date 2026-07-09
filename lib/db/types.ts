@@ -153,6 +153,12 @@ export interface Settings {
    * advanced students. Practice targets are always English.
    */
   coachLanguage: "es" | "en";
+  /**
+   * How strict pronunciation scoring is. "gentle" (default) lowers the pass
+   * bar so a beginner racks up wins while her ear develops; "normal" is the
+   * stricter bar for students chasing polish.
+   */
+  difficulty: "gentle" | "normal";
 }
 
 /**

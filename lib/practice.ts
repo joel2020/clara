@@ -35,6 +35,7 @@ export async function recordPracticeAttempt(args: {
 }): Promise<PracticeOutcome> {
   const { item, lessonId, transcript, alternatives, combo, itemPool, assessment } = args;
   const partner = partnerOf(item, itemPool);
+  const settings = await repo.getSettings();
 
   const result = scoreAttempt({
     target: item.text,
@@ -43,6 +44,7 @@ export async function recordPracticeAttempt(args: {
     kind: item.kind,
     partnerText: partner?.text,
     assessment,
+    lenient: settings.difficulty !== "normal",
   });
 
   const now = Date.now();
@@ -72,7 +74,7 @@ export async function recordPracticeAttempt(args: {
   await repo.saveProgress(nextProgress);
 
   // Game layer: XP, streak, combo, achievements.
-  const [player, settings] = await Promise.all([repo.getPlayerStats(), repo.getSettings()]);
+  const player = await repo.getPlayerStats();
   const { stats, rewards } = applyAttempt(player, {
     passed: result.passed,
     combo: result.passed ? combo : 0,

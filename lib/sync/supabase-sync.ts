@@ -111,24 +111,38 @@ export function pushProgress(profileId: string, p: ItemProgress): void {
 export function pushPlayer(profileId: string, s: PlayerStats): void {
   const sb = supabase();
   if (!ok() || !sb) return;
+  const base = {
+    profile_id: profileId,
+    xp: s.xp,
+    current_streak: s.currentStreak,
+    longest_streak: s.longestStreak,
+    last_active_day: s.lastActiveDay,
+    today_key: s.todayKey,
+    today_xp: s.todayXp,
+    total_attempts: s.totalAttempts,
+    total_passes: s.totalPasses,
+    best_combo: s.bestCombo,
+    achievements: s.achievements,
+    updated_at: s.updatedAt,
+  };
+  // The game economy — stars, wardrobe, chest, freezes — is progress too.
+  const economy = {
+    stars: s.stars ?? 0,
+    owned_cosmetics: s.ownedCosmetics ?? [],
+    equipped_bg: s.equippedBg ?? "bg-default",
+    equipped_accessory: s.equippedAccessory ?? "acc-none",
+    equipped_effect: s.equippedEffect ?? "fx-none",
+    last_chest_day: s.lastChestDay ?? null,
+    streak_freezes: s.streakFreezes ?? 0,
+    freeze_used_day: s.freezeUsedDay ?? null,
+  };
   bg(
-    sb.from("player_stats").upsert(
-      {
-        profile_id: profileId,
-        xp: s.xp,
-        current_streak: s.currentStreak,
-        longest_streak: s.longestStreak,
-        last_active_day: s.lastActiveDay,
-        today_key: s.todayKey,
-        today_xp: s.todayXp,
-        total_attempts: s.totalAttempts,
-        total_passes: s.totalPasses,
-        best_combo: s.bestCombo,
-        achievements: s.achievements,
-        updated_at: s.updatedAt,
-      },
-      { onConflict: "profile_id" },
-    ),
+    (async () => {
+      const full = await sb.from("player_stats").upsert({ ...base, ...economy }, { onConflict: "profile_id" });
+      // Older cloud schemas lack the economy columns (PostgREST rejects the
+      // whole row) — fall back to the base fields so core progress still syncs.
+      if (full.error) await sb.from("player_stats").upsert(base, { onConflict: "profile_id" });
+    })(),
   );
 }
 

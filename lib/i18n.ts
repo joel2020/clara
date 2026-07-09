@@ -255,6 +255,11 @@ const STRINGS = {
   todayChestLocked: { es: "Completa los 3 pasos para abrirlo", en: "Finish the 3 steps to open it" },
   todayChestReady: { es: "¡Listo! Ábrelo en la tienda", en: "Ready! Open it in the shop" },
   todayChestOpened: { es: "Abierto hoy — vuelve mañana", en: "Opened today — come back tomorrow" },
+  settingsDifficulty: { es: "Nivel de exigencia", en: "Scoring strictness" },
+  diffGentle: { es: "Suave", en: "Gentle" },
+  diffGentleSub: { es: "Más fácil aprobar mientras aprendes — recomendado", en: "Easier to pass while you learn — recommended" },
+  diffNormal: { es: "Exigente", en: "Strict" },
+  diffNormalSub: { es: "La barra completa, para pulir el acento", en: "The full bar, for polishing your accent" },
 
   // Listen / record controls
   listen: { es: "Escucha", en: "Listen" },

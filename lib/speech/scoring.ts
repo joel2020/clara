@@ -101,10 +101,16 @@ export interface ScoreInput {
   partnerText?: string;
   /** Phoneme-level acoustic scores (Azure), when the attempt went through /api/assess. */
   assessment?: { display: string; pronScore: number; completenessScore?: number };
+  /**
+   * Gentle mode: drop every pass threshold by 10 points. A beginner needs
+   * wins to keep going — precision comes later, on "normal".
+   */
+  lenient?: boolean;
 }
 
 export function scoreAttempt(input: ScoreInput): ScoreResult {
   const { target, transcript, alternatives = [], kind, partnerText } = input;
+  const ease = input.lenient ? 10 : 0;
 
   // Acoustic scoring path: Azure measured HOW she pronounced it — trust that
   // over transcript similarity. The minimal-pair check still runs on what the
@@ -115,7 +121,7 @@ export function scoreAttempt(input: ScoreInput): ScoreResult {
     if (partnerText && kind === "word") {
       heardPartner = similarity(partnerText, heard) >= 80 && similarity(target, heard) < 80;
     }
-    const threshold = kind === "phrase" ? 65 : 70;
+    const threshold = (kind === "phrase" ? 65 : 70) - ease;
     const score = Math.max(0, Math.min(100, input.assessment.pronScore));
     const passed = score >= threshold && !heardPartner;
     const feedbackKey = pickFeedbackKey(passed, score, heardPartner);
@@ -129,7 +135,7 @@ export function scoreAttempt(input: ScoreInput): ScoreResult {
     };
   }
   const candidates = [transcript, ...alternatives].filter(Boolean);
-  const threshold = kind === "phrase" ? PHRASE_PASS : WORD_PASS;
+  const threshold = (kind === "phrase" ? PHRASE_PASS : WORD_PASS) - ease;
 
   const scoreOne = (heard: string) =>
     kind === "phrase" ? phraseScore(target, heard) : similarity(target, heard);

@@ -68,6 +68,8 @@ export const DEFAULT_SETTINGS: Settings = {
   studentName: null,
   profileId: null,
   coachLanguage: "es",
+  // Existing installs merge with these defaults on read, so they get gentle too.
+  difficulty: "gentle",
 };
 
 export const DEFAULT_PLAYER: PlayerStats = {
