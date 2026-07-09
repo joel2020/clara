@@ -80,6 +80,24 @@ const STRINGS = {
   },
   settingsCopy: { es: "Copiar", en: "Copy" },
   settingsCopied: { es: "¡Copiado!", en: "Copied!" },
+  pushTitle: { es: "Recordatorio diario", en: "Daily reminder" },
+  pushSub: {
+    es: "Lumi te avisa una vez al día para no perder tu racha.",
+    en: "Lumi nudges you once a day so your streak survives.",
+  },
+  pushEnable: { es: "Activar", en: "Turn on" },
+  pushEnabled: { es: "Activado — te avisamos a las ~6 pm", en: "On — we'll nudge you around 6 pm" },
+  pushDisable: { es: "Desactivar", en: "Turn off" },
+  pushDenied: {
+    es: "Las notificaciones están bloqueadas en los ajustes del navegador.",
+    en: "Notifications are blocked in your browser settings.",
+  },
+  pushNeedsInstall: {
+    es: "En iPhone: primero agrega Clara a tu pantalla de inicio (Compartir → Agregar a inicio) y ábrela desde ahí.",
+    en: "On iPhone: first add Clara to your Home Screen (Share → Add to Home Screen) and open it from there.",
+  },
+  pushError: { es: "No se pudo activar. Intenta de nuevo.", en: "Couldn't turn it on. Try again." },
+
   settingsDanger: { es: "Zona de peligro", en: "Danger zone" },
   settingsReset: { es: "Borrar todo mi progreso", en: "Erase all my progress" },
   settingsResetSub: {

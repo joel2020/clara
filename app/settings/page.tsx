@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Copy, Check, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, Check, Trash2, Bell, BellOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { repo } from "@/lib/db";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { Splash } from "@/components/splash";
+import { pushSupported, currentPushState, isSubscribed, enablePush, disablePush } from "@/lib/push";
 
 // Student-facing settings — name, coaching language, goal, sounds, and the
 // sync code (the passwordless key to her progress, essential when the app is
@@ -16,11 +17,49 @@ import { Splash } from "@/components/splash";
 
 const GOALS = [20, 40, 60];
 
+type PushUi = "hidden" | "needs_install" | "off" | "on" | "denied" | "error";
+
 export default function SettingsPage() {
   const { settings, update, ready } = useSettings();
   const lang = settings.coachLanguage;
   const [copied, setCopied] = useState(false);
   const [armReset, setArmReset] = useState(false);
+  const [pushUi, setPushUi] = useState<PushUi>("hidden");
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      if (!pushSupported()) {
+        // iOS Safari only exposes push to PWAs installed on the home screen.
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        if (active && isIOS) setPushUi("needs_install");
+        return;
+      }
+      const state = await currentPushState();
+      if (!active) return;
+      if (state === "not_configured" || state === "unsupported") return; // keep hidden
+      if (state === "denied") setPushUi("denied");
+      else setPushUi((await isSubscribed()) ? "on" : "off");
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const togglePush = async () => {
+    sfx.tap();
+    try {
+      if (pushUi === "on") {
+        await disablePush();
+        setPushUi("off");
+      } else {
+        await enablePush(settings.profileId, lang);
+        setPushUi("on");
+      }
+    } catch (e) {
+      setPushUi((e as Error).message === "denied" ? "denied" : "error");
+    }
+  };
 
   if (!ready) return <Splash />;
 
@@ -154,6 +193,45 @@ export default function SettingsPage() {
               </button>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{t("settingsSyncSub", lang)}</p>
+          </section>
+        )}
+
+        {/* Daily reminder */}
+        {pushUi !== "hidden" && (
+          <section className="rounded-2xl border border-hairline bg-card p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2 font-medium">
+                  {pushUi === "on" ? <Bell className="size-4 text-primary" /> : <BellOff className="size-4 text-muted-foreground" />}
+                  {t("pushTitle", lang)}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {pushUi === "needs_install"
+                    ? t("pushNeedsInstall", lang)
+                    : pushUi === "denied"
+                      ? t("pushDenied", lang)
+                      : pushUi === "on"
+                        ? t("pushEnabled", lang)
+                        : pushUi === "error"
+                          ? t("pushError", lang)
+                          : t("pushSub", lang)}
+                </p>
+              </div>
+              {(pushUi === "off" || pushUi === "on" || pushUi === "error") && (
+                <button
+                  type="button"
+                  onClick={togglePush}
+                  className={cn(
+                    "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-[0.98]",
+                    pushUi === "on"
+                      ? "border border-hairline text-muted-foreground hover:text-foreground"
+                      : "bg-foreground text-background hover:opacity-90",
+                  )}
+                >
+                  {pushUi === "on" ? t("pushDisable", lang) : t("pushEnable", lang)}
+                </button>
+              )}
+            </div>
           </section>
         )}
 
