@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { ReviewCallout } from "@/components/review-callout";
 import { PlayerBar } from "@/components/player-bar";
 import { DailyQuests } from "@/components/daily-quests";
-import { Lumi } from "@/components/lumi";
+import { LumiDepth } from "@/components/lumi-depth";
 import { EffectLayer } from "@/components/lumi-scene";
 import { AmbientStars } from "@/components/juice";
 import { useSettings } from "@/lib/hooks/useSettings";
@@ -83,7 +83,7 @@ export default function HomePage() {
                 {accessory.emoji}
               </span>
             )}
-            <Lumi frame="full" priority depth />
+            <LumiDepth priority />
           </div>
         </div>
       </section>
