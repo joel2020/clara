@@ -217,6 +217,53 @@ export function JuiceLayer() {
   );
 }
 
+// Deterministic star recipe for the global ambient layer — spread across the
+// width, varied sizes/speeds/sways so the drift never reads as a pattern.
+const AMBIENT = [
+  { left: 4, size: 9, dur: 17, delay: 0, sway: 26, o: 0.5 },
+  { left: 15, size: 13, dur: 21, delay: 4, sway: -34, o: 0.4 },
+  { left: 27, size: 8, dur: 15, delay: 9, sway: 20, o: 0.55 },
+  { left: 41, size: 11, dur: 19, delay: 2, sway: -24, o: 0.45 },
+  { left: 55, size: 9, dur: 16, delay: 12, sway: 30, o: 0.5 },
+  { left: 68, size: 14, dur: 23, delay: 6, sway: -20, o: 0.35 },
+  { left: 80, size: 10, dur: 18, delay: 14, sway: 24, o: 0.5 },
+  { left: 92, size: 8, dur: 20, delay: 8, sway: -28, o: 0.45 },
+];
+
+/**
+ * Always-on ambient life for the whole app: tricolor stars drifting up the
+ * screen plus an occasional light streak sweeping across. Pure looping CSS —
+ * no timers, no re-renders — and hidden entirely under reduced motion.
+ */
+export function AmbientFx() {
+  return (
+    <div className="ambient-fx pointer-events-none fixed inset-0 z-[60] overflow-hidden" aria-hidden>
+      {AMBIENT.map((s, i) => (
+        <span
+          key={i}
+          className="ambient-star"
+          style={
+            {
+              left: `${s.left}%`,
+              "--sway": `${s.sway}px`,
+              "--o": s.o,
+              animationDuration: `${s.dur}s`,
+              animationDelay: `${s.delay}s`,
+            } as React.CSSProperties
+          }
+        >
+          <StarShape size={s.size} color={TRICOLOR[i % 3]} />
+        </span>
+      ))}
+      <span className="ambient-streak" style={{ top: "16%", animationDuration: "13s", animationDelay: "3s" }} />
+      <span
+        className="ambient-streak"
+        style={{ top: "62%", animationDuration: "19s", animationDelay: "11s", "--streak": "var(--co-blue)" } as React.CSSProperties}
+      />
+    </div>
+  );
+}
+
 /** Gentle ambient twinkles for hero surfaces — always-on life, never in the way. */
 export function AmbientStars({ count = 7 }: { count?: number }) {
   return (

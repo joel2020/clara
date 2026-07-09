@@ -379,6 +379,51 @@
   animation: juice-sweep-x var(--dur) ease-in-out forwards;
 }
 
+/* ── Ambient layer: continuous life across every screen ─────────────────── */
+
+@keyframes ambient-rise {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(0.9); opacity: 0; }
+  8% { opacity: var(--o, 0.5); }
+  50% { transform: translate3d(var(--sway, 24px), -55vh, 0) rotate(180deg) scale(1.05); }
+  92% { opacity: var(--o, 0.5); }
+  100% { transform: translate3d(0, -110vh, 0) rotate(360deg) scale(0.9); opacity: 0; }
+}
+.ambient-star {
+  position: absolute;
+  top: 103vh;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: ambient-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes ambient-streak-x {
+  0% { transform: translate3d(-30vw, 0, 0) rotate(-14deg); opacity: 0; }
+  3% { opacity: 0.7; }
+  11% { transform: translate3d(115vw, 18vw, 0) rotate(-14deg); opacity: 0; }
+  100% { transform: translate3d(115vw, 18vw, 0) rotate(-14deg); opacity: 0; }
+}
+.ambient-streak {
+  position: absolute;
+  left: 0;
+  width: 200px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, transparent, var(--streak, var(--co-yellow)), #fff);
+  box-shadow: 0 0 12px var(--streak, var(--co-yellow));
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: ambient-streak-x;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+
+/* The frozen first frame is invisible (opacity 0), so hide the layer outright. */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-fx { display: none; }
+}
+
 /* ── Arcade polish utilities ──────────────────────────────────────────────── */
 
 /* Soft golden bloom for reward chips and big numbers. */

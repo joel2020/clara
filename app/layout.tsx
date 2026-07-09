@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Onboarding } from "@/components/onboarding";
 import { PwaRegister } from "@/components/pwa-register";
 import { MobileNav } from "@/components/mobile-nav";
-import { JuiceLayer } from "@/components/juice";
+import { JuiceLayer, AmbientFx } from "@/components/juice";
 
 const sans = Geist({
   variable: "--font-sans",
@@ -47,19 +47,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#123a93" },
-    { media: "(prefers-color-scheme: dark)", color: "#17181d" },
-  ],
+  themeColor: "#123a93",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1, // stop iOS zooming/jumping when she taps the mic
   viewportFit: "cover",
 };
-
-// Applies .dark before first paint (no flash) and tracks the system setting
-// live. The design tokens for dark already exist in globals.css.
-const THEME_SCRIPT = `(function(){var m=window.matchMedia('(prefers-color-scheme: dark)');function a(){document.documentElement.classList.toggle('dark',m.matches)}a();m.addEventListener('change',a)})();`;
 
 export default function RootLayout({
   children,
@@ -67,20 +60,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // suppressHydrationWarning: the theme script may add .dark before hydration.
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}
-    >
+    // Always the light editorial canvas — the game's warmth reads best on white,
+    // so the OS dark preference is intentionally ignored.
+    <html lang="en" className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <SettingsProvider>
           <PwaRegister />
           <Onboarding />
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <MobileNav />
+          <AmbientFx />
           <JuiceLayer />
           <Toaster position="top-center" richColors />
         </SettingsProvider>
