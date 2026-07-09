@@ -67,6 +67,29 @@ const STRINGS = {
   mapWorldSounds: { es: "Mundo 2 · Sonidos", en: "World 2 · Sounds" },
   mapStops: { es: "paradas completas", en: "stops complete" },
 
+  // Sentence builder
+  buildCard: { es: "Arma la frase", en: "Build it" },
+  buildCardSub: { es: "Escucha y ordena las palabras", en: "Hear it, then order the words" },
+  buildTitle: { es: "Arma la frase", en: "Build the sentence" },
+  buildIntro: {
+    es: "Escucha la frase y toca las palabras en el orden correcto. Así el orden del inglés se te mete en los dedos.",
+    en: "Hear the phrase, then tap the words into the right order. English word order, straight into your fingers.",
+  },
+  buildTapWords: { es: "Toca las palabras en orden…", en: "Tap the words in order…" },
+  buildUndo: { es: "Quitar la última", en: "Remove last" },
+
+  // Duet mode
+  duetCard: { es: "Escena a dos", en: "Duet scene" },
+  duetCardSub: { es: "Actúa una escena con Joel", en: "Act a scene with Joel" },
+  duetTitle: { es: "Escena a dos", en: "Duet scenes" },
+  duetIntro: {
+    es: "Tú y Joel actúan una mini-escena: él dice su línea con su voz, y tú respondes con la tuya al micrófono.",
+    en: "You and Joel act out a mini-scene: he says his line in his voice, you answer yours into the mic.",
+  },
+  duetYourLine: { es: "Tu línea — toca y habla", en: "Your line — tap and speak" },
+  duetDone: { es: "¡Escena completa!", en: "Scene complete!" },
+  duetNeedsMic: { es: "Las escenas necesitan el micrófono", en: "Duet scenes need the mic" },
+
   // Media zone (Cine y música + easy news)
   mediaCard: { es: "Cine y música", en: "Movies & music" },
   mediaCardSub: { es: "Tráilers, canciones y noticias de verdad", en: "Real trailers, songs, and news" },
