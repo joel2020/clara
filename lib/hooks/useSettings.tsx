@@ -6,6 +6,8 @@ import { DEFAULT_SETTINGS } from "@/lib/db/repository";
 import type { Settings } from "@/lib/db/types";
 import { setSfxEnabled } from "@/lib/sfx";
 import { ensureProfile, pushSettings } from "@/lib/sync/supabase-sync";
+import { restoreProfile } from "@/lib/sync/restore";
+import { requestPersistentStorage, rememberSyncCode, recalledSyncCode } from "@/lib/sync/durability";
 
 // App-wide settings (instructor toggle, voice, rate) loaded once and shared.
 
@@ -23,13 +25,37 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    repo.getSettings().then((s) => {
-      if (active) {
-        setSettings(s);
-        setSfxEnabled(s.soundEnabled);
-        setReady(true);
+    void requestPersistentStorage();
+    void (async () => {
+      let s = await repo.getSettings();
+      // If local storage looks fresh (e.g. iOS evicted IndexedDB) but we still
+      // remember this student's sync code, pull their real profile back from the
+      // cloud instead of onboarding them as a brand-new user.
+      if (!s.studentName) {
+        const code = recalledSyncCode();
+        if (code) {
+          try {
+            const summary = await restoreProfile(code);
+            if (summary) {
+              s = {
+                ...s,
+                studentName: summary.profile.name,
+                coachLanguage: summary.profile.coachLanguage,
+                profileId: summary.profile.id,
+              };
+              await repo.saveSettings(s);
+            }
+          } catch {
+            /* no cloud data for that code — fall through to onboarding */
+          }
+        }
       }
-    });
+      if (s.profileId) rememberSyncCode(s.profileId);
+      if (!active) return;
+      setSettings(s);
+      setSfxEnabled(s.soundEnabled);
+      setReady(true);
+    })();
     return () => {
       active = false;
     };
@@ -42,6 +68,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await repo.saveSettings(next);
     // Mirror the student's synced preferences to the cloud (no-op without sync).
     if (next.profileId) {
+      rememberSyncCode(next.profileId);
       pushSettings(next.profileId, next);
       if (next.studentName && (patch.studentName !== undefined || patch.coachLanguage !== undefined)) {
         void ensureProfile({ id: next.profileId, name: next.studentName, coachLanguage: next.coachLanguage }).catch(

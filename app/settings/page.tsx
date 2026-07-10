@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { Splash } from "@/components/splash";
 import { pushSupported, currentPushState, isSubscribed, enablePush, disablePush } from "@/lib/push";
+import { forgetSyncCode } from "@/lib/sync/durability";
 
 // Student-facing settings — name, coaching language, goal, sounds, and the
 // sync code (the passwordless key to her progress, essential when the app is
@@ -81,6 +82,7 @@ export default function SettingsPage() {
       setTimeout(() => setArmReset(false), 4000);
       return;
     }
+    forgetSyncCode();
     await repo.reset();
     window.location.href = "/";
   };
