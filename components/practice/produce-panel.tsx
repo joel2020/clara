@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Mic, Square, Loader2, Target, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PracticeItem } from "@/lib/db/types";
-import { createRecognition, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
+import { createRecognition, recognitionMode, RecognitionError, recognitionErrorKey } from "@/lib/speech/recognition";
 import { recordPracticeAttempt, type PracticeOutcome } from "@/lib/practice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { sfx } from "@/lib/sfx";
@@ -84,8 +84,7 @@ export function ProducePanel({
       }
       onOutcome?.(result);
     } catch (e) {
-      const msg = e instanceof RecognitionError ? e.message : lang === "es" ? "Algo salió mal. Intenta otra vez." : "Something went wrong. Try again.";
-      if (!(e instanceof RecognitionError && e.code === "cancelled")) setError(msg);
+      if (!(e instanceof RecognitionError && e.code === "cancelled")) setError(t(recognitionErrorKey(e), lang));
       setPhase("idle");
     } finally {
       setHandle(null);

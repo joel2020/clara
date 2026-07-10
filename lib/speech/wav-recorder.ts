@@ -56,26 +56,51 @@ export interface WavHandle {
   /** Stop recording and get the WAV blob. */
   stop: () => Promise<Blob>;
   cancel: () => void;
+  /** Loudest sample seen, 0–1. Near zero means the mic captured nothing. */
+  peak: () => number;
 }
 
 const MAX_MS = 15000;
 
+/** Below this the capture is silence, not a quiet voice — the mic never opened. */
+export const SILENCE_PEAK = 0.004;
+
 export async function startWavRecording(): Promise<WavHandle> {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  // Create AND unlock the AudioContext *before* awaiting getUserMedia. On iOS
+  // Safari the mic permission prompt ends the user-gesture window, so a context
+  // constructed or resumed after that await stays suspended forever —
+  // onaudioprocess never fires and we'd silently record pure silence.
   type AC = typeof AudioContext;
   const Ctx: AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: AC }).webkitAudioContext;
   const ctx = new Ctx();
-  // iOS creates suspended contexts outside direct gestures — resume defensively.
-  if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+  const unlocked = ctx.state === "suspended" ? ctx.resume().catch(() => {}) : Promise.resolve();
+
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    void ctx.close().catch(() => {});
+    throw e;
+  }
+  await unlocked;
+
   const source = ctx.createMediaStreamSource(stream);
   // ScriptProcessor is deprecated but universally supported (incl. iOS Safari)
-  // and fine for short clips like these.
+  // and fine for short clips like these. It must stay connected to destination
+  // or Safari never fires onaudioprocess; its output buffer is left silent.
   const processor = ctx.createScriptProcessor(4096, 1, 1);
   const chunks: Float32Array[] = [];
   let finished = false;
+  let peak = 0;
 
   processor.onaudioprocess = (e) => {
-    if (!finished) chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+    if (finished) return;
+    const input = e.inputBuffer.getChannelData(0);
+    for (let i = 0; i < input.length; i++) {
+      const a = input[i] < 0 ? -input[i] : input[i];
+      if (a > peak) peak = a;
+    }
+    chunks.push(new Float32Array(input));
   };
   source.connect(processor);
   processor.connect(ctx.destination);
@@ -95,6 +120,7 @@ export async function startWavRecording(): Promise<WavHandle> {
   const safety = setTimeout(cleanup, MAX_MS);
 
   return {
+    peak: () => peak,
     stop: async () => {
       clearTimeout(safety);
       const rate = ctx.sampleRate;

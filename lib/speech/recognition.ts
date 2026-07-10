@@ -2,7 +2,7 @@
 
 import { getSpeechRecognitionCtor, hasMediaRecording } from "./support";
 import { assessEnabled, assessEnabledSync, assessRecording, type Assessment } from "./azure";
-import { startWavRecording, type WavHandle } from "./wav-recorder";
+import { startWavRecording, SILENCE_PEAK, type WavHandle } from "./wav-recorder";
 
 // Promise-based wrapper around the one-shot SpeechRecognition flow: start
 // listening, capture the best transcript, stop. Surfaces alternatives too, so
@@ -25,6 +25,23 @@ export class RecognitionError extends Error {
     super(message);
     this.code = code;
     this.name = "RecognitionError";
+  }
+}
+
+/** i18n key for a recognition error, so the message shows in her coach language. */
+export function recognitionErrorKey(e: unknown): "recNoSpeech" | "recSilent" | "recNotAllowed" | "recNetwork" | "recGeneric" {
+  if (!(e instanceof RecognitionError)) return "recGeneric";
+  switch (e.code) {
+    case "no-speech":
+      return "recNoSpeech";
+    case "silent":
+      return "recSilent";
+    case "not-allowed":
+      return "recNotAllowed";
+    case "network":
+      return "recNetwork";
+    default:
+      return "recGeneric";
   }
 }
 
@@ -273,6 +290,15 @@ function startAzureRecognition(target: string): RecognitionHandle {
     if (autoStop) clearTimeout(autoStop);
     try {
       const blob = await wav.stop();
+      // A dead mic records digital silence. Don't bill Azure for it, and don't
+      // let her think she mispronounced when nothing was ever captured.
+      if (wav.peak() < SILENCE_PEAK) {
+        if (!settled) {
+          settled = true;
+          rejectFn(new RecognitionError("silent", "We couldn't hear the mic. Check microphone access and try again."));
+        }
+        return;
+      }
       const assessment = await assessRecording(blob, target);
       if (settled) return;
       settled = true;
