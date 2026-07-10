@@ -197,6 +197,7 @@ const STRINGS = {
   shopCardSub: { es: "Gasta tus estrellas en Lumi", en: "Spend your stars on Lumi" },
   shopTitle: { es: "Tienda de Lumi", en: "Lumi's shop" },
   shopIntro: { es: "Gana estrellas hablando bien y vístela a tu gusto.", en: "Earn stars by speaking clearly, then style her up." },
+  rarityLegendary: { es: "Legendario", en: "Legendary" },
   shopBackgrounds: { es: "Fondos", en: "Backgrounds" },
   shopAccessories: { es: "Accesorios", en: "Accessories" },
   shopEffects: { es: "Efectos", en: "Effects" },

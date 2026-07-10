@@ -390,6 +390,20 @@
   );
 }
 
+/* Legendary shop items — a warm gold border + pulsing glow to feel rare.
+   (Avoids the multi-value background-clip gradient-border trick, which
+   Lightning CSS silently drops.) */
+.rim-legendary {
+  border: 2px solid color-mix(in oklch, var(--co-yellow) 72%, #e59a12);
+  background: linear-gradient(160deg, color-mix(in oklch, var(--co-yellow) 12%, var(--card)), var(--card) 60%);
+  animation: legendary-glow 3s ease-in-out infinite;
+}
+@keyframes legendary-glow {
+  0% { box-shadow: 0 4px 16px -8px rgba(240, 170, 30, 0.45); }
+  50% { box-shadow: 0 6px 24px -8px rgba(240, 170, 30, 0.75); }
+  100% { box-shadow: 0 4px 16px -8px rgba(240, 170, 30, 0.45); }
+}
+
 /* Soft lift for interactive cards — depth without heaviness. */
 .card-lift {
   box-shadow: 0 10px 24px -14px rgba(18, 58, 147, 0.28), 0 2px 6px -2px rgba(18, 58, 147, 0.1);

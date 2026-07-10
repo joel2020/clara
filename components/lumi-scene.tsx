@@ -21,6 +21,8 @@ const EFFECT_EMOJI: Record<EffectKind, string> = {
   leaves: "🍃",
   rainbow: "🌈",
   coins: "🌟",
+  diamonds: "💎",
+  fireworks: "🎆",
 };
 
 // Rising float up from below; twinkle fade in place; the rest fall from above.

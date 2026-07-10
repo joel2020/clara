@@ -276,6 +276,48 @@ function City() {
   );
 }
 
+function Aurora() {
+  return (
+    <Frame anchor="top">
+      {Array.from({ length: 22 }).map((_, i) => (
+        <circle key={i} cx={(i * 47 + 9) % 198} cy={(i * 61 + 12) % 150} r={i % 4 === 0 ? 1.6 : 1} fill="#fff" opacity={0.4 + (i % 3) * 0.2} />
+      ))}
+      {/* shimmering aurora ribbons */}
+      <path d="M-10 70 Q50 30 100 70 T210 60 V150 H-10 Z" fill="#3cdca0" opacity="0.28" />
+      <path d="M-10 92 Q60 52 120 92 T210 84 V150 H-10 Z" fill="#5aa0ff" opacity="0.26" />
+      <path d="M-10 112 Q70 78 130 112 T210 106 V150 H-10 Z" fill="#a06bdc" opacity="0.28" />
+    </Frame>
+  );
+}
+
+function Crystal() {
+  const gem = (x: number, y: number, s: number, c: string) => (
+    <g transform={`translate(${x} ${y}) scale(${s})`} opacity="0.9">
+      <path d="M0 -14 L10 -4 L6 14 L-6 14 L-10 -4 Z" fill={c} />
+      <path d="M0 -14 L10 -4 L0 0 Z" fill="#ffffff" opacity="0.5" />
+      <path d="M0 0 L6 14 L-6 14 Z" fill="#000000" opacity="0.08" />
+    </g>
+  );
+  return (
+    <Frame>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <path
+          key={i}
+          d="M0 -2.2l0.65 1.4 1.55 0.22-1.1 1.1 0.26 1.55L0 1.3l-1.36 0.72 0.26-1.55-1.1-1.1 1.55-0.22z"
+          transform={`translate(${(i * 43 + 16) % 190} ${(i * 51 + 20) % 130}) scale(${1 + (i % 3) * 0.6})`}
+          fill="#fff"
+          opacity="0.7"
+        />
+      ))}
+      {gem(40, 168, 1.6, "#7fd8ff")}
+      {gem(100, 176, 2.1, "#c9a7ff")}
+      {gem(158, 168, 1.7, "#ff9ed8")}
+      {gem(70, 182, 1.2, "#a7ffe0")}
+      {gem(132, 184, 1.3, "#ffd7a7")}
+    </Frame>
+  );
+}
+
 const SCENES: Record<string, () => React.ReactNode> = {
   "bg-default": Fiesta,
   "bg-sunset": Sunset,
@@ -288,6 +330,8 @@ const SCENES: Record<string, () => React.ReactNode> = {
   "bg-rainbow": Rainbow,
   "bg-night": Night,
   "bg-city": City,
+  "bg-aurora": Aurora,
+  "bg-crystal": Crystal,
 };
 
 export function SceneArt({ bgId }: { bgId: string }) {

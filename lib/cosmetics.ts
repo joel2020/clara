@@ -19,7 +19,9 @@ export type EffectKind =
   | "notes"
   | "leaves"
   | "rainbow"
-  | "coins";
+  | "coins"
+  | "diamonds"
+  | "fireworks";
 
 export interface Cosmetic {
   id: string;
@@ -27,6 +29,8 @@ export interface Cosmetic {
   name: { es: string; en: string };
   cost: number; // in stars; free items have cost 0
   free?: boolean; // always owned, the default for its slot
+  /** Rare, premium items to chase — shown with a special badge and glow. */
+  rarity?: "legendary";
   /** For backgrounds: a CSS `background` value. */
   background?: string;
   /** For accessories: an emoji prop shown near Lumi. */
@@ -118,6 +122,24 @@ export const COSMETICS: Cosmetic[] = [
     cost: 100,
     background: "linear-gradient(175deg, #2a1f4a 0%, #4a2f6b 55%, #8a4f9c 100%)",
   },
+  {
+    id: "bg-aurora",
+    type: "background",
+    name: { es: "Aurora boreal", en: "Northern lights" },
+    cost: 200,
+    rarity: "legendary",
+    background:
+      "radial-gradient(90% 70% at 30% 30%, rgba(60,220,160,0.35) 0%, transparent 55%), radial-gradient(80% 70% at 75% 40%, rgba(150,90,220,0.35) 0%, transparent 55%), linear-gradient(175deg, #071233 0%, #0d2149 60%, #123063 100%)",
+  },
+  {
+    id: "bg-crystal",
+    type: "background",
+    name: { es: "Reino de cristal", en: "Crystal kingdom" },
+    cost: 250,
+    rarity: "legendary",
+    background:
+      "radial-gradient(80% 70% at 20% 10%, #d7f0ff 0%, transparent 55%), radial-gradient(90% 80% at 90% 90%, #e6c9ff 0%, transparent 55%), linear-gradient(160deg, #bfe3ff 0%, #d9c8ff 55%, #ffd7f0 100%)",
+  },
 
   // ── Accessories (props near Lumi) ──
   { id: "acc-none", type: "accessory", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
@@ -136,6 +158,8 @@ export const COSMETICS: Cosmetic[] = [
   { id: "acc-crown", type: "accessory", name: { es: "Corona", en: "Crown" }, cost: 60, emoji: "👑" },
   { id: "acc-puppy", type: "accessory", name: { es: "Perrito", en: "Puppy" }, cost: 70, emoji: "🐶" },
   { id: "acc-unicorn", type: "accessory", name: { es: "Unicornio", en: "Unicorn" }, cost: 110, emoji: "🦄" },
+  { id: "acc-dragon", type: "accessory", name: { es: "Dragón", en: "Dragon" }, cost: 200, rarity: "legendary", emoji: "🐉" },
+  { id: "acc-diadem", type: "accessory", name: { es: "Diadema de diamante", en: "Diamond tiara" }, cost: 300, rarity: "legendary", emoji: "💎" },
 
   // ── Ambient effects ──
   { id: "fx-none", type: "effect", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
@@ -150,6 +174,8 @@ export const COSMETICS: Cosmetic[] = [
   { id: "fx-coins", type: "effect", name: { es: "Lluvia de estrellas", en: "Star rain" }, cost: 50, effect: "coins" },
   { id: "fx-rainbow", type: "effect", name: { es: "Arcoíris mágico", en: "Rainbow magic" }, cost: 60, effect: "rainbow" },
   { id: "fx-confetti", type: "effect", name: { es: "Confeti", en: "Confetti" }, cost: 65, effect: "confetti" },
+  { id: "fx-diamonds", type: "effect", name: { es: "Lluvia de diamantes", en: "Diamond rain" }, cost: 150, rarity: "legendary", effect: "diamonds" },
+  { id: "fx-fireworks", type: "effect", name: { es: "Fuegos artificiales", en: "Fireworks" }, cost: 180, rarity: "legendary", effect: "fireworks" },
 ];
 
 const BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));
@@ -212,9 +238,21 @@ export function chestAvailable(player: Pick<PlayerStats, "lastChestDay">): boole
   return player.lastChestDay !== dayKey();
 }
 
-/** Today's chest reward: a base plus a little more the longer the streak. */
+/**
+ * Today's chest reward: a generous base that grows with the streak, plus a
+ * weekly jackpot every 7th day so streaks feel worth protecting.
+ */
 export function chestReward(player: Pick<PlayerStats, "currentStreak">): number {
-  return 8 + Math.min(player.currentStreak, 7);
+  const streak = player.currentStreak ?? 0;
+  const base = 15 + Math.min(streak, 10) * 2; // 15 → 35
+  const jackpot = streak > 0 && streak % 7 === 0 ? 30 : 0; // weekly bonus
+  return base + jackpot;
+}
+
+/** True when today's chest is a weekly jackpot — the UI celebrates it extra. */
+export function chestIsJackpot(player: Pick<PlayerStats, "currentStreak">): boolean {
+  const streak = player.currentStreak ?? 0;
+  return streak > 0 && streak % 7 === 0;
 }
 
 /** Open today's chest (idempotent per day). Returns the stars awarded, or 0 if already opened. */

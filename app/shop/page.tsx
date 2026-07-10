@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Star, Gift, Check, Lock } from "lucide-react";
+import { ArrowLeft, Star, Gift, Check, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useSettings } from "@/lib/hooks/useSettings";
@@ -21,6 +21,7 @@ import {
   openChest,
   chestAvailable,
   chestReward,
+  chestIsJackpot,
   type Cosmetic,
   type CosmeticType,
 } from "@/lib/cosmetics";
@@ -59,12 +60,19 @@ export default function ShopPage() {
   };
 
   const claimChest = async () => {
+    const jackpot = chestIsJackpot(player);
     const reward = await openChest();
     if (reward > 0) {
       sfx.correct(3);
       popConfetti();
       juice.centerBurst(`+${reward} ★`);
       juice.sweep();
+      // A weekly jackpot gets the full treatment.
+      if (jackpot) {
+        sfx.finish();
+        setTimeout(() => juice.sweep(), 250);
+        setTimeout(() => juice.centerBurst("🎉"), 400);
+      }
       setChestMsg(reward);
     }
   };
@@ -137,12 +145,23 @@ export default function ShopPage() {
                   onClick={() => onTap(c)}
                   disabled={equipped || (!owned && !affordable)}
                   className={cn(
-                    "group relative flex flex-col rounded-2xl border p-2.5 text-left transition-all active:scale-[0.98]",
-                    equipped ? "border-primary bg-primary/[0.06]" : "border-hairline hover:border-primary/40",
+                    "group relative flex flex-col rounded-2xl p-2.5 text-left transition-all active:scale-[0.98]",
+                    c.rarity === "legendary"
+                      ? "rim-legendary"
+                      : cn("border", equipped ? "border-primary bg-primary/[0.06]" : "border-hairline hover:border-primary/40"),
+                    c.rarity === "legendary" && equipped && "ring-2 ring-primary",
                     !owned && !affordable && "opacity-55",
                   )}
                 >
-                  <Swatch cosmetic={c} />
+                  <div className="relative">
+                    <Swatch cosmetic={c} />
+                    {c.rarity === "legendary" && (
+                      <span className="star-chip absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide shadow-sm">
+                        <Sparkles className="size-2.5" />
+                        {t("rarityLegendary", lang)}
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-2 flex items-center justify-between gap-1">
                     <span className="truncate text-sm font-medium">{c.name[lang]}</span>
                   </div>
@@ -205,5 +224,7 @@ const EFFECT_PREVIEW: Record<string, string> = {
   leaves: "🍃",
   rainbow: "🌈",
   coins: "🌟",
+  diamonds: "💎",
+  fireworks: "🎆",
   none: "∅",
 };
