@@ -24,6 +24,7 @@ import { DailyQuests } from "@/components/daily-quests";
 import { LumiDepth } from "@/components/lumi-depth";
 import { EffectLayer } from "@/components/lumi-scene";
 import { SceneArt } from "@/components/scene-art";
+import { InstallNudge } from "@/components/install-nudge";
 import { AmbientStars } from "@/components/juice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -91,6 +92,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <InstallNudge />
 
       {/* THE action */}
       <Link

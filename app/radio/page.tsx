@@ -44,10 +44,14 @@ function weakness(p: ItemProgress): number {
   return masteredBump + (p.lastResult ? 3 : 0) + p.box * 2 + passRate * 4;
 }
 
-/** Best available Spanish voice for the meaning line. */
+/**
+ * Best available Spanish voice for the meaning line. iOS loads voices
+ * asynchronously, so the list is cached and refreshed on `voiceschanged`.
+ */
+let voiceCache: SpeechSynthesisVoice[] = [];
 function spanishVoice(): SpeechSynthesisVoice | null {
-  const voices = window.speechSynthesis?.getVoices() ?? [];
-  return voices.find((v) => v.lang.startsWith("es-CO")) ?? voices.find((v) => v.lang.startsWith("es")) ?? null;
+  if (!voiceCache.length) voiceCache = window.speechSynthesis?.getVoices() ?? [];
+  return voiceCache.find((v) => v.lang.startsWith("es-CO")) ?? voiceCache.find((v) => v.lang.startsWith("es")) ?? null;
 }
 
 export default function RadioPage() {
@@ -79,16 +83,47 @@ export default function RadioPage() {
     idxRef.current = idx;
   }, [idx]);
 
-  // Build the single reusable audio element once.
+  // Build the single reusable audio element once, and keep the iOS voice list
+  // warm (it loads asynchronously and getVoices() is empty until then).
   useEffect(() => {
     const el = new Audio();
+    el.preload = "auto";
     audioRef.current = el;
+    const refresh = () => {
+      voiceCache = window.speechSynthesis?.getVoices() ?? [];
+    };
+    refresh();
+    window.speechSynthesis?.addEventListener("voiceschanged", refresh);
     return () => {
       el.pause();
       if (timerRef.current) clearTimeout(timerRef.current);
       window.speechSynthesis?.cancel();
+      window.speechSynthesis?.removeEventListener("voiceschanged", refresh);
+      wakeLockRef.current?.release().catch(() => {});
     };
   }, []);
+
+  // Keep the screen awake while the radio plays (iOS 16.4+); reacquire when
+  // she returns to the tab, since iOS releases the lock on hide.
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  useEffect(() => {
+    const acquire = async () => {
+      try {
+        if (playing && "wakeLock" in navigator && document.visibilityState === "visible") {
+          wakeLockRef.current = await navigator.wakeLock.request("screen");
+        }
+      } catch {
+        /* unsupported or denied — the radio still works with the screen on */
+      }
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && playingRef.current) void acquire();
+    };
+    if (playing) void acquire();
+    else wakeLockRef.current?.release().catch(() => {});
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [playing]);
 
   const stopAll = () => {
     audioRef.current?.pause();
@@ -162,12 +197,47 @@ export default function RadioPage() {
       playingRef.current = false;
       stopAll();
     } else {
+      // iOS requires speech synthesis to be unlocked inside a user gesture —
+      // speak a silent utterance now so the Spanish meanings aren't muted.
+      if (window.speechSynthesis) {
+        const unlock = new SpeechSynthesisUtterance("");
+        unlock.volume = 0;
+        window.speechSynthesis.speak(unlock);
+      }
       setPlaying(true);
       playingRef.current = true;
       stepRef.current = 0;
       runStep();
     }
   };
+
+  // Lock-screen / control-center transport (Media Session), like a music app.
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const ms = navigator.mediaSession;
+    if (current) {
+      ms.metadata = new MediaMetadata({
+        title: current.text,
+        artist: "Radio de Joel — Clara",
+        artwork: [{ src: "/icon-512.png", sizes: "512x512", type: "image/png" }],
+      });
+    }
+    ms.setActionHandler("play", () => {
+      if (!playingRef.current) toggle();
+    });
+    ms.setActionHandler("pause", () => {
+      if (playingRef.current) toggle();
+    });
+    ms.setActionHandler("nexttrack", () => skip(1));
+    ms.setActionHandler("previoustrack", () => skip(-1));
+    return () => {
+      ms.setActionHandler("play", null);
+      ms.setActionHandler("pause", null);
+      ms.setActionHandler("nexttrack", null);
+      ms.setActionHandler("previoustrack", null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id]);
 
   const skip = (dir: 1 | -1) => {
     stopAll();
