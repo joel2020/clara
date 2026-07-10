@@ -1,26 +1,60 @@
-// The media zone: real American English through OFFICIAL YouTube embeds —
-// studio trailers and artists' own music videos. Playback happens in YouTube's
-// player (rights and ads stay with the owner); Clara adds the learning layer
-// around it: a word-hunt listening activity per video. We never display lyrics
-// or clip/download anything — single focus WORDS are the scaffold, which keeps
-// the feature firmly on the right side of copyright.
-//
-// Every id below is validated against YouTube's oEmbed endpoint (see the
-// commit that added it) — official channels only.
+// The media zone: real American English through official YouTube embeds.
+// Clara never downloads or reproduces protected video/lyrics; it layers a short
+// listening + speaking activity around the creator's own player.
 
-export type MediaKind = "song" | "trailer";
+export type MediaKind = "practice" | "song" | "trailer";
 
 export interface MediaItem {
-  id: string; // youtube video id
+  id: string; // YouTube video id
   kind: MediaKind;
   title: string;
-  by: string; // artist or studio
+  by: string;
   blurb: { es: string; en: string };
-  /** Single common words to hunt for while listening — tap when you hear one. */
+  /** Words or short chunks to catch while watching. */
   focusWords: string[];
+  /** Optional speak-back prompts for a real-world conversation video. */
+  speakBack?: string[];
 }
 
 export const MEDIA_ITEMS: MediaItem[] = [
+  // ── Mira y habla: real-world American English ──
+  {
+    id: "Eps9alVTEHg",
+    kind: "practice",
+    title: "Speak with me",
+    by: "Speak English With Vanessa",
+    blurb: {
+      es: "Empieza con inglés de la vida real. Mira un pedacito, caza las frases y repítelas como si estuvieras conversando.",
+      en: "Start with real-life English. Watch a little, catch the phrases, then say them like you are in the conversation.",
+    },
+    focusWords: ["hello", "today", "good", "English", "practice"],
+    speakBack: ["How's it going?", "I'm doing well.", "What about you?"],
+  },
+  {
+    id: "TfVuXmDzkwc",
+    kind: "practice",
+    title: "Talk about daily life",
+    by: "Speak English With Vanessa",
+    blurb: {
+      es: "Conversación sencilla sobre el día a día. Perfecta para responder sin traducir palabra por palabra.",
+      en: "A simple daily-life conversation. Perfect for answering without translating word by word.",
+    },
+    focusWords: ["morning", "work", "home", "family", "weekend"],
+    speakBack: ["My day was good.", "I work from home.", "What did you do today?"],
+  },
+  {
+    id: "vkyUojDJmWM",
+    kind: "practice",
+    title: "Daily-life conversations",
+    by: "Speak English With Vanessa",
+    blurb: {
+      es: "Guárdalo para repetir conversaciones reales: café, planes, trabajo y amigos.",
+      en: "Save this for repeating real conversations: coffee, plans, work, and friends.",
+    },
+    focusWords: ["coffee", "plans", "friends", "sure", "sounds good"],
+    speakBack: ["That sounds good.", "I'd like a coffee.", "Let's make a plan."],
+  },
+
   // ── Música ──
   {
     id: "eVli-tstM5E",
@@ -67,7 +101,7 @@ export const MEDIA_ITEMS: MediaItem[] = [
     kind: "song",
     title: "Roar",
     by: "Katy Perry",
-    blurb: { es: "Un himno para cantar a gritos — y aprender.", en: "An anthem to belt out — and learn from." },
+    blurb: { es: "Un himno para cantar a gritos — y aprender.", en: "An anthem to belt out — and learn." },
     focusWords: ["roar", "fire", "champion", "louder", "tiger"],
   },
 
@@ -115,6 +149,5 @@ export function youtubeThumb(id: string): string {
 }
 
 export function youtubeEmbed(id: string): string {
-  // Privacy-enhanced host; playback and rights stay with YouTube/the owner.
   return `https://www.youtube-nocookie.com/embed/${id}`;
 }
