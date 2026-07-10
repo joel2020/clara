@@ -10,6 +10,7 @@ import { LESSONS, ITEM_BY_ID } from "@/lib/content/lessons";
 import { meaningFor } from "@/lib/content/word-es";
 import { hasRecordedVoice } from "@/lib/speech/player";
 import { audioUrl } from "@/lib/speech/audio-key";
+import { hasEsMeaningClip, esMeaningUrl } from "@/lib/speech/es-audio";
 import { isMastered } from "@/lib/srs";
 import { t } from "@/lib/i18n";
 import { JoelAvatar } from "@/components/joel-avatar";
@@ -163,6 +164,21 @@ export default function RadioPage() {
     }
 
     if (step === 1) {
+      // Prefer the pre-generated "Lisa" clip: studio quality, and it rides the
+      // same <audio> element so the iOS playback chain never breaks.
+      if (speakMeaning && hasEsMeaningClip(item.id)) {
+        el.src = esMeaningUrl(item.id);
+        el.onended = () => {
+          stepRef.current = 2;
+          timerRef.current = setTimeout(runStep, 350);
+        };
+        el.onerror = () => {
+          stepRef.current = 2;
+          timerRef.current = setTimeout(runStep, 200);
+        };
+        void el.play().catch(() => setPlaying(false));
+        return;
+      }
       const m = meaningFor(item.text, item.meaning);
       if (speakMeaning && m && typeof window !== "undefined" && window.speechSynthesis) {
         const u = new SpeechSynthesisUtterance(m);
