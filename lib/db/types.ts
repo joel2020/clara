@@ -196,6 +196,20 @@ export interface PlayerStats {
 }
 
 /** Rolled-up accuracy for one category, computed for the dashboard. */
+/**
+ * Her voice journal: the first and best passing recording of a phrase, kept
+ * strictly on-device (Blobs never sync) so she can hear herself improve.
+ */
+export interface PhraseRecording {
+  itemId: string;
+  firstBlob: Blob;
+  firstScore: number;
+  firstAt: number;
+  bestBlob: Blob;
+  bestScore: number;
+  bestAt: number;
+}
+
 export interface CategoryStat {
   categoryId: string;
   attempts: number;

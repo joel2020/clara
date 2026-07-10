@@ -11,6 +11,7 @@ import { SCENARIOS, type Scenario } from "@/lib/content/scenarios";
 import { createRecognition, type RecognitionHandle } from "@/lib/speech/recognition";
 import { repo } from "@/lib/db";
 import { recordQuestEvent } from "@/lib/quests";
+import { weakestItems } from "@/lib/weak-items";
 import { JoelAvatar } from "@/components/joel-avatar";
 import { Splash } from "@/components/splash";
 import type { ConvItem } from "@/lib/db/types";
@@ -58,6 +59,7 @@ export default function TalkPage() {
   const recRef = useRef<RecognitionHandle | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const lastJoelLine = useRef<string>("");
+  const [focusWords, setFocusWords] = useState<string[]>([]);
 
   // Ensure a single reusable <audio> element (created on the client).
   useEffect(() => {
@@ -66,6 +68,13 @@ export default function TalkPage() {
       audioRef.current?.pause();
       recRef.current?.cancel();
     };
+  }, []);
+
+  // Her weakest items — Joel quietly works them into the conversation.
+  useEffect(() => {
+    void repo.getAllProgress().then((all) => {
+      setFocusWords(weakestItems(all, 5).map((w) => w.text));
+    });
   }, []);
 
   // Keep the conversation scrolled to the newest line.
@@ -148,6 +157,7 @@ export default function TalkPage() {
             studentName: settings.studentName,
             coachLanguage: lang,
             history,
+            focusWords,
           }),
         });
         if (res.status === 503) {

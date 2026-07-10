@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Mic, Square, Loader2, Volume2, Check, X, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PracticeItem } from "@/lib/db/types";
+import { repo } from "@/lib/db";
 import { createRecognition, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
 import { recordPracticeAttempt } from "@/lib/practice";
 import { useSettings } from "@/lib/hooks/useSettings";
@@ -104,6 +105,8 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
       setFlash({ passed, stars });
       setTotalStars((v) => v + stars);
       if (passed) {
+        // Voice journal: keep her first and best passing take.
+        if (r.audio) void repo.saveAttemptRecording(current.id, r.audio, out.score.score).catch(() => {});
         setClears((c) => c + 1);
         sfx.correct(out.rewards.combo);
         popConfetti({ x: 0.5, y: 0.42 });

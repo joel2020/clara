@@ -17,6 +17,8 @@ export interface RecognitionResult {
   alternatives: string[];
   /** Present when the attempt went through phoneme-level assessment. */
   assessment?: Assessment;
+  /** The captured audio, when the path records one (not Web Speech). Feeds the voice journal. */
+  audio?: Blob;
 }
 
 export class RecognitionError extends Error {
@@ -197,7 +199,7 @@ export function startCloudRecognition(): RecognitionHandle {
         if (!transcript) {
           rejectFn(new RecognitionError("no-speech", "I didn't catch anything — try again."));
         } else {
-          resolveFn({ transcript, confidence: 1, alternatives: [transcript] });
+          resolveFn({ transcript, confidence: 1, alternatives: [transcript], audio: blob });
         }
       }
     } catch {
@@ -310,6 +312,7 @@ function startAzureRecognition(target: string): RecognitionHandle {
           confidence: 1,
           alternatives: assessment.display ? [assessment.display] : [],
           assessment,
+          audio: blob,
         });
       }
     } catch {

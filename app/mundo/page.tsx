@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Flame, Star, Sparkles, BookOpen, Ear } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Flame, Star, Sparkles, BookOpen, Ear, Play, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { repo } from "@/lib/db";
+import { ITEM_BY_ID } from "@/lib/content/lessons";
+import type { PhraseRecording } from "@/lib/db/types";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useAllProgress, useAllAttempts, useCategoryStats } from "@/lib/hooks/useData";
@@ -140,6 +144,8 @@ export default function MundoPage() {
         </div>
       </section>
 
+      <VoiceJournal lang={lang} />
+
       {/* Per-sound progress */}
       {touched.length > 0 && (
         <section className="mt-8">
@@ -186,5 +192,87 @@ function StatTile({ icon, value, label, tone }: { icon: React.ReactNode; value: 
       <div className="mt-2 font-display text-2xl font-semibold tabular-nums text-foreground">{value}</div>
       <div className="mt-0.5 text-[11px] font-medium leading-tight text-muted-foreground">{label}</div>
     </div>
+  );
+}
+
+// "Tu voz" — her saved takes, playable. One shared audio element; object URLs
+// are created per play and revoked when it ends so memory stays flat.
+function VoiceJournal({ lang }: { lang: "es" | "en" }) {
+  const [recs, setRecs] = useState<PhraseRecording[]>([]);
+  const [playing, setPlaying] = useState<string | null>(null); // `${itemId}:${which}`
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    void repo.getRecordings().then(setRecs);
+    return () => audioRef.current?.pause();
+  }, []);
+
+  if (!recs.length) return null;
+
+  const play = (rec: PhraseRecording, which: "first" | "best") => {
+    const key = `${rec.itemId}:${which}`;
+    if (!audioRef.current) audioRef.current = new Audio();
+    const el = audioRef.current;
+    el.pause();
+    if (playing === key) {
+      setPlaying(null);
+      return;
+    }
+    const url = URL.createObjectURL(which === "best" ? rec.bestBlob : rec.firstBlob);
+    el.src = url;
+    el.onended = () => {
+      URL.revokeObjectURL(url);
+      setPlaying(null);
+    };
+    setPlaying(key);
+    void el.play().catch(() => setPlaying(null));
+  };
+
+  const shown = recs.slice(0, 20);
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t("mundoVoice", lang)}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{t("mundoVoiceSub", lang)}</p>
+      <div className="mt-3 space-y-2">
+        {shown.map((rec) => {
+          const item = ITEM_BY_ID.get(rec.itemId);
+          if (!item) return null;
+          const grew = rec.bestAt - rec.firstAt > 60_000 && rec.bestScore > rec.firstScore;
+          return (
+            <div key={rec.itemId} className="flex items-center gap-2.5 rounded-2xl border border-hairline bg-card px-4 py-2.5">
+              <button
+                type="button"
+                onClick={() => play(rec, "best")}
+                aria-label={`${item.text}`}
+                className={cn(
+                  "grid size-9 shrink-0 place-items-center rounded-full transition-all active:scale-95",
+                  playing === `${rec.itemId}:best` ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary",
+                )}
+              >
+                <Play className="size-4" style={{ fill: "currentColor" }} />
+              </button>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{item.text}</p>
+                <p className="font-mono text-[11px] tabular-nums text-muted-foreground">{rec.bestScore}%</p>
+              </div>
+              {grew && (
+                <button
+                  type="button"
+                  onClick={() => play(rec, "first")}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 rounded-full border border-hairline px-2.5 py-1 text-[11px] font-medium transition-colors",
+                    playing === `${rec.itemId}:first` ? "border-primary/50 text-primary" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <History className="size-3" />
+                  {t("mundoVoiceFirst", lang)}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

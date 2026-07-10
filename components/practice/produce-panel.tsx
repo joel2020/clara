@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mic, Square, Loader2, Target, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PracticeItem } from "@/lib/db/types";
+import { repo } from "@/lib/db";
 import { createRecognition, recognitionMode, RecognitionError, recognitionErrorKey } from "@/lib/speech/recognition";
 import { recordPracticeAttempt, type PracticeOutcome } from "@/lib/practice";
 import { useSettings } from "@/lib/hooks/useSettings";
@@ -73,6 +74,8 @@ export function ProducePanel({
       setOutcome(result);
       setPhase("result");
       if (result.score.passed) {
+        // Voice journal: keep her first and best passing take of this phrase.
+        if (r.audio) void repo.saveAttemptRecording(item.id, r.audio, result.score.score).catch(() => {});
         sfx.correct(result.rewards.combo);
         popConfetti();
         // Arcade juice: star explosion + floating reward, and a tricolor light
@@ -118,6 +121,22 @@ export function ProducePanel({
 
   return (
     <div className="flex flex-col items-center gap-4">
+      {/* Lumi stays with her through the whole attempt — the scary moment has
+          a friendly face, not just a mic button. */}
+      {recognitionSupported && (
+        <div className="flex items-center gap-2.5" aria-hidden>
+          <Lumi frame="bust" mood={phase === "scoring" ? "think" : phase === "listening" ? "idle" : "point"} className="size-14 shrink-0" />
+          <span
+            className={cn(
+              "rounded-2xl rounded-bl-sm border border-hairline bg-card px-3 py-1.5 text-sm text-foreground/80 shadow-sm",
+              phase === "listening" && "animate-pulse border-primary/40 text-primary",
+            )}
+          >
+            {phase === "listening" ? t("lumiListening", lang) : phase === "scoring" ? t("lumiScoring", lang) : t("lumiReady", lang)}
+          </span>
+        </div>
+      )}
+
       {phase === "listening" ? (
         <button
           type="button"

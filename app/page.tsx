@@ -15,6 +15,7 @@ import {
   Puzzle,
   Drama,
   Globe,
+  Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReviewCallout } from "@/components/review-callout";
@@ -130,6 +131,7 @@ export default function HomePage() {
           <Tile href="/build" icon={Puzzle} label="buildCard" lang={lang} />
           <Tile href="/play" icon={Zap} label="speedRound" lang={lang} />
           <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} />
+          <Tile href="/radio" icon={Radio} label="radioCard" lang={lang} />
           <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} />
           <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} />
         </div>

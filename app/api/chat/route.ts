@@ -25,6 +25,8 @@ interface ChatRequest {
   studentName?: string | null;
   coachLanguage?: "es" | "en";
   history?: Turn[];
+  /** Her weakest SRS items — Joel weaves them naturally into the roleplay. */
+  focusWords?: string[];
 }
 
 interface ChatReply {
@@ -66,11 +68,22 @@ const SCHEMA = {
   additionalProperties: false,
 } as const;
 
-function systemPrompt(scenarioRole: string, scenarioSetting: string, name: string, coachLang: "es" | "en"): string {
+function systemPrompt(
+  scenarioRole: string,
+  scenarioSetting: string,
+  name: string,
+  coachLang: "es" | "en",
+  focusWords: string[],
+): string {
   const coach = coachLang === "es" ? "Spanish" : "English";
+  const focus = focusWords.length
+    ? `\n\nFOCUS ITEMS: ${name} is currently struggling with these words/phrases: ${focusWords
+        .map((w) => `"${w}"`)
+        .join(", ")}. When it fits the scene NATURALLY, use one of them in your reply or steer the moment so she would say one — and prefer them in "suggestions" when they genuinely fit. Never force one in awkwardly, never more than one per turn, and never mention that these are practice targets.`
+    : "";
   return `You are Joel, a warm, patient AMERICAN English conversation partner and tutor for ${name}, an adult beginner from Colombia. Her English is A1–A2 (beginner). Her goal is to become conversational in AMERICAN English. She is practicing speaking out loud.
 
-You are role-playing: you are ${scenarioRole}. ${scenarioSetting}
+You are role-playing: you are ${scenarioRole}. ${scenarioSetting}${focus}
 
 RULES:
 - Speak natural, everyday AMERICAN English. Use American vocabulary (apartment, elevator, sidewalk, check/bill, "to go", vacation, cell phone, awesome), American spelling (color, favorite, realize), and common American expressions and contractions ("gonna", "wanna", "I'm", "it's", "how's it going", "sounds good", "no worries", "you got it"). Do NOT use British words (flat, lift, pavement, holiday, mobile) or British spelling.
@@ -106,11 +119,17 @@ export async function POST(request: Request): Promise<Response> {
   const history = Array.isArray(body.history) ? body.history.slice(-16) : [];
   const name = (body.studentName || "the student").toString().slice(0, 40);
   const coachLang: "es" | "en" = body.coachLanguage === "en" ? "en" : "es";
+  const focusWords = Array.isArray(body.focusWords)
+    ? body.focusWords
+        .filter((w): w is string => typeof w === "string" && w.trim().length > 0)
+        .map((w) => w.trim().slice(0, 60))
+        .slice(0, 6)
+    : [];
 
   // Build the message list: system prompt, then the scenario opener as Joel's
   // first turn (the client rendered it locally), then the running conversation.
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt(scenario.role, scenario.setting, name, coachLang) },
+    { role: "system", content: systemPrompt(scenario.role, scenario.setting, name, coachLang, focusWords) },
     { role: "assistant", content: scenario.opener.en },
     ...history.map(
       (turn): OpenAI.Chat.Completions.ChatCompletionMessageParam => ({

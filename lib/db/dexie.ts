@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Attempt, ConvItem, DailyQuestState, ItemProgress, Lesson, PlayerStats, Settings } from "./types";
+import type { Attempt, ConvItem, DailyQuestState, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings } from "./types";
 
 /**
  * Local-first storage via IndexedDB. This is the ONLY file that knows we use
@@ -15,6 +15,7 @@ export class ClaraDB extends Dexie {
   player!: Table<PlayerStats, string>;
   convItems!: Table<ConvItem, string>;
   quests!: Table<DailyQuestState, string>;
+  recordings!: Table<PhraseRecording, string>;
 
   constructor() {
     super("clara");
@@ -35,6 +36,11 @@ export class ClaraDB extends Dexie {
     this.version(3).stores({
       convItems: "id, createdAt",
       quests: "day",
+    });
+    // v4 adds her voice journal: first + best recording per phrase, kept
+    // strictly on-device (never synced) so she can hear herself improve.
+    this.version(4).stores({
+      recordings: "itemId, bestAt",
     });
   }
 }

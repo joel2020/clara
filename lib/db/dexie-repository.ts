@@ -7,6 +7,7 @@ import type {
   DailyQuestState,
   ItemProgress,
   Lesson,
+  PhraseRecording,
   PlayerStats,
   Settings,
 } from "./types";
@@ -155,6 +156,23 @@ export class DexieRepository implements DataRepository {
     return stats;
   }
 
+  async getRecordings(): Promise<PhraseRecording[]> {
+    return db.recordings.orderBy("bestAt").reverse().toArray();
+  }
+
+  async saveAttemptRecording(itemId: string, blob: Blob, score: number): Promise<void> {
+    const now = Date.now();
+    const existing = await db.recordings.get(itemId);
+    if (!existing) {
+      await db.recordings.put({ itemId, firstBlob: blob, firstScore: score, firstAt: now, bestBlob: blob, bestScore: score, bestAt: now });
+      return;
+    }
+    // Keep her very first take forever; replace the best when she tops it.
+    if (score >= existing.bestScore) {
+      await db.recordings.put({ ...existing, bestBlob: blob, bestScore: score, bestAt: now });
+    }
+  }
+
   async reset(): Promise<void> {
     await Promise.all([
       db.attempts.clear(),
@@ -164,6 +182,7 @@ export class DexieRepository implements DataRepository {
       db.player.clear(),
       db.convItems.clear(),
       db.quests.clear(),
+      db.recordings.clear(),
     ]);
   }
 }

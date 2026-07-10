@@ -5,6 +5,7 @@ import type {
   DailyQuestState,
   ItemProgress,
   Lesson,
+  PhraseRecording,
   PlayerStats,
   Settings,
 } from "./types";
@@ -50,6 +51,10 @@ export interface DataRepository {
   // --- Daily quests ---
   getQuests(day: string): Promise<DailyQuestState | undefined>;
   saveQuests(state: DailyQuestState): Promise<void>;
+
+  // --- Voice journal (on-device only; never synced) ---
+  getRecordings(): Promise<PhraseRecording[]>;
+  saveAttemptRecording(itemId: string, blob: Blob, score: number): Promise<void>;
 
   // --- Derived analytics ---
   getCategoryStats(recentWindow?: number): Promise<CategoryStat[]>;
