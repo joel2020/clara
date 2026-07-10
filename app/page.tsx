@@ -14,6 +14,7 @@ import {
   Clapperboard,
   Puzzle,
   Drama,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReviewCallout } from "@/components/review-callout";
@@ -130,6 +131,7 @@ export default function HomePage() {
           <Tile href="/play" icon={Zap} label="speedRound" lang={lang} />
           <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} />
           <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} />
+          <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} />
         </div>
       </section>
 

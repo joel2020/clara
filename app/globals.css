@@ -390,6 +390,39 @@
   );
 }
 
+/* ── Design-system polish: motion, focus, selection, elevation ──────────── */
+
+/* Every route fades in gently (see app/template.tsx). */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: page-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* One consistent, keyboard-friendly focus ring across the app. */
+:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--co-blue) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Warm tricolor text selection. */
+::selection {
+  background: color-mix(in oklch, var(--co-yellow) 55%, transparent);
+  color: var(--foreground);
+}
+
+html { scroll-behavior: smooth; }
+
+/* Two shared elevation tokens so cards feel like one system, not scattered. */
+.elev-1 { box-shadow: 0 8px 22px -16px rgba(18, 58, 147, 0.28), 0 1px 3px -1px rgba(18, 58, 147, 0.08); }
+.elev-2 { box-shadow: 0 16px 40px -20px rgba(18, 58, 147, 0.34), 0 3px 8px -3px rgba(18, 58, 147, 0.12); }
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter { animation: none; }
+  html { scroll-behavior: auto; }
+}
+
 /* Living scenery: subtle continuous motion for equipped backgrounds. */
 @keyframes scene-wave { 0% { transform: translateX(0); } 50% { transform: translateX(-14px); } 100% { transform: translateX(0); } }
 @keyframes scene-drift { 0% { transform: translateX(-6px); } 50% { transform: translateX(10px); } 100% { transform: translateX(-6px); } }
