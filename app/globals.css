@@ -390,6 +390,21 @@
   );
 }
 
+/* Living scenery: subtle continuous motion for equipped backgrounds. */
+@keyframes scene-wave { 0% { transform: translateX(0); } 50% { transform: translateX(-14px); } 100% { transform: translateX(0); } }
+@keyframes scene-drift { 0% { transform: translateX(-6px); } 50% { transform: translateX(10px); } 100% { transform: translateX(-6px); } }
+@keyframes scene-twinkle2 { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@keyframes scene-flicker { 0%, 100% { opacity: 0.9; } 45% { opacity: 0.25; } 70% { opacity: 1; } }
+@keyframes scene-aurora { 0% { transform: translateX(-10px); opacity: 0.22; } 50% { transform: translateX(12px); opacity: 0.34; } 100% { transform: translateX(-10px); opacity: 0.22; } }
+.s-wave { animation: scene-wave 6s ease-in-out infinite; }
+.s-drift { animation: scene-drift 9s ease-in-out infinite; }
+.s-twinkle { animation: scene-twinkle2 3s ease-in-out infinite; }
+.s-flicker { animation: scene-flicker 4s ease-in-out infinite; }
+.s-aurora { animation: scene-aurora 8s ease-in-out infinite; will-change: transform, opacity; }
+@media (prefers-reduced-motion: reduce) {
+  .s-wave, .s-drift, .s-twinkle, .s-flicker, .s-aurora { animation: none; }
+}
+
 /* Legendary shop items — a warm gold border + pulsing glow to feel rare.
    (Avoids the multi-value background-clip gradient-border trick, which
    Lightning CSS silently drops.) */

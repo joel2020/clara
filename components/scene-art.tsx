@@ -71,8 +71,8 @@ function Ocean() {
       <path d="M62 111c8 3 11 10 10 19H62z" fill="#e2453b" opacity="0.95" />
       <path d="M50 132h26l-5 8H55z" fill="#20477e" />
       {/* waves */}
-      <path d="M0 150c12-6 24-6 36 0s24 6 36 0 24-6 36 0 24 6 36 0 24-6 36 0 20 5 20 5v45H0z" fill="#1d7fa8" opacity="0.5" />
-      <path d="M0 166c15-6 30-6 45 0s30 6 45 0 30-6 45 0 30 6 45 0 20-4 20-4v38H0z" fill="#14618c" opacity="0.55" />
+      <path className="s-wave" d="M0 150c12-6 24-6 36 0s24 6 36 0 24-6 36 0 24 6 36 0 24-6 36 0 20 5 20 5v45H0z" fill="#1d7fa8" opacity="0.5" />
+      <path className="s-wave" style={{ animationDelay: "1.2s" }} d="M0 166c15-6 30-6 45 0s30 6 45 0 30-6 45 0 30 6 45 0 20-4 20-4v38H0z" fill="#14618c" opacity="0.55" />
     </Frame>
   );
 }
@@ -87,7 +87,7 @@ function Candy() {
         [58, 120, 12],
         [148, 128, 16],
       ].map(([x, y, r], i) => (
-        <g key={i} opacity="0.9">
+        <g key={i} className="s-drift" style={{ animationDelay: `${i * 1.1}s` }} opacity="0.9">
           <circle cx={x} cy={y} r={r} fill="#fff" opacity="0.85" />
           <circle cx={x - r * 0.8} cy={y + r * 0.25} r={r * 0.7} fill="#fff" opacity="0.8" />
           <circle cx={x + r * 0.8} cy={y + r * 0.25} r={r * 0.7} fill="#ffeef8" opacity="0.85" />
@@ -139,7 +139,7 @@ function Galaxy() {
   return (
     <Frame anchor="top">
       {Array.from({ length: 18 }).map((_, i) => (
-        <circle key={i} cx={(i * 47 + 9) % 198} cy={(i * 71 + 15) % 190} r={i % 4 === 0 ? 1.8 : 1} fill="#fff" opacity={0.4 + (i % 3) * 0.2} />
+        <circle key={i} className="s-twinkle" style={{ animationDelay: `${(i % 6) * 0.5}s` }} cx={(i * 47 + 9) % 198} cy={(i * 71 + 15) % 190} r={i % 4 === 0 ? 1.8 : 1} fill="#fff" opacity={0.4 + (i % 3) * 0.2} />
       ))}
       {/* ringed planet */}
       <g transform="translate(150 54) rotate(-18)">
@@ -175,7 +175,7 @@ function Beach() {
       <path d="M40 200c-2-40-2-72 0-96" stroke="#a9764b" strokeWidth="6" strokeLinecap="round" />
       <path d="M40 104c-14-6-28-4-40 4 10-14 28-18 42-10 14-8 32-4 42 10-14-8-30-8-44-4z" fill="#3f9e68" />
       {/* sea + sand */}
-      <path d="M0 150c16-6 32-6 48 0s32 6 48 0 32-6 48 0 32 6 40 4v50H0z" fill="#2aa7d6" opacity="0.55" />
+      <path className="s-wave" d="M0 150c16-6 32-6 48 0s32 6 48 0 32-6 48 0 32 6 40 4v50H0z" fill="#2aa7d6" opacity="0.55" />
       <path d="M0 168c40-8 80-8 120 0s80 8 80 8v28H0z" fill="#f2cf86" />
       <path d="M0 176c40-6 80-6 120 0s80 6 80 6v20H0z" fill="#e8bf6e" />
     </Frame>
@@ -213,9 +213,11 @@ function Rainbow() {
       {bands.map((c, i) => (
         <path key={i} d={`M-10 ${150} A ${120 - i * 8} ${120 - i * 8} 0 0 1 ${210} ${150}`} fill="none" stroke={c} strokeWidth="8" opacity="0.8" />
       ))}
-      <g opacity="0.9">
+      <g className="s-drift" opacity="0.9">
         <circle cx="26" cy="150" r="12" fill="#fff" />
         <circle cx="40" cy="150" r="15" fill="#fff" />
+      </g>
+      <g className="s-drift" style={{ animationDelay: "2s" }} opacity="0.9">
         <circle cx="174" cy="150" r="12" fill="#fff" />
         <circle cx="160" cy="150" r="15" fill="#fff" />
       </g>
@@ -231,6 +233,8 @@ function Night() {
       {Array.from({ length: 22 }).map((_, i) => (
         <path
           key={i}
+          className="s-twinkle"
+          style={{ animationDelay: `${(i % 7) * 0.4}s` }}
           d="M0 -2.4l0.7 1.5 1.7 0.25-1.2 1.2 0.28 1.7L0 1.4l-1.5 0.8 0.28-1.7-1.2-1.2 1.7-0.25z"
           transform={`translate(${(i * 41 + 12) % 196} ${(i * 53 + 20) % 150}) scale(${1 + (i % 3) * 0.6})`}
           fill="#fff"
@@ -258,17 +262,22 @@ function City() {
         <g key={i}>
           <rect x={x} y={y} width={w} height={200 - y} fill="#1e1436" opacity="0.85" />
           {Array.from({ length: Math.floor((200 - y) / 14) }).map((_, r) =>
-            Array.from({ length: Math.floor(w / 8) }).map((_, c2) => (
-              <rect
-                key={`${r}-${c2}`}
-                x={x + 3 + c2 * 8}
-                y={y + 6 + r * 14}
-                width="3.5"
-                height="5"
-                fill={(r + c2 + i) % 3 === 0 ? "#ffd76a" : "#6a5aa0"}
-                opacity="0.9"
-              />
-            )),
+            Array.from({ length: Math.floor(w / 8) }).map((_, c2) => {
+              const lit = (r + c2 + i) % 3 === 0;
+              return (
+                <rect
+                  key={`${r}-${c2}`}
+                  className={lit ? "s-flicker" : undefined}
+                  style={lit ? { animationDelay: `${((r + c2 + i) % 5) * 0.7}s` } : undefined}
+                  x={x + 3 + c2 * 8}
+                  y={y + 6 + r * 14}
+                  width="3.5"
+                  height="5"
+                  fill={lit ? "#ffd76a" : "#6a5aa0"}
+                  opacity="0.9"
+                />
+              );
+            }),
           )}
         </g>
       ))}
@@ -280,12 +289,12 @@ function Aurora() {
   return (
     <Frame anchor="top">
       {Array.from({ length: 22 }).map((_, i) => (
-        <circle key={i} cx={(i * 47 + 9) % 198} cy={(i * 61 + 12) % 150} r={i % 4 === 0 ? 1.6 : 1} fill="#fff" opacity={0.4 + (i % 3) * 0.2} />
+        <circle key={i} className="s-twinkle" style={{ animationDelay: `${(i % 6) * 0.5}s` }} cx={(i * 47 + 9) % 198} cy={(i * 61 + 12) % 150} r={i % 4 === 0 ? 1.6 : 1} fill="#fff" opacity={0.4 + (i % 3) * 0.2} />
       ))}
       {/* shimmering aurora ribbons */}
-      <path d="M-10 70 Q50 30 100 70 T210 60 V150 H-10 Z" fill="#3cdca0" opacity="0.28" />
-      <path d="M-10 92 Q60 52 120 92 T210 84 V150 H-10 Z" fill="#5aa0ff" opacity="0.26" />
-      <path d="M-10 112 Q70 78 130 112 T210 106 V150 H-10 Z" fill="#a06bdc" opacity="0.28" />
+      <path className="s-aurora" d="M-10 70 Q50 30 100 70 T210 60 V150 H-10 Z" fill="#3cdca0" opacity="0.28" />
+      <path className="s-aurora" style={{ animationDelay: "1.5s" }} d="M-10 92 Q60 52 120 92 T210 84 V150 H-10 Z" fill="#5aa0ff" opacity="0.26" />
+      <path className="s-aurora" style={{ animationDelay: "3s" }} d="M-10 112 Q70 78 130 112 T210 106 V150 H-10 Z" fill="#a06bdc" opacity="0.28" />
     </Frame>
   );
 }

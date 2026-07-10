@@ -21,6 +21,7 @@ import { PlayerBar } from "@/components/player-bar";
 import { DailyQuests } from "@/components/daily-quests";
 import { LumiDepth } from "@/components/lumi-depth";
 import { EffectLayer } from "@/components/lumi-scene";
+import { SceneArt } from "@/components/scene-art";
 import { AmbientStars } from "@/components/juice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -53,6 +54,7 @@ export default function HomePage() {
         style={bg?.background ? { background: bg.background } : undefined}
       >
         <div className="flag-bar absolute inset-x-0 top-0 z-20 h-[3px]" aria-hidden />
+        {bg && <SceneArt bgId={bg.id} />}
         <AmbientStars />
         {effect?.effect && <EffectLayer kind={effect.effect} />}
         {/* Text-protection scrim: keeps the greeting readable over ANY equipped
