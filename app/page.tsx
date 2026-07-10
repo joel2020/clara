@@ -14,6 +14,7 @@ import {
   Clapperboard,
   Puzzle,
   Drama,
+  Globe,
   Video,
   Sparkles,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import { PlayerBar } from "@/components/player-bar";
 import { DailyQuests } from "@/components/daily-quests";
 import { LumiDepth } from "@/components/lumi-depth";
 import { EffectLayer } from "@/components/lumi-scene";
+import { SceneArt } from "@/components/scene-art";
 import { AmbientStars } from "@/components/juice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -50,6 +52,7 @@ export default function HomePage() {
         style={bg?.background ? { background: bg.background } : undefined}
       >
         <div className="flag-bar absolute inset-x-0 top-0 z-20 h-[3px]" aria-hidden />
+        {bg && <SceneArt bgId={bg.id} />}
         <AmbientStars />
         {effect?.effect && <EffectLayer kind={effect.effect} />}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/80 via-background/40 to-transparent" aria-hidden />
@@ -145,6 +148,7 @@ export default function HomePage() {
           <Tile href="/play" icon={Zap} label="speedRound" lang={lang} />
           <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} />
           <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} />
+          <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} />
         </div>
       </section>
 
