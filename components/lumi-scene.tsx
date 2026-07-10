@@ -15,11 +15,21 @@ const EFFECT_EMOJI: Record<EffectKind, string> = {
   snow: "❄️",
   sparkle: "✨",
   confetti: "🎉",
+  stars: "⭐",
+  bubbles: "🫧",
+  notes: "🎵",
+  leaves: "🍃",
+  rainbow: "🌈",
+  coins: "🌟",
 };
 
+// Rising float up from below; twinkle fade in place; the rest fall from above.
+const RISING = new Set<EffectKind>(["hearts", "bubbles", "notes"]);
+const TWINKLE = new Set<EffectKind>(["sparkle", "stars"]);
+
 export function EffectLayer({ kind }: { kind: EffectKind }) {
-  const rising = kind === "hearts";
-  const twinkle = kind === "sparkle";
+  const rising = RISING.has(kind);
+  const twinkle = TWINKLE.has(kind);
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
       {Array.from({ length: 12 }).map((_, i) => {

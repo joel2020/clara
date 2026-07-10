@@ -166,6 +166,116 @@ function Galaxy() {
   );
 }
 
+function Beach() {
+  return (
+    <Frame>
+      <circle cx="150" cy="40" r="16" fill="#fff3c4" opacity="0.95" />
+      <circle cx="150" cy="40" r="24" fill="#ffe9a8" opacity="0.35" />
+      {/* palm */}
+      <path d="M40 200c-2-40-2-72 0-96" stroke="#a9764b" strokeWidth="6" strokeLinecap="round" />
+      <path d="M40 104c-14-6-28-4-40 4 10-14 28-18 42-10 14-8 32-4 42 10-14-8-30-8-44-4z" fill="#3f9e68" />
+      {/* sea + sand */}
+      <path d="M0 150c16-6 32-6 48 0s32 6 48 0 32-6 48 0 32 6 40 4v50H0z" fill="#2aa7d6" opacity="0.55" />
+      <path d="M0 168c40-8 80-8 120 0s80 8 80 8v28H0z" fill="#f2cf86" />
+      <path d="M0 176c40-6 80-6 120 0s80 6 80 6v20H0z" fill="#e8bf6e" />
+    </Frame>
+  );
+}
+
+function Meadow() {
+  return (
+    <Frame>
+      <circle cx="40" cy="42" r="15" fill="#fff3c4" opacity="0.9" />
+      <path d="M0 158c30-8 60-8 100 0s70 8 100 6v40H0z" fill="#8fce63" />
+      <path d="M0 176c34-6 68-6 100 0s66 6 100 4v24H0z" fill="#79bd4f" />
+      {[
+        [24, 168, "#e2453b"],
+        [60, 178, "#ffd23f"],
+        [104, 172, "#e7a6d8"],
+        [150, 182, "#e2453b"],
+        [182, 170, "#ffd23f"],
+      ].map(([x, y, c], i) => (
+        <g key={i} transform={`translate(${x} ${y})`}>
+          {[0, 72, 144, 216, 288].map((a) => (
+            <ellipse key={a} cx="0" cy="-5" rx="3" ry="5" fill={c as string} transform={`rotate(${a})`} />
+          ))}
+          <circle r="2.5" fill="#fff6cf" />
+        </g>
+      ))}
+    </Frame>
+  );
+}
+
+function Rainbow() {
+  const bands = ["#e2453b", "#ff9a3d", "#ffd23f", "#4caf6a", "#2a72c9", "#7a4fb0"];
+  return (
+    <Frame anchor="top">
+      {bands.map((c, i) => (
+        <path key={i} d={`M-10 ${150} A ${120 - i * 8} ${120 - i * 8} 0 0 1 ${210} ${150}`} fill="none" stroke={c} strokeWidth="8" opacity="0.8" />
+      ))}
+      <g opacity="0.9">
+        <circle cx="26" cy="150" r="12" fill="#fff" />
+        <circle cx="40" cy="150" r="15" fill="#fff" />
+        <circle cx="174" cy="150" r="12" fill="#fff" />
+        <circle cx="160" cy="150" r="15" fill="#fff" />
+      </g>
+    </Frame>
+  );
+}
+
+function Night() {
+  return (
+    <Frame anchor="top">
+      <circle cx="150" cy="46" r="20" fill="#fdf3c0" />
+      <circle cx="143" cy="42" r="17" fill="#33528f" />
+      {Array.from({ length: 22 }).map((_, i) => (
+        <path
+          key={i}
+          d="M0 -2.4l0.7 1.5 1.7 0.25-1.2 1.2 0.28 1.7L0 1.4l-1.5 0.8 0.28-1.7-1.2-1.2 1.7-0.25z"
+          transform={`translate(${(i * 41 + 12) % 196} ${(i * 53 + 20) % 150}) scale(${1 + (i % 3) * 0.6})`}
+          fill="#fff"
+          opacity={0.5 + (i % 3) * 0.2}
+        />
+      ))}
+    </Frame>
+  );
+}
+
+function City() {
+  const towers = [
+    [6, 120, 26],
+    [36, 96, 22],
+    [62, 132, 20],
+    [86, 84, 28],
+    [118, 110, 24],
+    [146, 70, 26],
+    [176, 120, 22],
+  ];
+  return (
+    <Frame>
+      <circle cx="40" cy="44" r="13" fill="#fff3c4" opacity="0.85" />
+      {towers.map(([x, y, w], i) => (
+        <g key={i}>
+          <rect x={x} y={y} width={w} height={200 - y} fill="#1e1436" opacity="0.85" />
+          {Array.from({ length: Math.floor((200 - y) / 14) }).map((_, r) =>
+            Array.from({ length: Math.floor(w / 8) }).map((_, c2) => (
+              <rect
+                key={`${r}-${c2}`}
+                x={x + 3 + c2 * 8}
+                y={y + 6 + r * 14}
+                width="3.5"
+                height="5"
+                fill={(r + c2 + i) % 3 === 0 ? "#ffd76a" : "#6a5aa0"}
+                opacity="0.9"
+              />
+            )),
+          )}
+        </g>
+      ))}
+    </Frame>
+  );
+}
+
 const SCENES: Record<string, () => React.ReactNode> = {
   "bg-default": Fiesta,
   "bg-sunset": Sunset,
@@ -173,6 +283,11 @@ const SCENES: Record<string, () => React.ReactNode> = {
   "bg-candy": Candy,
   "bg-jungle": Jungle,
   "bg-galaxy": Galaxy,
+  "bg-beach": Beach,
+  "bg-meadow": Meadow,
+  "bg-rainbow": Rainbow,
+  "bg-night": Night,
+  "bg-city": City,
 };
 
 export function SceneArt({ bgId }: { bgId: string }) {

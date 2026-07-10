@@ -199,5 +199,11 @@ const EFFECT_PREVIEW: Record<string, string> = {
   snow: "❄️",
   sparkle: "✨",
   confetti: "🎉",
+  stars: "⭐",
+  bubbles: "🫧",
+  notes: "🎵",
+  leaves: "🍃",
+  rainbow: "🌈",
+  coins: "🌟",
   none: "∅",
 };

@@ -8,7 +8,18 @@ import type { PlayerStats } from "@/lib/db/types";
 // it costs nothing to run and can grow freely.
 
 export type CosmeticType = "background" | "accessory" | "effect";
-export type EffectKind = "hearts" | "petals" | "sparkle" | "snow" | "confetti";
+export type EffectKind =
+  | "hearts"
+  | "petals"
+  | "sparkle"
+  | "snow"
+  | "confetti"
+  | "stars"
+  | "bubbles"
+  | "notes"
+  | "leaves"
+  | "rainbow"
+  | "coins";
 
 export interface Cosmetic {
   id: string;
@@ -71,6 +82,42 @@ export const COSMETICS: Cosmetic[] = [
     background:
       "radial-gradient(90% 90% at 30% 20%, #6a3ea1 0%, transparent 60%), radial-gradient(80% 80% at 80% 80%, #b0468b 0%, transparent 55%), linear-gradient(160deg, #1b1044 0%, #2b1b6b 100%)",
   },
+  {
+    id: "bg-beach",
+    type: "background",
+    name: { es: "Playa", en: "Beach" },
+    cost: 40,
+    background: "linear-gradient(180deg, #8ed6ff 0%, #bfeaff 42%, #ffe7ba 58%, #ffd98a 100%)",
+  },
+  {
+    id: "bg-meadow",
+    type: "background",
+    name: { es: "Pradera", en: "Flower meadow" },
+    cost: 40,
+    background: "linear-gradient(180deg, #bfe6ff 0%, #dff5c8 52%, #a8dd7a 100%)",
+  },
+  {
+    id: "bg-rainbow",
+    type: "background",
+    name: { es: "Arcoíris", en: "Rainbow" },
+    cost: 60,
+    background: "linear-gradient(160deg, #fde9c8 0%, #f7c8e0 50%, #c9e0ff 100%)",
+  },
+  {
+    id: "bg-night",
+    type: "background",
+    name: { es: "Noche estrellada", en: "Starry night" },
+    cost: 80,
+    background:
+      "radial-gradient(80% 60% at 78% 18%, #3a5a9c 0%, transparent 55%), linear-gradient(170deg, #0f1a3d 0%, #243b6b 60%, #33528f 100%)",
+  },
+  {
+    id: "bg-city",
+    type: "background",
+    name: { es: "Luces de ciudad", en: "City lights" },
+    cost: 100,
+    background: "linear-gradient(175deg, #2a1f4a 0%, #4a2f6b 55%, #8a4f9c 100%)",
+  },
 
   // ── Accessories (props near Lumi) ──
   { id: "acc-none", type: "accessory", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
@@ -78,14 +125,31 @@ export const COSMETICS: Cosmetic[] = [
   { id: "acc-cat", type: "accessory", name: { es: "Gatico", en: "Kitty" }, cost: 25, emoji: "🐱" },
   { id: "acc-balloons", type: "accessory", name: { es: "Globos", en: "Balloons" }, cost: 30, emoji: "🎈" },
   { id: "acc-butterfly", type: "accessory", name: { es: "Mariposa", en: "Butterfly" }, cost: 30, emoji: "🦋" },
+  { id: "acc-sunflower", type: "accessory", name: { es: "Girasol", en: "Sunflower" }, cost: 30, emoji: "🌻" },
+  { id: "acc-icecream", type: "accessory", name: { es: "Helado", en: "Ice cream" }, cost: 35, emoji: "🍦" },
+  { id: "acc-boba", type: "accessory", name: { es: "Boba", en: "Boba tea" }, cost: 40, emoji: "🧋" },
+  { id: "acc-rainbow", type: "accessory", name: { es: "Arcoíris", en: "Rainbow" }, cost: 40, emoji: "🌈" },
+  { id: "acc-sunglasses", type: "accessory", name: { es: "Gafas de sol", en: "Sunglasses" }, cost: 45, emoji: "🕶️" },
+  { id: "acc-wand", type: "accessory", name: { es: "Varita mágica", en: "Star wand" }, cost: 45, emoji: "🌟" },
+  { id: "acc-headphones", type: "accessory", name: { es: "Audífonos", en: "Headphones" }, cost: 50, emoji: "🎧" },
+  { id: "acc-guitar", type: "accessory", name: { es: "Guitarra", en: "Guitar" }, cost: 55, emoji: "🎸" },
   { id: "acc-crown", type: "accessory", name: { es: "Corona", en: "Crown" }, cost: 60, emoji: "👑" },
+  { id: "acc-puppy", type: "accessory", name: { es: "Perrito", en: "Puppy" }, cost: 70, emoji: "🐶" },
+  { id: "acc-unicorn", type: "accessory", name: { es: "Unicornio", en: "Unicorn" }, cost: 110, emoji: "🦄" },
 
   // ── Ambient effects ──
   { id: "fx-none", type: "effect", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
   { id: "fx-hearts", type: "effect", name: { es: "Corazones", en: "Hearts" }, cost: 20, effect: "hearts" },
   { id: "fx-petals", type: "effect", name: { es: "Pétalos", en: "Petals" }, cost: 20, effect: "petals" },
-  { id: "fx-sparkle", type: "effect", name: { es: "Destellos", en: "Sparkles" }, cost: 35, effect: "sparkle" },
   { id: "fx-snow", type: "effect", name: { es: "Nieve", en: "Snow" }, cost: 25, effect: "snow" },
+  { id: "fx-leaves", type: "effect", name: { es: "Hojas", en: "Falling leaves" }, cost: 30, effect: "leaves" },
+  { id: "fx-bubbles", type: "effect", name: { es: "Burbujas", en: "Bubbles" }, cost: 35, effect: "bubbles" },
+  { id: "fx-sparkle", type: "effect", name: { es: "Destellos", en: "Sparkles" }, cost: 35, effect: "sparkle" },
+  { id: "fx-stars", type: "effect", name: { es: "Estrellitas", en: "Twinkling stars" }, cost: 40, effect: "stars" },
+  { id: "fx-notes", type: "effect", name: { es: "Notas musicales", en: "Music notes" }, cost: 45, effect: "notes" },
+  { id: "fx-coins", type: "effect", name: { es: "Lluvia de estrellas", en: "Star rain" }, cost: 50, effect: "coins" },
+  { id: "fx-rainbow", type: "effect", name: { es: "Arcoíris mágico", en: "Rainbow magic" }, cost: 60, effect: "rainbow" },
+  { id: "fx-confetti", type: "effect", name: { es: "Confeti", en: "Confetti" }, cost: 65, effect: "confetti" },
 ];
 
 const BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));
