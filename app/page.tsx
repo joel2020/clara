@@ -15,6 +15,8 @@ import {
   Puzzle,
   Drama,
   Globe,
+  Video,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReviewCallout } from "@/components/review-callout";
@@ -29,10 +31,6 @@ import { usePlayer } from "@/lib/hooks/usePlayer";
 import { getCosmetic, chestAvailable } from "@/lib/cosmetics";
 import { t, type StringKey } from "@/lib/i18n";
 
-// The daily hub. One primary action (Today's session), a compact game HUD, and
-// a small games grid — the full curriculum lives on /lessons and the Map, so
-// starting today's practice never competes with browsing.
-
 export default function HomePage() {
   const { settings } = useSettings();
   const player = usePlayer();
@@ -46,7 +44,6 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-24 pt-6 sm:px-6 sm:pt-10">
-      {/* Hero — Lumi on her equipped stage */}
       <section
         className={cn(
           "animate-fade-up relative overflow-hidden rounded-3xl px-6 pb-0 pt-6 shadow-sm ring-1 ring-black/5 sm:px-8 sm:pt-8",
@@ -58,13 +55,7 @@ export default function HomePage() {
         {bg && <SceneArt bgId={bg.id} />}
         <AmbientStars />
         {effect?.effect && <EffectLayer kind={effect.effect} />}
-        {/* Text-protection scrim: keeps the greeting readable over ANY equipped
-            background (Galaxy is nearly black). Uses the theme background color
-            so it adapts to dark mode too. */}
-        <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/80 via-background/40 to-transparent"
-          aria-hidden
-        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/80 via-background/40 to-transparent" aria-hidden />
 
         <div className="relative z-10 flex items-end justify-between gap-3">
           <div className="max-w-[58%] pb-7">
@@ -91,7 +82,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* THE action */}
       <Link
         href="/today"
         className="sheen group mt-5 flex items-center gap-4 rounded-3xl bg-foreground px-6 py-5 text-background shadow-sm transition-all hover:opacity-95 active:scale-[0.995]"
@@ -106,6 +96,34 @@ export default function HomePage() {
         <span className="text-background/60 transition-transform group-hover:translate-x-0.5">→</span>
       </Link>
 
+      <Link
+        href="/media"
+        className="group relative mt-4 flex min-h-40 overflow-hidden rounded-3xl bg-[#0b2d78] p-5 text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.995] sm:min-h-44 sm:p-6"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_22%,rgba(255,211,69,0.42),transparent_20%),radial-gradient(circle_at_88%_75%,rgba(218,42,50,0.32),transparent_25%),linear-gradient(118deg,#06183f_0%,#0b2d78_54%,#1450b4_100%)]" />
+        <span className="absolute -right-5 top-2 text-8xl opacity-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6" aria-hidden>✦</span>
+        <div className="relative z-10 flex w-full items-end justify-between gap-4">
+          <div className="max-w-sm">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+              <Sparkles className="size-3.5 text-co-yellow" />
+              {lang === "es" ? "10 minutos · sin presión" : "10 minutes · no pressure"}
+            </p>
+            <h2 className="mt-3 font-display text-2xl font-semibold leading-[1.02] tracking-[-0.025em] sm:text-3xl">
+              {lang === "es" ? "Mira inglés. Luego dilo." : "Watch English. Then say it."}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/75">
+              {lang === "es" ? "Videos reales, frases que sirven y música cuando ganas." : "Real videos, useful phrases, and music when you win."}
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+              {lang === "es" ? "Ver el reto de hoy" : "Watch today’s challenge"} <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </span>
+          </div>
+          <span className="grid size-12 shrink-0 place-items-center rounded-2xl border border-white/25 bg-white/10 backdrop-blur-sm">
+            <Video className="size-5" />
+          </span>
+        </div>
+      </Link>
+
       <div className="mt-5">
         <PlayerBar />
       </div>
@@ -118,7 +136,6 @@ export default function HomePage() {
         <ReviewCallout />
       </div>
 
-      {/* Games & places — compact grid, one tap each */}
       <section className="mt-8">
         <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em]">{t("homeGames", lang)}</h2>
         <div className="mt-4 grid grid-cols-3 gap-3">
@@ -135,12 +152,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Browse links */}
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        <Link
-          href="/lessons"
-          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-colors hover:border-primary/40"
-        >
+        <Link href="/lessons" className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
             <BookOpen className="size-5" />
           </span>
@@ -149,10 +162,7 @@ export default function HomePage() {
             <p className="text-sm text-muted-foreground">{t("lessonsCardSub", lang)}</p>
           </div>
         </Link>
-        <Link
-          href="/plan"
-          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-colors hover:border-primary/40"
-        >
+        <Link href="/plan" className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
             <CalendarDays className="size-5" />
           </span>
@@ -189,12 +199,7 @@ function Tile({
         accent ? "border border-primary/30 bg-primary/[0.06] card-lift hover:border-primary/60" : "rim-tricolor card-lift",
       )}
     >
-      <span
-        className={cn(
-          "grid size-10 place-items-center rounded-xl",
-          accent ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary",
-        )}
-      >
+      <span className={cn("grid size-10 place-items-center rounded-xl", accent ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")}>
         <Icon className="size-5" />
       </span>
       <span className="text-xs font-medium leading-tight">{t(label, lang)}</span>
