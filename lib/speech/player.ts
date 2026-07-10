@@ -37,11 +37,11 @@ export function pickAltVoice(exclude?: string): VoiceInfo {
 }
 
 /**
- * Voice for a drill round: a diverse cast of American speakers, with Joel (the
- * model) mixed in. Weighted toward the supporting voices so her ear generalizes
- * across real American speakers instead of memorizing one voice.
+ * Voice for a drill round: mainly Joel (the primary model she's learning from),
+ * with the supporting American cast mixed in about a third of the time so her
+ * ear still generalizes beyond one speaker without losing the familiar anchor.
  */
-export function pickDrillVoice(joelWeight = 0.3): VoiceInfo {
+export function pickDrillVoice(joelWeight = 0.7): VoiceInfo {
   if (!ALT_VOICES.length || Math.random() < joelWeight) return PRIMARY_VOICE;
   return pickAltVoice();
 }

@@ -165,9 +165,9 @@ const STRINGS = {
 
   // Shadowing / listening game
   shadowCard: { es: "Escucha y repite", en: "Listen & echo" },
-  shadowCardSub: { es: "Distintas voces americanas — entrena tu oído", en: "Different American voices — train your ear" },
+  shadowCardSub: { es: "Repite después de Joel — y otras voces", en: "Echo after Joel — and other voices" },
   shadowTitle: { es: "Escucha y repite", en: "Listen & echo" },
-  shadowIntro: { es: "Escucha una frase y repítela enseguida, igualito. Oirás distintas voces americanas — así entrenas el oído para el inglés real.", en: "Hear a phrase, then echo it right back. You'll hear different American voices — that's how you train your ear for real English." },
+  shadowIntro: { es: "Escucha una frase y repítela enseguida, igualito. Casi siempre es Joel, con otras voces americanas de vez en cuando — así entrenas el oído para el inglés real.", en: "Hear a phrase, then echo it right back. It's mostly Joel, with other American voices now and then — that's how you train your ear for real English." },
   shadowStart: { es: "Empezar", en: "Start" },
   shadowListen: { es: "Escucha bien…", en: "Listen closely…" },
   shadowRepeat: { es: "Ahora repite", en: "Now repeat" },

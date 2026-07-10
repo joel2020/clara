@@ -41,7 +41,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
   const current = round[idx];
   // A different American voice per phrase, so her ear trains across speakers.
   // Fixed per item (recomputes only when the phrase changes) so replay matches.
-  const voiceSlug = useMemo(() => pickDrillVoice(0.25).slug, [idx]);
+  const voiceSlug = useMemo(() => pickDrillVoice().slug, [idx]);
 
   const playModel = useCallback(() => {
     if (!current) return;

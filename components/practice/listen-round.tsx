@@ -46,7 +46,7 @@ function buildRound(pool: PracticeItem[]): Question[] {
       .slice(0, 3)
       .map((o) => o.meaning as string);
     const options = shuffle([item.meaning as string, ...distractors]);
-    return { item, options, correct: options.indexOf(item.meaning as string), voice: pickDrillVoice(0.2).slug };
+    return { item, options, correct: options.indexOf(item.meaning as string), voice: pickDrillVoice().slug };
   });
 }
 
