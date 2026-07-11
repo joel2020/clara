@@ -455,7 +455,18 @@ function DoneCard({
     <div className="animate-scale-in py-8 text-center">
       {/* Lumi leads the payoff — clapping proud on a clear, warm on a review */}
       <div className="relative mx-auto w-fit">
-        <Lumi frame="bust" mood={attempted > 0 && clear === attempted ? "clap" : "cheer"} className="mx-auto size-24" priority />
+        <Lumi
+          frame="bust"
+          mood={
+            attempted > 0 && clear === attempted
+              ? "clap"
+              : attempted > 0 && clear / attempted < 0.5
+                ? "encourage"
+                : "cheer"
+          }
+          className="mx-auto size-24"
+          priority
+        />
         {sessionStars > 0 && (
           <span className="star-chip bloom-gold absolute -right-9 top-0 animate-star-pop rounded-full px-3 py-1 font-display text-sm font-semibold">
             +{sessionStars} ★
@@ -480,6 +491,9 @@ function DoneCard({
             ? "Buen trabajo repasando la lección. Vuelve a grabar cuando quieras."
             : "Nice work going through the lesson. Come back and record when you're ready."}
       </p>
+      {attempted > 0 && clear / attempted < 0.5 && (
+        <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-primary">{t("recapStruggled", lang)}</p>
+      )}
 
       {attempted > 0 && (
         <div className="mx-auto mt-8 grid max-w-sm grid-cols-3 gap-2.5">

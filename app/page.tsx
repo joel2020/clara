@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Zap,
   CalendarDays,
@@ -30,6 +31,7 @@ import { AmbientStars } from "@/components/juice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { getCosmetic, chestAvailable } from "@/lib/cosmetics";
+import { timeGreetingKey } from "@/lib/greeting";
 import { t, type StringKey } from "@/lib/i18n";
 
 // The daily hub. One primary action (Today's session), a compact game HUD, and
@@ -41,6 +43,18 @@ export default function HomePage() {
   const player = usePlayer();
   const lang = settings.coachLanguage;
   const name = settings.studentName;
+
+  // Time-aware greeting, resolved on the client so the prerendered page and her
+  // device clock never disagree (avoids a hydration mismatch). Starts null →
+  // plain "¡Hola!" for the first paint, then warms up to "Buenas tardes".
+  const [greetKey, setGreetKey] = useState<"morning" | "afternoon" | "evening" | null>(null);
+  useEffect(() => {
+    setGreetKey(timeGreetingKey(new Date().getHours()));
+  }, []);
+  const greeting = greetKey
+    ? t(greetKey === "morning" ? "greetMorning" : greetKey === "afternoon" ? "greetAfternoon" : "greetEvening", lang)
+    : "¡Hola!";
+  const streak = player?.currentStreak ?? 0;
 
   const bg = getCosmetic(player?.equippedBg ?? "bg-default");
   const accessory = getCosmetic(player?.equippedAccessory ?? "acc-none");
@@ -75,12 +89,14 @@ export default function HomePage() {
               <span className="flag-dots" aria-hidden>
                 <i /><i /><i />
               </span>
-              {name ? `¡Hola, ${name}!` : "¡Hola!"}
+              {name ? `${greeting}, ${name}` : greeting}
             </p>
             <h1 className="mt-3 font-display text-3xl font-semibold leading-[1.03] tracking-[-0.03em] sm:text-5xl">
               {t("heroTitleBottom", lang)}
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-foreground/70 sm:text-base">{t("heroTagline", lang)}</p>
+            <p className="mt-3 text-sm leading-relaxed text-foreground/70 sm:text-base">
+              {streak > 1 ? t("heroStreakLine", lang).replace("{n}", String(streak)) : t("heroTagline", lang)}
+            </p>
           </div>
 
           <div className="relative -mr-2 h-44 w-32 shrink-0 sm:h-56 sm:w-44">

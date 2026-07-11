@@ -239,6 +239,11 @@ const STRINGS = {
   starsEarned: { es: "estrellas ganadas", en: "stars earned" },
   perfectStars: { es: "¡Perfecto! 3 estrellas", en: "Perfect! 3 stars" },
   heroTagline: { es: "¡Hola! Aprende inglés americano jugando.", en: "Hi! Learn American English by playing." },
+  greetMorning: { es: "Buenos días", en: "Good morning" },
+  greetAfternoon: { es: "Buenas tardes", en: "Good afternoon" },
+  greetEvening: { es: "Buenas noches", en: "Good evening" },
+  heroStreakLine: { es: "Racha de {n} días — sigamos hoy.", en: "{n}-day streak — let's keep it today." },
+  heroWelcomeBack: { es: "Qué bueno verte de nuevo.", en: "So good to see you again." },
 
   // Player bar
   level: { es: "Nivel", en: "Level" },
@@ -323,6 +328,7 @@ const STRINGS = {
 
   // Done card
   lessonComplete: { es: "Lección completa", en: "Lesson complete" },
+  recapStruggled: { es: "Hoy costó más y no te rendiste — así es como de verdad se te queda.", en: "Today was tougher and you didn't give up — that's how it really sticks." },
   xpEarned: { es: "xp ganados", en: "xp earned" },
   accuracy: { es: "precisión", en: "accuracy" },
   bestCombo: { es: "mejor combo", en: "best combo" },
