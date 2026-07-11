@@ -4,6 +4,8 @@
 // files; these lines are generated fresh because they're open-ended. The key
 // stays on the server.
 
+import { guardApi } from "@/lib/api-guard";
+
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
@@ -13,6 +15,9 @@ const MODEL = "eleven_multilingual_v2";
 const FORMAT = "mp3_44100_128";
 
 export async function POST(request: Request): Promise<Response> {
+  const blocked = guardApi(request);
+  if (blocked) return blocked;
+
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     return Response.json({ error: "Voice isn't configured on the server." }, { status: 500 });

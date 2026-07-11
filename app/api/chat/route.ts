@@ -7,6 +7,7 @@
 
 import OpenAI from "openai";
 import { getScenario } from "@/lib/content/scenarios";
+import { guardApi } from "@/lib/api-guard";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -98,6 +99,9 @@ RULES:
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const blocked = guardApi(request);
+  if (blocked) return blocked;
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     // Not configured yet — the client shows a friendly "coming soon" state.

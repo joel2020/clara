@@ -3,10 +3,15 @@
 // MediaRecorder and posts it here; we forward it to ElevenLabs Scribe and return
 // the transcript. The API key stays on the server.
 
+import { guardApi } from "@/lib/api-guard";
+
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
 export async function POST(request: Request): Promise<Response> {
+  const blocked = guardApi(request);
+  if (blocked) return blocked;
+
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     return Response.json({ error: "Transcription isn't configured on the server." }, { status: 500 });

@@ -8,6 +8,8 @@
 // Uses the REST short-audio endpoint (clips here are a few seconds), with the
 // Pronunciation-Assessment config passed as a base64 header per the API spec.
 
+import { guardApi } from "@/lib/api-guard";
+
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
@@ -50,6 +52,9 @@ export async function GET(): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const blocked = guardApi(request);
+  if (blocked) return blocked;
+
   const key = process.env.AZURE_SPEECH_KEY;
   const region = process.env.AZURE_SPEECH_REGION;
   if (!key || !region) return Response.json({ error: "not_configured" }, { status: 503 });
