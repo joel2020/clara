@@ -94,6 +94,7 @@ export const DEFAULT_PLAYER: PlayerStats = {
   equippedBg: "bg-default",
   equippedAccessory: "acc-none",
   equippedEffect: "fx-none",
+  equippedPet: "pet-none",
   lastChestDay: null,
   streakFreezes: 0,
   freezeUsedDay: null,

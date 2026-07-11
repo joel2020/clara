@@ -136,12 +136,20 @@ export function pushPlayer(profileId: string, s: PlayerStats): void {
     streak_freezes: s.streakFreezes ?? 0,
     freeze_used_day: s.freezeUsedDay ?? null,
   };
+  // Cascade from richest payload to safest: a cloud schema missing a newer
+  // column rejects the whole row, so drop back a tier instead of losing the
+  // rest of her progress. (equipped_pet is the newest column.)
+  const payloads = [
+    { ...base, ...economy, equipped_pet: s.equippedPet ?? "pet-none" },
+    { ...base, ...economy },
+    base,
+  ];
   bg(
     (async () => {
-      const full = await sb.from("player_stats").upsert({ ...base, ...economy }, { onConflict: "profile_id" });
-      // Older cloud schemas lack the economy columns (PostgREST rejects the
-      // whole row) — fall back to the base fields so core progress still syncs.
-      if (full.error) await sb.from("player_stats").upsert(base, { onConflict: "profile_id" });
+      for (const payload of payloads) {
+        const res = await sb.from("player_stats").upsert(payload, { onConflict: "profile_id" });
+        if (!res.error) return;
+      }
     })(),
   );
 }
@@ -233,6 +241,7 @@ export async function pullProfileData(profileId: string): Promise<PulledData | n
         equippedBg: pd.equipped_bg ?? "bg-default",
         equippedAccessory: pd.equipped_accessory ?? "acc-none",
         equippedEffect: pd.equipped_effect ?? "fx-none",
+        equippedPet: pd.equipped_pet ?? "pet-none",
         lastChestDay: pd.last_chest_day ?? null,
         streakFreezes: pd.streak_freezes ?? 0,
         freezeUsedDay: pd.freeze_used_day ?? null,

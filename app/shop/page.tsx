@@ -35,7 +35,13 @@ export default function ShopPage() {
   if (!player) return <Splash />;
 
   const equippedFor = (type: CosmeticType) =>
-    type === "background" ? player.equippedBg : type === "accessory" ? player.equippedAccessory : player.equippedEffect;
+    type === "background"
+      ? player.equippedBg
+      : type === "accessory"
+        ? player.equippedAccessory
+        : type === "pet"
+          ? (player.equippedPet ?? "pet-none")
+          : player.equippedEffect;
 
   const onTap = async (c: Cosmetic) => {
     const owned = isOwned(player, c.id);
@@ -103,6 +109,7 @@ export default function ShopPage() {
           bgId={player.equippedBg}
           accessoryId={player.equippedAccessory}
           effectId={player.equippedEffect}
+          petId={player.equippedPet}
           className="h-64 shadow-sm ring-1 ring-black/5"
         />
         <div className="flex flex-col justify-center rounded-3xl border border-hairline bg-card p-6 text-center">
@@ -128,10 +135,19 @@ export default function ShopPage() {
       </div>
 
       {/* Cosmetic sections */}
-      {(["background", "accessory", "effect"] as CosmeticType[]).map((type) => (
+      {(["pet", "background", "accessory", "effect"] as CosmeticType[]).map((type) => (
         <section key={type} className="mt-10">
           <h2 className="border-b border-hairline pb-3 font-display text-sm font-semibold uppercase tracking-[0.16em]">
-            {t(type === "background" ? "shopBackgrounds" : type === "accessory" ? "shopAccessories" : "shopEffects", lang)}
+            {t(
+              type === "background"
+                ? "shopBackgrounds"
+                : type === "accessory"
+                  ? "shopAccessories"
+                  : type === "pet"
+                    ? "shopPets"
+                    : "shopEffects",
+              lang,
+            )}
           </h2>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {cosmeticsByType(type).map((c) => {

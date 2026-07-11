@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Lumi, type LumiMood } from "@/components/lumi";
 import { getCosmetic, type EffectKind } from "@/lib/cosmetics";
 import { SceneArt } from "@/components/scene-art";
+import { PetSprite } from "@/components/pet-sprite";
 
 // Lumi on her equipped "stage" — the chosen background, ambient effect, and a
 // prop accessory. Used on the home hero and as the live preview in the shop, so
@@ -64,12 +65,14 @@ export function LumiScene({
   bgId,
   accessoryId,
   effectId,
+  petId,
   mood = "wave",
   className,
 }: {
   bgId: string;
   accessoryId: string;
   effectId: string;
+  petId?: string;
   mood?: LumiMood;
   className?: string;
 }) {
@@ -88,6 +91,7 @@ export function LumiScene({
           {acc.emoji}
         </span>
       )}
+      <PetSprite petId={petId} className="absolute bottom-2 left-[18%]" size="text-5xl" />
     </div>
   );
 }

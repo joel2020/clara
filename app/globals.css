@@ -497,6 +497,13 @@ html { scroll-behavior: smooth; }
 .intro-card-in { animation: intro-card-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .intro-card-in-back { animation: intro-card-in-back 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* Pet companion ground shadow — breathes opposite the float bob. */
+@keyframes pet-shadow {
+  0% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(0.8); opacity: 0.35; }
+  100% { transform: scale(1); opacity: 0.5; }
+}
+
 /* ── Lumi as a 3D standee: perspective sway + ground contact shadow ─────── */
 .lumi-stage {
   perspective: 700px;

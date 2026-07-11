@@ -198,6 +198,7 @@ const STRINGS = {
   shopTitle: { es: "Tienda de Lumi", en: "Lumi's shop" },
   shopIntro: { es: "Gana estrellas hablando bien y vístela a tu gusto.", en: "Earn stars by speaking clearly, then style her up." },
   rarityLegendary: { es: "Legendario", en: "Legendary" },
+  shopPets: { es: "Mascotas", en: "Pets" },
   mundoEyebrow: { es: "Mi mundo", en: "My world" },
   mundoTitle: { es: "Tu mundo", en: "Your world" },
   mundoIntro: { es: "Todo lo que has construido, en un solo lugar.", en: "Everything you've built, in one place." },

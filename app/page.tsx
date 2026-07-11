@@ -25,6 +25,7 @@ import { LumiDepth } from "@/components/lumi-depth";
 import { EffectLayer } from "@/components/lumi-scene";
 import { SceneArt } from "@/components/scene-art";
 import { InstallNudge } from "@/components/install-nudge";
+import { PetSprite } from "@/components/pet-sprite";
 import { AmbientStars } from "@/components/juice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -89,6 +90,7 @@ export default function HomePage() {
               </span>
             )}
             <LumiDepth priority />
+            <PetSprite petId={player?.equippedPet} className="absolute -left-8 bottom-1 z-10 sm:-left-10" />
           </div>
         </div>
       </section>
@@ -127,16 +129,16 @@ export default function HomePage() {
         <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em]">{t("homeGames", lang)}</h2>
         <div className="mt-4 grid grid-cols-3 gap-3">
           <Tile href="/talk" icon={MessageCircle} label="navTalk" lang={lang} accent />
-          <Tile href="/duet" icon={Drama} label="duetCard" lang={lang} />
-          <Tile href="/media" icon={Clapperboard} label="mediaCard" lang={lang} />
-          <Tile href="/listen" icon={Headphones} label="listenCard" lang={lang} />
-          <Tile href="/shadow" icon={Volume2} label="shadowCard" lang={lang} />
-          <Tile href="/build" icon={Puzzle} label="buildCard" lang={lang} />
-          <Tile href="/play" icon={Zap} label="speedRound" lang={lang} />
-          <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} />
-          <Tile href="/radio" icon={Radio} label="radioCard" lang={lang} />
-          <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} />
-          <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} />
+          <Tile href="/duet" icon={Drama} label="duetCard" lang={lang} tone="gold" />
+          <Tile href="/media" icon={Clapperboard} label="mediaCard" lang={lang} tone="red" />
+          <Tile href="/listen" icon={Headphones} label="listenCard" lang={lang} tone="blue" />
+          <Tile href="/shadow" icon={Volume2} label="shadowCard" lang={lang} tone="gold" />
+          <Tile href="/build" icon={Puzzle} label="buildCard" lang={lang} tone="red" />
+          <Tile href="/play" icon={Zap} label="speedRound" lang={lang} tone="gold" />
+          <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} tone="red" />
+          <Tile href="/radio" icon={Radio} label="radioCard" lang={lang} tone="blue" />
+          <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} tone="gold" />
+          <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} tone="red" />
         </div>
       </section>
 
@@ -171,6 +173,14 @@ export default function HomePage() {
   );
 }
 
+// Tricolor icon chips — each game tile carries one of the flag's colors so the
+// grid reads as one Colombian set instead of a wall of identical blue.
+const TILE_CHIP = {
+  blue: "bg-primary/10 text-primary",
+  gold: "bg-[color-mix(in_oklch,var(--co-yellow)_22%,transparent)] text-[color-mix(in_oklch,var(--co-yellow)_60%,#7a5a10)]",
+  red: "bg-[color-mix(in_oklch,var(--co-red)_12%,transparent)] text-co-red",
+} as const;
+
 function Tile({
   href,
   icon: Icon,
@@ -178,6 +188,7 @@ function Tile({
   lang,
   accent,
   badge,
+  tone = "blue",
 }: {
   href: string;
   icon: typeof Zap;
@@ -185,6 +196,7 @@ function Tile({
   lang: "es" | "en";
   accent?: boolean;
   badge?: boolean;
+  tone?: keyof typeof TILE_CHIP;
 }) {
   return (
     <Link
@@ -197,7 +209,7 @@ function Tile({
       <span
         className={cn(
           "grid size-10 place-items-center rounded-xl",
-          accent ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary",
+          accent ? "bg-primary text-primary-foreground" : TILE_CHIP[tone],
         )}
       >
         <Icon className="size-5" />

@@ -7,7 +7,7 @@ import type { PlayerStats } from "@/lib/db/types";
 // here is cosmetic (backgrounds, props, ambient effects) and rendered in-app, so
 // it costs nothing to run and can grow freely.
 
-export type CosmeticType = "background" | "accessory" | "effect";
+export type CosmeticType = "background" | "accessory" | "effect" | "pet";
 export type EffectKind =
   | "hearts"
   | "petals"
@@ -176,6 +176,18 @@ export const COSMETICS: Cosmetic[] = [
   { id: "fx-confetti", type: "effect", name: { es: "Confeti", en: "Confetti" }, cost: 65, effect: "confetti" },
   { id: "fx-diamonds", type: "effect", name: { es: "Lluvia de diamantes", en: "Diamond rain" }, cost: 150, rarity: "legendary", effect: "diamonds" },
   { id: "fx-fireworks", type: "effect", name: { es: "Fuegos artificiales", en: "Fireworks" }, cost: 180, rarity: "legendary", effect: "fireworks" },
+
+  // ── Pets (companions on Lumi's stage) — the luxury collection, half of it
+  //    proudly Colombian: jaguar, macaw, sloth, and the pink river dolphin. ──
+  { id: "pet-none", type: "pet", name: { es: "Ninguna", en: "None" }, cost: 0, free: true },
+  { id: "pet-macaw", type: "pet", name: { es: "Guacamaya", en: "Macaw" }, cost: 100, emoji: "🦜" },
+  { id: "pet-sloth", type: "pet", name: { es: "Perezoso", en: "Sloth" }, cost: 120, emoji: "🦥" },
+  { id: "pet-flamingo", type: "pet", name: { es: "Flamenco", en: "Flamingo" }, cost: 140, emoji: "🦩" },
+  { id: "pet-peacock", type: "pet", name: { es: "Pavo real", en: "Peacock" }, cost: 160, emoji: "🦚" },
+  { id: "pet-dolphin", type: "pet", name: { es: "Delfín rosado", en: "Pink river dolphin" }, cost: 200, rarity: "legendary", emoji: "🐬" },
+  { id: "pet-jaguar", type: "pet", name: { es: "Jaguar", en: "Jaguar" }, cost: 250, rarity: "legendary", emoji: "🐆" },
+  { id: "pet-tiger", type: "pet", name: { es: "Tigre blanco", en: "White tiger" }, cost: 300, rarity: "legendary", emoji: "🐅" },
+  { id: "pet-dragon", type: "pet", name: { es: "Dragón dorado", en: "Golden dragon" }, cost: 400, rarity: "legendary", emoji: "🐲" },
 ];
 
 const BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));
@@ -194,8 +206,14 @@ export function isOwned(player: Pick<PlayerStats, "ownedCosmetics">, id: string)
 }
 
 /** The equipped-slot field name for a cosmetic type. */
-function slotFor(type: CosmeticType): "equippedBg" | "equippedAccessory" | "equippedEffect" {
-  return type === "background" ? "equippedBg" : type === "accessory" ? "equippedAccessory" : "equippedEffect";
+function slotFor(type: CosmeticType): "equippedBg" | "equippedAccessory" | "equippedEffect" | "equippedPet" {
+  return type === "background"
+    ? "equippedBg"
+    : type === "accessory"
+      ? "equippedAccessory"
+      : type === "pet"
+        ? "equippedPet"
+        : "equippedEffect";
 }
 
 export interface BuyResult {
