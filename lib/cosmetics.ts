@@ -35,6 +35,8 @@ export interface Cosmetic {
   background?: string;
   /** For accessories: an emoji prop shown near Lumi. */
   emoji?: string;
+  /** For pets with real artwork: a sticker image path (preferred over emoji). */
+  image?: string;
   /** For effects: the ambient particle kind. */
   effect?: EffectKind;
 }
@@ -180,6 +182,16 @@ export const COSMETICS: Cosmetic[] = [
   // ── Pets (companions on Lumi's stage) — the luxury collection, half of it
   //    proudly Colombian: jaguar, macaw, sloth, and the pink river dolphin. ──
   { id: "pet-none", type: "pet", name: { es: "Ninguna", en: "None" }, cost: 0, free: true },
+  // Classic companions — real artwork in the app's anime sticker style.
+  { id: "pet-tabby", type: "pet", name: { es: "Gatico naranja", en: "Tabby kitten" }, cost: 80, image: "/pets/tabby.png" },
+  { id: "pet-golden", type: "pet", name: { es: "Golden retriever", en: "Golden retriever" }, cost: 150, image: "/pets/golden.png" },
+  { id: "pet-dalmatian", type: "pet", name: { es: "Dálmata", en: "Dalmatian" }, cost: 150, image: "/pets/dalmatian.png" },
+  { id: "pet-persian", type: "pet", name: { es: "Gata persa real", en: "Royal Persian cat" }, cost: 220, rarity: "legendary", image: "/pets/persian.png" },
+  // More classics (emoji companions).
+  { id: "pet-rabbit", type: "pet", name: { es: "Conejito", en: "Bunny" }, cost: 70, emoji: "🐰" },
+  { id: "pet-hamster", type: "pet", name: { es: "Hámster", en: "Hamster" }, cost: 60, emoji: "🐹" },
+  { id: "pet-turtle", type: "pet", name: { es: "Tortuguita", en: "Turtle" }, cost: 70, emoji: "🐢" },
+  { id: "pet-blackcat", type: "pet", name: { es: "Gato negro", en: "Black cat" }, cost: 110, emoji: "🐈‍⬛" },
   { id: "pet-macaw", type: "pet", name: { es: "Guacamaya", en: "Macaw" }, cost: 100, emoji: "🦜" },
   { id: "pet-sloth", type: "pet", name: { es: "Perezoso", en: "Sloth" }, cost: 120, emoji: "🦥" },
   { id: "pet-flamingo", type: "pet", name: { es: "Flamenco", en: "Flamingo" }, cost: 140, emoji: "🦩" },

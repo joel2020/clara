@@ -221,6 +221,14 @@ function Swatch({ cosmetic }: { cosmetic: Cosmetic }) {
       </div>
     );
   }
+  if (cosmetic.image) {
+    return (
+      <div className="grid h-16 w-full place-items-center rounded-xl bg-muted" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={cosmetic.image} alt="" className="h-14 w-auto drop-shadow-sm" />
+      </div>
+    );
+  }
   return (
     <div className="grid h-16 w-full place-items-center rounded-xl bg-muted text-3xl" aria-hidden>
       {cosmetic.emoji ?? (cosmetic.effect ? EFFECT_PREVIEW[cosmetic.effect] : "∅")}
