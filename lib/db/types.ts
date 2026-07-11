@@ -154,11 +154,12 @@ export interface Settings {
    */
   coachLanguage: "es" | "en";
   /**
-   * How strict pronunciation scoring is. "gentle" (default) lowers the pass
-   * bar so a beginner racks up wins while her ear develops; "normal" is the
-   * stricter bar for students chasing polish.
+   * How strict pronunciation scoring is. "auto" (default) adapts the pass bar to
+   * her recent performance — easier after a rough patch, tighter once she's
+   * cruising. "gentle" is a constant beginner-friendly bar; "normal" is the
+   * stricter bar for students chasing polish. See lib/adaptive.ts.
    */
-  difficulty: "gentle" | "normal";
+  difficulty: "gentle" | "normal" | "auto";
 }
 
 /**

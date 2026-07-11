@@ -139,8 +139,8 @@ export default function SettingsPage() {
         {/* Scoring strictness */}
         <section>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{t("settingsDifficulty", lang)}</p>
-          <div className="mt-2 grid grid-cols-2 gap-3">
-            {(["gentle", "normal"] as const).map((level) => (
+          <div className="mt-2 grid gap-3 sm:grid-cols-3">
+            {(["auto", "gentle", "normal"] as const).map((level) => (
               <button
                 key={level}
                 type="button"
@@ -152,10 +152,10 @@ export default function SettingsPage() {
                 aria-pressed={settings.difficulty === level}
               >
                 <span className={cn("font-display text-lg font-medium", settings.difficulty === level && "text-primary")}>
-                  {t(level === "gentle" ? "diffGentle" : "diffNormal", lang)}
+                  {t(level === "auto" ? "diffAuto" : level === "gentle" ? "diffGentle" : "diffNormal", lang)}
                 </span>
                 <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  {t(level === "gentle" ? "diffGentleSub" : "diffNormalSub", lang)}
+                  {t(level === "auto" ? "diffAutoSub" : level === "gentle" ? "diffGentleSub" : "diffNormalSub", lang)}
                 </span>
               </button>
             ))}

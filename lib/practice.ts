@@ -7,6 +7,7 @@ import type { Assessment } from "@/lib/speech/azure";
 import { partnerOf } from "@/lib/content/lessons";
 import { applyAttempt, type AttemptRewards } from "@/lib/gamification";
 import { recordQuestEvent } from "@/lib/quests";
+import { recentPassRate, adaptiveEase } from "@/lib/adaptive";
 import { pushAttempt, pushProgress, pushPlayer } from "@/lib/sync/supabase-sync";
 
 // One place that knows how an attempt becomes saved state: score it, append to
@@ -37,6 +38,12 @@ export async function recordPracticeAttempt(args: {
   const partner = partnerOf(item, itemPool);
   const settings = await repo.getSettings();
 
+  // Adaptive difficulty: shave the pass bar based on how she's doing lately, so
+  // a rough patch eases up and a hot streak tightens back up. Only "auto" reads
+  // recent history; gentle/normal are constant.
+  const recent = settings.difficulty === "auto" ? await repo.getAttempts({ limit: 15 }) : [];
+  const ease = adaptiveEase(settings.difficulty, recentPassRate(recent));
+
   const result = scoreAttempt({
     target: item.text,
     transcript,
@@ -44,7 +51,7 @@ export async function recordPracticeAttempt(args: {
     kind: item.kind,
     partnerText: partner?.text,
     assessment,
-    lenient: settings.difficulty !== "normal",
+    ease,
   });
 
   const now = Date.now();

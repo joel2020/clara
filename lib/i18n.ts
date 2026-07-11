@@ -290,8 +290,10 @@ const STRINGS = {
   todayChestReady: { es: "¡Listo! Ábrelo en la tienda", en: "Ready! Open it in the shop" },
   todayChestOpened: { es: "Abierto hoy — vuelve mañana", en: "Opened today — come back tomorrow" },
   settingsDifficulty: { es: "Nivel de exigencia", en: "Scoring strictness" },
+  diffAuto: { es: "Automático", en: "Adaptive" },
+  diffAutoSub: { es: "Se ajusta a ti: más fácil si te cuesta, más exigente cuando vas bien — recomendado", en: "Adjusts to you: easier when you struggle, tougher when you're cruising — recommended" },
   diffGentle: { es: "Suave", en: "Gentle" },
-  diffGentleSub: { es: "Más fácil aprobar mientras aprendes — recomendado", en: "Easier to pass while you learn — recommended" },
+  diffGentleSub: { es: "Siempre más fácil aprobar mientras aprendes", en: "Always easier to pass while you learn" },
   diffNormal: { es: "Exigente", en: "Strict" },
   diffNormalSub: { es: "La barra completa, para pulir el acento", en: "The full bar, for polishing your accent" },
 

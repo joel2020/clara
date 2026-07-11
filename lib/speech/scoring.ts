@@ -106,11 +106,16 @@ export interface ScoreInput {
    * wins to keep going — precision comes later, on "normal".
    */
   lenient?: boolean;
+  /**
+   * Adaptive override: exact points to shave off the pass threshold. When set,
+   * it wins over `lenient` (which stays as a simple fallback). See lib/adaptive.ts.
+   */
+  ease?: number;
 }
 
 export function scoreAttempt(input: ScoreInput): ScoreResult {
   const { target, transcript, alternatives = [], kind, partnerText } = input;
-  const ease = input.lenient ? 10 : 0;
+  const ease = input.ease ?? (input.lenient ? 10 : 0);
 
   // Acoustic scoring path: Azure measured HOW she pronounced it — trust that
   // over transcript similarity. The minimal-pair check still runs on what the
