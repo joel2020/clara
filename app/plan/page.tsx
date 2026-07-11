@@ -33,24 +33,40 @@ function lessonMastery(progress: ItemProgressMap, lessonId?: string): { mastered
 
 interface Week {
   n: number;
+  /** Starts a new phase band above this week. */
+  phase?: { es: string; en: string };
   conv: { es: string; en: string; href?: string };
   sounds: { es: string; en: string };
   live: { es: string; en: string };
 }
 
 const WEEKS: Week[] = [
-  { n: 1, conv: { es: "Saludos y presentaciones", en: "Greetings & introductions", href: "/lesson/conv-greetings" }, sounds: { es: "I corta vs ii larga", en: "Short i vs Long ee" }, live: { es: "Preséntense una y otra vez — nombre, origen, a qué te dedicas.", en: "Introduce yourselves over and over — name, origin, what you do." } },
-  { n: 2, conv: { es: "Café y restaurante", en: "Café & restaurant", href: "/lesson/conv-cafe" }, sounds: { es: "B vs V", en: "B vs V" }, live: { es: "Juego de rol: él es el mesero. Pide todo el menú.", en: "Roleplay: he's the waiter. Order the whole menu." } },
-  { n: 3, conv: { es: "Direcciones y transporte", en: "Directions & getting around", href: "/lesson/conv-directions" }, sounds: { es: "Los sonidos TH", en: "The TH sounds" }, live: { es: "Con un mapa real: pregunta y da direcciones por turnos.", en: "With a real map: ask for and give directions in turns." } },
-  { n: 4, conv: { es: "Compras", en: "Shopping", href: "/lesson/conv-shopping" }, sounds: { es: "La H", en: "The H sound" }, live: { es: "Tienda imaginaria: precios, tallas, pagar. Repasa semanas 1–2.", en: "Imaginary store: prices, sizes, paying. Recycle weeks 1–2." } },
-  { n: 5, conv: { es: "Charla casual", en: "Small talk", href: "/lesson/conv-smalltalk" }, sounds: { es: "Inicios con s", en: "S-cluster starts" }, live: { es: "Cinco minutos de small talk sin parar — clima, finde, trabajo.", en: "Five minutes of nonstop small talk — weather, weekend, work." } },
-  { n: 6, conv: { es: "Planes e invitaciones", en: "Making plans", href: "/lesson/conv-plans" }, sounds: { es: "J vs Y", en: "J vs Y" }, live: { es: "Inviten, acepten, cancelen y reagenden por mensaje y en voz.", en: "Invite, accept, cancel, reschedule — by text and out loud." } },
-  { n: 7, conv: { es: "Repaso: las 6 unidades en ronda rápida", en: "Review: all 6 units via speed rounds" }, sounds: { es: "Terminaciones -ed", en: "-ed endings" }, live: { es: "Conversación libre de 10 minutos usando solo lo aprendido.", en: "Free 10-minute conversation using only what she's learned." } },
-  { n: 8, conv: { es: "Repite las unidades que tengan menos precisión", en: "Re-run the units with lowest accuracy" }, sounds: { es: "Grupos finales", en: "Final consonant clusters" }, live: { es: "Escenario sorpresa: él elige el rol sin avisar.", en: "Surprise scenario: he picks the roleplay unannounced." } },
-  { n: 9, conv: { es: "Frases de cada lección de sonidos", en: "The sentence stages of every sound lesson" }, sounds: { es: "La schwa", en: "Schwa reduction" }, live: { es: "Cuéntale tu día completo en inglés. Él solo corrige al final.", en: "Tell him your whole day in English. He corrects only at the end." } },
-  { n: 10, conv: { es: "Ronda rápida diaria + repaso", en: "Daily speed round + review queue" }, sounds: { es: "Acento de palabra", en: "Word stress" }, live: { es: "Debate suave: ¿playa o montaña? Defiende tu opinión.", en: "Gentle debate: beach or mountains? Defend your opinion." } },
-  { n: 11, conv: { es: "Todo el repaso pendiente a cero", en: "Clear the entire review queue" }, sounds: { es: "Habla conectada", en: "Connected speech" }, live: { es: "Llamada telefónica real en inglés (sin verse las caras).", en: "A real phone call in English (no faces, voice only)." } },
-  { n: 12, conv: { es: "Examen: todas las unidades, todas las voces", en: "Exam week: every unit, every voice" }, sounds: { es: "Repaso general", en: "Full review" }, live: { es: "La 'entrevista': 20 minutos solo en inglés. Celebren después.", en: "The 'interview': 20 minutes English-only. Then celebrate." } },
+  // Fase 1 — Fundamentos
+  { n: 1, phase: { es: "Fundamentos", en: "Foundations" }, conv: { es: "Saludos y presentaciones", en: "Greetings & introductions", href: "/lesson/conv-greetings" }, sounds: { es: "I corta vs ii larga", en: "Short i vs Long ee" }, live: { es: "Preséntate una y otra vez — nombre, origen, a qué te dedicas.", en: "Introduce yourself over and over — name, origin, what you do." } },
+  { n: 2, conv: { es: "Café y restaurante", en: "Café & restaurant", href: "/lesson/conv-cafe" }, sounds: { es: "B vs V", en: "B vs V" }, live: { es: "Con Joel: pide todo un menú, de la mesa a la cuenta.", en: "With Joel: order a whole menu, from the table to the check." } },
+  { n: 3, conv: { es: "Direcciones", en: "Directions", href: "/lesson/conv-directions" }, sounds: { es: "Los sonidos TH", en: "The TH sounds" }, live: { es: "Pregunta y da direcciones por turnos con un mapa real.", en: "Ask for and give directions in turns with a real map." } },
+  { n: 4, conv: { es: "Compras", en: "Shopping", href: "/lesson/conv-shopping" }, sounds: { es: "La H", en: "The H sound" }, live: { es: "Tienda: precios, tallas, pagar. Repasa las semanas 1–2.", en: "Store: prices, sizes, paying. Recycle weeks 1–2." } },
+  // Fase 2 — El día a día
+  { n: 5, phase: { es: "El día a día", en: "Everyday life" }, conv: { es: "Números y precios", en: "Numbers & prices", href: "/lesson/conv-numbers" }, sounds: { es: "La T americana", en: "The American T" }, live: { es: "Regatea precios y da tu número de teléfono en voz alta.", en: "Haggle prices and say your phone number out loud." } },
+  { n: 6, conv: { es: "La hora y los días", en: "Time, days & dates", href: "/lesson/conv-time" }, sounds: { es: "La R americana", en: "The American R" }, live: { es: "Agenda planes: '¿A qué hora? ¿Qué día?' sin dudar.", en: "Set plans: 'What time? What day?' without hesitating." } },
+  { n: 7, conv: { es: "Charla casual", en: "Small talk", href: "/lesson/conv-smalltalk" }, sounds: { es: "Inicios con s", en: "S-cluster starts" }, live: { es: "Cinco minutos de small talk sin parar — clima, finde, trabajo.", en: "Five minutes of nonstop small talk — weather, weekend, work." } },
+  { n: 8, conv: { es: "El clima", en: "Weather", href: "/lesson/conv-weather" }, sounds: { es: "J vs Y", en: "J vs Y" }, live: { es: "Abre CADA conversación con el clima, como un americano.", en: "Open EVERY conversation with the weather, like an American." } },
+  // Fase 3 — Tu mundo
+  { n: 9, phase: { es: "Tu mundo", en: "Your world" }, conv: { es: "Familia y personas", en: "Family & people", href: "/lesson/conv-family" }, sounds: { es: "Terminaciones -ed", en: "-ed endings" }, live: { es: "Presenta a toda tu familia y pregunta por la suya.", en: "Introduce your whole family and ask about theirs." } },
+  { n: 10, conv: { es: "Trabajo", en: "Work & jobs", href: "/lesson/conv-work" }, sounds: { es: "Grupos finales", en: "Final consonant clusters" }, live: { es: "'¿A qué te dedicas?' — cuenta tu día de trabajo entero.", en: "'What do you do?' — tell your whole workday." } },
+  { n: 11, conv: { es: "Emociones y reacciones", en: "Feelings & reactions", href: "/lesson/conv-feelings" }, sounds: { es: "La schwa", en: "Schwa reduction" }, live: { es: "Reacciona rápido a buenas y malas noticias, con calidez.", en: "React fast to good and bad news, with warmth." } },
+  // Fase 4 — Moverte por el mundo
+  { n: 12, phase: { es: "Por el mundo", en: "Out in the world" }, conv: { es: "Transporte", en: "Getting around", href: "/lesson/conv-transport" }, sounds: { es: "Acento de palabra", en: "Word stress" }, live: { es: "Toma el bus, pide un taxi, pregunta cómo llegar.", en: "Take the bus, call a cab, ask how to get somewhere." } },
+  { n: 13, conv: { es: "Viajes y aeropuerto", en: "Travel & the airport", href: "/lesson/conv-travel" }, sounds: { es: "Habla conectada", en: "Connected speech" }, live: { es: "Simula el check-in, la seguridad y migración de punta a punta.", en: "Simulate check-in, security, and immigration end to end." } },
+  { n: 14, conv: { es: "En el hotel", en: "At the hotel", href: "/lesson/conv-hotel" }, sounds: { es: "Repaso de sonidos débiles", en: "Weak-sound review" }, live: { es: "Registra tu entrada, pide toallas y haz el checkout.", en: "Check in, ask for towels, and check out." } },
+  // Fase 5 — Situaciones reales
+  { n: 15, phase: { es: "Situaciones reales", en: "Real situations" }, conv: { es: "Salud y el médico", en: "Health & the doctor", href: "/lesson/conv-health" }, sounds: { es: "Repasa tus sonidos más débiles", en: "Drill your weakest sounds" }, live: { es: "Explica tres síntomas distintos y pide ayuda con claridad.", en: "Explain three different symptoms and ask for help clearly." } },
+  { n: 16, conv: { es: "Por teléfono", en: "On the phone", href: "/lesson/conv-phone" }, sounds: { es: "Repaso de la R y la T", en: "R and T review" }, live: { es: "Una llamada real solo por voz — contesta, aclara, despídete.", en: "A real voice-only call — answer, clarify, say goodbye." } },
+  { n: 17, conv: { es: "Ayuda y emergencias", en: "Help & emergencies", href: "/lesson/conv-emergency" }, sounds: { es: "Claridad bajo presión", en: "Clarity under pressure" }, live: { es: "Practica pedir ayuda fuerte y claro — que salga sin pensar.", en: "Practice asking for help loud and clear — until it's automatic." } },
+  // Fase 6 — Sonar americano
+  { n: 18, phase: { es: "Sonar americano", en: "Sounding American" }, conv: { es: "Inglés casual", en: "Sound American", href: "/lesson/conv-american" }, sounds: { es: "Reducciones: gonna, wanna", en: "Reductions: gonna, wanna" }, live: { es: "Reemplaza las formas lentas por las reales toda la conversación.", en: "Swap slow forms for the real ones the whole conversation." } },
+  { n: 19, conv: { es: "Más inglés casual", en: "Sound American II", href: "/lesson/conv-american-2" }, sounds: { es: "Frasecitas de la calle", en: "Everyday street phrases" }, live: { es: "Charla 100% casual: 'gotcha', 'no way', 'I'm down'.", en: "100% casual chat: 'gotcha', 'no way', 'I'm down'." } },
+  { n: 20, conv: { es: "Examen: todas las unidades, todas las voces", en: "Exam: every unit, every voice" }, sounds: { es: "Repaso general", en: "Full review" }, live: { es: "La 'entrevista': 20 minutos solo en inglés. Celebra después.", en: "The 'interview': 20 minutes English-only. Then celebrate." } },
 ];
 
 export default function PlanPage() {
@@ -78,7 +94,7 @@ export default function PlanPage() {
           {es ? "Tu ruta a la conversación" : "Your route to conversation"}
         </p>
         <h1 className="mt-4 font-display text-4xl font-medium tracking-[-0.03em] sm:text-5xl">
-          {es ? "12 semanas." : "12 weeks."}
+          {es ? "20 semanas." : "20 weeks."}
         </h1>
         <p className="mt-5 max-w-lg text-muted-foreground">
           {es
@@ -126,7 +142,16 @@ export default function PlanPage() {
             const mastery = lessonMastery(progress, lessonIdFromHref(w.conv.href));
             const done = mastery ? mastery.total > 0 && mastery.mastered >= mastery.total : false;
             return (
-            <li key={w.n} className="border-b border-hairline py-5">
+            <div key={w.n}>
+            {w.phase && (
+              <li className="flex items-center gap-3 pb-2 pt-7">
+                <span className="star-chip rounded-full px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] shadow-sm">
+                  {es ? w.phase.es : w.phase.en}
+                </span>
+                <span className="h-px flex-1 bg-hairline" aria-hidden />
+              </li>
+            )}
+            <li className="border-b border-hairline py-5">
               <div className="flex items-start gap-5">
                 <span
                   className={cn(
@@ -162,6 +187,7 @@ export default function PlanPage() {
                 </div>
               </div>
             </li>
+            </div>
             );
           })}
         </ol>
@@ -169,8 +195,8 @@ export default function PlanPage() {
 
       <p className="mt-8 text-sm text-muted-foreground">
         {es
-          ? "Después de la semana 12: nuevas unidades de conversación, y el instructor puede crear lecciones a tu medida en el modo instructor."
-          : "After week 12: new conversation units, and the instructor can author custom lessons for you in Instructor mode."}
+          ? "Después de la semana 20: repasa lo que menos domines, y el instructor puede crear lecciones a tu medida en el modo instructor."
+          : "After week 20: keep drilling your weakest units, and the instructor can author custom lessons for you in Instructor mode."}
       </p>
     </div>
   );

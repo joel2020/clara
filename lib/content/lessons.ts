@@ -1,5 +1,6 @@
 import type { Lesson, LessonIntro, PracticeItem } from "@/lib/db/types";
 import { CONVERSATION_LESSONS } from "./conversation.ts";
+import { CONVERSATION_LESSONS_2 } from "./conversation-2.ts";
 
 // The full curriculum. Lesson 1 (Short i vs Long ee) is the flagship — the
 // pattern every other lesson follows. Minimal-pair lessons drill two contrasting
@@ -693,6 +694,7 @@ for (const lesson of LESSONS) {
 // The Conversación track ships with its own intros, so it joins AFTER the
 // sounds-track merge above.
 LESSONS.push(...CONVERSATION_LESSONS);
+LESSONS.push(...CONVERSATION_LESSONS_2);
 
 export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]));
 

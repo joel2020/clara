@@ -429,6 +429,80 @@ export const INTROS_ES: Record<string, LessonIntro> = {
     ],
     exampleIds: ["connected-speech:phrase-2", "connected-speech:phrase-6"],
   },
+
+  // ── Conversación, parte 2 ──
+  "conv-numbers": {
+    summary: "Los números están en todo lo real: precios, teléfonos, horas, direcciones. Con unos pocos patrones los dices casi todos.",
+    whyTricky: "El 'teen' y el 'ty' (thirteen vs thirty) confunden a todos; el acento es la pista. Y los precios se dicen en dos números: 'five ninety-nine', no 'cinco punto noventa y nueve'.",
+    how: ["Marca la diferencia: thir-TEEN vs THIR-ty.", "Precios = dólares + centavos: '$5.99' → 'five ninety-nine'.", "Pregunta 'How much?' por todo lo que quieras comprar."],
+    exampleIds: ["conv-numbers:3", "conv-numbers:6"],
+  },
+  "conv-time": {
+    summary: "Todo plan necesita una hora y un día. Estas frases te dejan poner una, pedir una y no llegar tarde.",
+    whyTricky: "El inglés dice primero la hora y luego los minutos: 'three thirty'. Y 'What time?' no es 'When?' — la hora es el reloj, el día es el calendario.",
+    how: ["Hora + minutos: 3:30 → 'three thirty'.", "'What time?' para el reloj, 'What day?' para el calendario.", "'At' para las horas, 'on' para los días: at 3, on Monday."],
+    exampleIds: ["conv-time:1", "conv-time:4"],
+  },
+  "conv-family": {
+    summary: "La gente pregunta por tu familia rapidísimo — así se pone cálida la conversación. Unas frases y presentas a todos los que quieres.",
+    whyTricky: "El inglés usa mucho el posesivo: 'my husband', 'her sister'. Y para presentar a alguien que está ahí se dice 'this is...', no 'he is...'.",
+    how: ["'This is my...' para presentar a alguien presente.", "'I have...' + número para cuántos.", "Rompe el hielo con 'Do you have kids?' — es charla normal."],
+    exampleIds: ["conv-family:1", "conv-family:3"],
+  },
+  "conv-work": {
+    summary: "'What do you do?' es de las primeras preguntas que hace un americano. Estas frases la responden y mantienen la charla del trabajo.",
+    whyTricky: "'What do you do?' significa 'en qué trabajas', no 'qué estás haciendo'. Y dices 'I'm a...' + oficio (con 'a'): 'I'm a teacher', nunca 'I'm teacher'.",
+    how: ["Responde 'What do you do?' con 'I'm a...' + oficio.", "No te comas el 'a': 'a nurse', 'an engineer'.", "'I work at...' + lugar, 'I work as...' + rol."],
+    exampleIds: ["conv-work:1", "conv-work:2"],
+  },
+  "conv-transport": {
+    summary: "Las ciudades se mueven en buses, trenes y apps. Estas frases te llevan a donde vas y te traen de vuelta.",
+    whyTricky: "En EE. UU. hay palabras propias: 'subway' (no metro), 'the bus stop', 'a ride'. Y el transporte se 'takes' o 'catches', nunca 'coger' traducido literal.",
+    how: ["'Take' o 'catch' el bus/tren — no 'coger'.", "Apps: 'I'll call an Uber.'", "'How do I get to...?' pregunta el camino a cualquier lado."],
+    exampleIds: ["conv-transport:1", "conv-transport:4"],
+  },
+  "conv-travel": {
+    summary: "Los aeropuertos funcionan con las mismas preguntas en inglés en todo el mundo. Sábetelas y viajas tranquila, no estresada.",
+    whyTricky: "El inglés del aeropuerto es cortés y fijo — 'I'm here on vacation', 'Just this bag'. Los oficiales preguntan corto; respuestas cortas y claras funcionan mejor.",
+    how: ["Responde la pregunta de migración: '¿business o vacation?'", "Respuestas cortas y claras en seguridad.", "'Where is...?' encuentra cualquier puerta, mostrador o salida."],
+    exampleIds: ["conv-travel:2", "conv-travel:5"],
+  },
+  "conv-hotel": {
+    summary: "Una estadía en hotel es un guion corto y amable. Estas frases cubren llegar, pedir y salir.",
+    whyTricky: "Los hoteles son extra corteses: aquí 'Could I...?' suena mejor que 'Can I...?'. Y 'reservation' lleva el acento en el medio: re-ser-VA-tion.",
+    how: ["'I have a reservation' abre el registro.", "'Could I...?' es el pedido cortés de hotel.", "'What time is checkout?' te ahorra un cobro."],
+    exampleIds: ["conv-hotel:1", "conv-hotel:4"],
+  },
+  "conv-health": {
+    summary: "Cuando no te sientes bien, necesitas palabras ya. Estas te dejan explicar un síntoma y pedir ayuda — donde sea.",
+    whyTricky: "El inglés usa 'I have a...' para síntomas ('a headache', 'a fever') y 'It hurts' para el dolor — no 'me duele' traducido. Las partes del cuerpo van con 'my': 'my throat hurts'.",
+    how: ["'I have a...' para un síntoma, 'It hurts' para el dolor.", "'My ___ hurts' dice dónde.", "'I need to see a doctor' pide atención con claridad."],
+    exampleIds: ["conv-health:1", "conv-health:3"],
+  },
+  "conv-weather": {
+    summary: "Los americanos abren con el clima todo el tiempo — es amable y seguro. Unas líneas mantienen esa charla viva.",
+    whyTricky: "El clima usa 'It's...' para todo ('it's hot', 'it's raining') — no hay sujeto que traducir. Y '-ing' para lo que pasa ahora: 'it's raining', no 'it rains' cuando es ahora mismo.",
+    how: ["'It's...' + palabra de clima cubre casi todo.", "'-ing' para ahora mismo: 'it's snowing'.", "Reacciona con 'I know, right?' para seguir la charla."],
+    exampleIds: ["conv-weather:1", "conv-weather:5"],
+  },
+  "conv-feelings": {
+    summary: "Sonar fluido es sobre todo reaccionar — frasecitas rápidas que muestran que escuchas y te importa.",
+    whyTricky: "Las reacciones en inglés son cortas e idiomáticas: 'I'm so happy for you', 'That's too bad'. El silencio se siente frío en inglés, así que una reacción rápida da calidez.",
+    how: ["Reacciona rápido — hasta una frase corta da calidez.", "Iguala el ánimo: feliz, triste, emocionada.", "'That's...' + palabra de emoción es un patrón seguro."],
+    exampleIds: ["conv-feelings:1", "conv-feelings:4"],
+  },
+  "conv-phone": {
+    summary: "El inglés del teléfono tiene su propio guion — contestar, preguntar quién llama y manejar la mala señal.",
+    whyTricky: "Las frases del teléfono son fijas: 'This is Mariana', no 'I am Mariana', al contestar. Y 'Can you hear me?' es el arreglo universal para la mala línea.",
+    how: ["Contesta con 'This is...' + tu nombre.", "'Can you hear me?' arregla la mala señal.", "'I'll call you back' te da tiempo."],
+    exampleIds: ["conv-phone:1", "conv-phone:4"],
+  },
+  "conv-emergency": {
+    summary: "En una emergencia no hay tiempo de buscar palabras. Vale la pena que estas pocas sean automáticas — para ti y para quien esté cerca.",
+    whyTricky: "El inglés de emergencia es fuerte, corto y directo — la cortesía se cae. 'Call 911' (nine-one-one) es el número de EE. UU., dicho dígito por dígito.",
+    how: ["Sé directa y fuerte — deja la cortesía.", "'911' es 'nine-one-one', dígito por dígito.", "'I need help' + qué, dicho claro, mueve a la gente."],
+    exampleIds: ["conv-emergency:1", "conv-emergency:3"],
+  },
 };
 
 // ── Category blurbs (Weak Sounds dashboard) ──────────────────────────────────
