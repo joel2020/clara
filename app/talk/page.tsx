@@ -14,6 +14,7 @@ import { recordQuestEvent } from "@/lib/quests";
 import { weakestItems } from "@/lib/weak-items";
 import { JoelAvatar } from "@/components/joel-avatar";
 import { Splash } from "@/components/splash";
+import { authHeaders } from "@/lib/auth-client";
 import type { ConvItem } from "@/lib/db/types";
 
 // Turn a mined phrase into a stable id so the same phrase isn't added twice.
@@ -87,7 +88,7 @@ export default function TalkPage() {
     try {
       const res = await fetch("/api/tts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({ text }),
       });
       if (!res.ok) return;
@@ -151,7 +152,7 @@ export default function TalkPage() {
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(await authHeaders()) },
           body: JSON.stringify({
             scenarioId: scenario.id,
             studentName: settings.studentName,

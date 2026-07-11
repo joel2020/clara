@@ -9,6 +9,7 @@
 // Pronunciation-Assessment config passed as a base64 header per the API spec.
 
 import { guardApi } from "@/lib/api-guard";
+import { requireUser } from "@/lib/auth-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -54,6 +55,8 @@ export async function GET(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
+  const unauth = await requireUser(request);
+  if (unauth) return unauth;
 
   const key = process.env.AZURE_SPEECH_KEY;
   const region = process.env.AZURE_SPEECH_REGION;

@@ -3,6 +3,7 @@
 import { getSpeechRecognitionCtor, hasMediaRecording } from "./support";
 import { assessEnabled, assessEnabledSync, assessRecording, type Assessment } from "./azure";
 import { startWavRecording, SILENCE_PEAK, type WavHandle } from "./wav-recorder";
+import { authHeaders } from "@/lib/auth-client";
 
 // Promise-based wrapper around the one-shot SpeechRecognition flow: start
 // listening, capture the best transcript, stop. Surfaces alternatives too, so
@@ -190,7 +191,7 @@ export function startCloudRecognition(): RecognitionHandle {
       }
       const form = new FormData();
       form.append("file", blob, "attempt.webm");
-      const res = await fetch("/api/transcribe", { method: "POST", body: form });
+      const res = await fetch("/api/transcribe", { method: "POST", body: form, headers: await authHeaders() });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { transcript?: string };
       const transcript = (data.transcript ?? "").trim();

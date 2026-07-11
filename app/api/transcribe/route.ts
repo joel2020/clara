@@ -4,6 +4,7 @@
 // the transcript. The API key stays on the server.
 
 import { guardApi } from "@/lib/api-guard";
+import { requireUser } from "@/lib/auth-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -11,6 +12,8 @@ export const maxDuration = 30;
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
+  const unauth = await requireUser(request);
+  if (unauth) return unauth;
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {

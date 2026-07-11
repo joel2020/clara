@@ -17,7 +17,9 @@ export function supabase(): SupabaseClient | null {
   if (!url || !key) return null;
   if (!client) {
     client = createClient(url, key, {
-      auth: { persistSession: false },
+      // Persist the signed-in session (in localStorage) and keep it fresh, so
+      // the login gate survives reloads and the PWA relaunching.
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
     });
   }
   return client;

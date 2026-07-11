@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { SettingsProvider } from "@/lib/hooks/useSettings";
+import { AuthProvider } from "@/lib/hooks/useAuth";
+import { AuthGate } from "@/components/auth-gate";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/site-header";
 import { Onboarding } from "@/components/onboarding";
@@ -66,15 +68,19 @@ export default function RootLayout({
     <html lang="en" className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SettingsProvider>
-          <PwaRegister />
-          <Onboarding />
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <MobileNav />
-          <AmbientFx />
-          <JuiceLayer />
-          <CinematicLayer />
-          <Toaster position="top-center" richColors />
+          <AuthProvider>
+            <PwaRegister />
+            <AuthGate>
+              <Onboarding />
+              <SiteHeader />
+              <main className="flex-1">{children}</main>
+              <MobileNav />
+              <AmbientFx />
+              <JuiceLayer />
+              <CinematicLayer />
+            </AuthGate>
+            <Toaster position="top-center" richColors />
+          </AuthProvider>
         </SettingsProvider>
       </body>
     </html>

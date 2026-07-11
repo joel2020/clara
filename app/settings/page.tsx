@@ -6,6 +6,7 @@ import { ArrowLeft, Copy, Check, Trash2, Bell, BellOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { repo } from "@/lib/db";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { Splash } from "@/components/splash";
@@ -22,6 +23,7 @@ type PushUi = "hidden" | "needs_install" | "off" | "on" | "denied" | "error";
 
 export default function SettingsPage() {
   const { settings, update, ready } = useSettings();
+  const { required: authOn, user, signOut } = useAuth();
   const lang = settings.coachLanguage;
   const [copied, setCopied] = useState(false);
   const [armReset, setArmReset] = useState(false);
@@ -260,6 +262,25 @@ export default function SettingsPage() {
                 </button>
               )}
             </div>
+          </section>
+        )}
+
+        {/* Account */}
+        {authOn && (
+          <section className="flex items-center justify-between rounded-2xl border border-hairline bg-card px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {lang === "es" ? "Cuenta" : "Account"}
+              </p>
+              <p className="mt-1 truncate text-sm text-foreground/80">{user?.email ?? ""}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="shrink-0 rounded-full border border-hairline px-4 py-2 text-sm font-medium transition-colors hover:border-foreground/30"
+            >
+              {lang === "es" ? "Cerrar sesión" : "Sign out"}
+            </button>
           </section>
         )}
 

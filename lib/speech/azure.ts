@@ -4,6 +4,8 @@
 // the server has Azure configured; when it does, practice recordings go
 // through /api/assess and come back with real acoustic scores.
 
+import { authHeaders } from "@/lib/auth-client";
+
 export interface AssessedPhoneme {
   p: string; // IPA symbol
   accuracy: number;
@@ -54,7 +56,7 @@ export async function assessRecording(wav: Blob, target: string): Promise<Assess
   const form = new FormData();
   form.append("file", wav, "attempt.wav");
   form.append("target", target);
-  const res = await fetch("/api/assess", { method: "POST", body: form });
+  const res = await fetch("/api/assess", { method: "POST", body: form, headers: await authHeaders() });
   if (!res.ok) throw new Error(String(res.status));
   return (await res.json()) as Assessment;
 }
