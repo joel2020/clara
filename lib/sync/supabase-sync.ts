@@ -186,6 +186,31 @@ export interface PulledData {
   player: PlayerStats | null;
 }
 
+/** The cloud copy of a profile's synced preferences (null if none saved). */
+export interface PulledSettings {
+  dailyGoal?: number;
+  speechRate?: number;
+  voiceURI?: string | null;
+  recognitionLang?: string;
+}
+
+export async function pullSettings(profileId: string): Promise<PulledSettings | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { data } = await sb
+    .from("settings")
+    .select("daily_goal,speech_rate,voice_uri,recognition_lang")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    dailyGoal: data.daily_goal ?? undefined,
+    speechRate: data.speech_rate ?? undefined,
+    voiceURI: data.voice_uri ?? undefined,
+    recognitionLang: data.recognition_lang ?? undefined,
+  };
+}
+
 export async function pullProfileData(profileId: string): Promise<PulledData | null> {
   const sb = supabase();
   if (!sb) return null;

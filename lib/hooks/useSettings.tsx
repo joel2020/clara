@@ -6,7 +6,7 @@ import { DEFAULT_SETTINGS } from "@/lib/db/repository";
 import type { Settings } from "@/lib/db/types";
 import { setSfxEnabled } from "@/lib/sfx";
 import { ensureProfile, pushSettings } from "@/lib/sync/supabase-sync";
-import { restoreProfile } from "@/lib/sync/restore";
+import { restoreProfile, hydrateFromCloud } from "@/lib/sync/restore";
 import { requestPersistentStorage, rememberSyncCode, recalledSyncCode } from "@/lib/sync/durability";
 
 // App-wide settings (instructor toggle, voice, rate) loaded once and shared.
@@ -28,13 +28,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void requestPersistentStorage();
     void (async () => {
       let s = await repo.getSettings();
-      // If local storage looks fresh (e.g. iOS evicted IndexedDB) but we still
-      // remember this student's sync code, pull their real profile back from the
-      // cloud instead of onboarding them as a brand-new user.
-      if (!s.studentName) {
-        const code = recalledSyncCode();
-        if (code) {
-          try {
+      // Supabase is the source of truth; local IndexedDB is a cache we re-seed
+      // from the cloud on every launch. Two paths, both offline-safe:
+      //   • Cold cache (fresh install, or iOS evicted IndexedDB): no local name.
+      //     Do a full restore from the sync code — seed name, attempts, progress,
+      //     player — so an evicted device rebuilds itself instead of onboarding
+      //     the student as brand new.
+      //   • Warm cache (she has local data): pull the authoritative player stats,
+      //     progress, and settings over the local copy, so changes made in the
+      //     cloud show up and a stale local cache can't win.
+      const code = s.profileId ?? recalledSyncCode();
+      if (code) {
+        try {
+          if (!s.studentName) {
             const summary = await restoreProfile(code);
             if (summary) {
               s = {
@@ -45,9 +51,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
               };
               await repo.saveSettings(s);
             }
-          } catch {
-            /* no cloud data for that code — fall through to onboarding */
+          } else {
+            const hy = await hydrateFromCloud(code);
+            if (hy) {
+              s = { ...s, ...hy.settingsPatch, profileId: s.profileId ?? code };
+              await repo.saveSettings(s);
+            }
           }
+        } catch {
+          /* cloud unreachable or no data — keep the local cache and carry on */
         }
       }
       if (s.profileId) rememberSyncCode(s.profileId);
