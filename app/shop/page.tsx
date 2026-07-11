@@ -223,9 +223,18 @@ function Swatch({ cosmetic }: { cosmetic: Cosmetic }) {
   }
   if (cosmetic.image) {
     return (
-      <div className="grid h-16 w-full place-items-center rounded-xl bg-muted" aria-hidden>
+      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl" aria-hidden>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cosmetic.image} alt="" className="h-14 w-auto drop-shadow-sm" />
+        <img src={cosmetic.image} alt="" className="shop-figure h-14 w-auto drop-shadow-[0_6px_8px_rgba(0,0,0,0.22)]" />
+      </div>
+    );
+  }
+  // Pets get the lit pedestal too so emoji collectibles read as figures on a
+  // shelf; other cosmetics (effects) keep the plain tile.
+  if (cosmetic.type === "pet") {
+    return (
+      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl text-3xl" aria-hidden>
+        <span className="shop-figure drop-shadow-[0_5px_6px_rgba(0,0,0,0.28)]">{cosmetic.emoji ?? "∅"}</span>
       </div>
     );
   }
