@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
+import { isAllowed } from "@/lib/allowlist";
 
 // Server-side session check for the paid API routes. The client sends its
 // Supabase access token as `Authorization: Bearer <jwt>`; we validate it against
@@ -30,8 +31,9 @@ export async function getAuthedUser(request: Request): Promise<User | null> {
 }
 
 /**
- * Guard for a paid route: returns a 401 Response when auth is required but the
- * request has no valid session, or null to proceed.
+ * Guard for a paid route. Two checks: a valid session (401 without), and an
+ * allowlisted email (403 otherwise) — so someone who self-registers still can't
+ * spend money on OpenAI/ElevenLabs/Azure. Returns null to proceed.
  */
 export async function requireUser(request: Request): Promise<Response | null> {
   if (!authRequired()) return null;
@@ -39,6 +41,12 @@ export async function requireUser(request: Request): Promise<Response | null> {
   if (!user) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  if (!isAllowed(user.email)) {
+    return new Response(JSON.stringify({ error: "not_allowed" }), {
+      status: 403,
       headers: { "content-type": "application/json" },
     });
   }

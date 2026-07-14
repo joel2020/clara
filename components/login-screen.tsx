@@ -5,27 +5,41 @@ import { Lumi } from "@/components/lumi";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 // The access gate. Clara is public, so this stands in front of the whole app:
-// only a signed-in account gets in (and can call the paid AI routes). Sign-in
-// only on purpose — accounts are provisioned by the teacher in Supabase, so
-// there's no open registration for strangers to grab and abuse the paid routes.
+// only a signed-in, allowlisted account gets in (and can call the paid AI
+// routes). Accounts are created right here — no dashboard trip — because the
+// real protection is the server-side allowlist (lib/allowlist.ts), not secrecy
+// about the sign-up form: a stranger can register and still get nowhere.
 // Email + password because magic links break out of the installed iOS PWA.
 
 export function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signUp } = useAuth();
+  const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     setBusy(true);
     setError(null);
-    const { error } = await signIn(email, password);
+    setNotice(null);
+    const { error } = mode === "in" ? await signIn(email, password) : await signUp(email, password);
     setBusy(false);
-    if (error) setError(friendlyError(error));
-    // On success the AuthProvider's onAuthStateChange swaps this screen for the app.
+    if (error) {
+      setError(friendlyError(error));
+      return;
+    }
+    if (mode === "up") {
+      // With email confirmation on, sign-up creates no session until the link in
+      // the email is clicked. Say so plainly rather than looking like nothing happened.
+      setNotice("Cuenta creada. Revisa tu correo y confirma, luego inicia sesión · Account created. Confirm via the email, then sign in.");
+      setMode("in");
+      setPassword("");
+    }
+    // On sign-in success, AuthProvider's onAuthStateChange swaps this screen for the app.
   };
 
   return (
@@ -45,7 +59,9 @@ export function LoginScreen() {
             Bienvenida · Welcome
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-[-0.02em]">Clara</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Inicia sesión para practicar · Sign in to practice</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {mode === "in" ? "Inicia sesión para practicar · Sign in to practice" : "Crea tu cuenta · Create your account"}
+          </p>
         </div>
 
         <form onSubmit={submit} className="rounded-3xl border border-hairline bg-card p-6 shadow-[0_18px_44px_-24px_rgba(18,58,147,0.25)]">
@@ -68,8 +84,9 @@ export function LoginScreen() {
           </label>
           <input
             type="password"
-            autoComplete="current-password"
+            autoComplete={mode === "in" ? "current-password" : "new-password"}
             required
+            minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-primary"
@@ -77,19 +94,30 @@ export function LoginScreen() {
           />
 
           {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}
+          {notice && <p className="mt-3 text-sm font-medium text-primary">{notice}</p>}
 
           <button
             type="submit"
             disabled={busy}
             className="mt-5 w-full rounded-full bg-primary py-3 font-display text-lg font-semibold text-primary-foreground transition-transform active:scale-[0.99] disabled:opacity-60"
           >
-            {busy ? "…" : "Entrar · Sign in"}
+            {busy ? "…" : mode === "in" ? "Entrar · Sign in" : "Crear cuenta · Create account"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          ¿Sin cuenta? Pídele una a tu profe · No account? Ask your teacher for one.
-        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setMode((m) => (m === "in" ? "up" : "in"));
+            setError(null);
+            setNotice(null);
+          }}
+          className="mt-4 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          {mode === "in"
+            ? "¿Sin cuenta? Crea una · No account? Create one"
+            : "¿Ya tienes cuenta? Inicia sesión · Already have one? Sign in"}
+        </button>
       </div>
     </div>
   );
