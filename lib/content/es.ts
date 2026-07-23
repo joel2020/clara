@@ -503,6 +503,24 @@ export const INTROS_ES: Record<string, LessonIntro> = {
     how: ["Sé directa y fuerte — deja la cortesía.", "'911' es 'nine-one-one', dígito por dígito.", "'I need help' + qué, dicho claro, mueve a la gente."],
     exampleIds: ["conv-emergency:1", "conv-emergency:3"],
   },
+  "conv-opinions": {
+    summary: "Las conversaciones reales son gente compartiendo opiniones. Unos pocos inicios naturales te dejan decir lo que piensas y reaccionar sin sonar brusca.",
+    whyTricky: "El error común es traducir 'I think that…' muy literal. Los nativos suavizan ('I feel like…', 'to be honest') y no están de acuerdo con delicadeza ('I see your point, but…').",
+    how: ["Abre con 'I think' o 'I feel like' antes de tu idea.", "Acuerda rápido: 'Totally', 'Exactly', 'Same here'.", "Discrepa suave: 'I see your point, but…'."],
+    exampleIds: ["conv-opinions:1", "conv-opinions:6"],
+  },
+  "conv-stories": {
+    summary: "Ser conversacional es contar historias pequeñas: qué hiciste, qué pasó. Los conectores ('so', 'then', 'anyway') mantienen la historia unida.",
+    whyTricky: "Las terminaciones de pasado se pegan al hablar rápido ('I was gonna', 'ended up'). Y las historias usan conectores que el español maneja distinto — 'so' para causa, 'anyway' para retomar.",
+    how: ["Arranca: 'So the other day…'.", "Une los hechos: 'and then', 'so', 'after that'.", "Cierra: 'and that was it' o 'anyway…'."],
+    exampleIds: ["conv-stories:1", "conv-stories:5"],
+  },
+  "conv-natural": {
+    summary: "En B2 no se trata de más palabras, sino de las naturales: modismos y suavizadores que hacen que el inglés fluya en vez de sonar traducido.",
+    whyTricky: "Son frases fijas que no se arman palabra por palabra ('no worries', 'I'm down', 'my bad'). Apréndelas como bloques completos y suéltalas.",
+    how: ["Trátalas como una sola unidad — no traduzcas palabra por palabra.", "Úsalas para reaccionar ('for sure', 'no worries').", "Suaviza pedidos ('would you mind…')."],
+    exampleIds: ["conv-natural:2", "conv-natural:7"],
+  },
 };
 
 // ── Category blurbs (Weak Sounds dashboard) ──────────────────────────────────

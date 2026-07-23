@@ -47,8 +47,8 @@ export interface PlanDay {
 const BAND_UNITS: Record<"beginner" | "everyday" | "conversational" | "advanced", string[]> = {
   beginner: ["conv-greetings", "conv-american", "conv-numbers", "conv-cafe", "conv-shopping", "flap-t", "conv-directions"],
   everyday: ["conv-cafe", "conv-directions", "conv-transport", "conv-shopping", "conv-time", "conv-smalltalk", "american-r"],
-  conversational: ["conv-smalltalk", "conv-plans", "conv-work", "conv-feelings", "conv-travel", "conv-american-2", "conv-phone"],
-  advanced: ["conv-feelings", "conv-work", "conv-phone", "conv-emergency", "conv-health", "conv-american-2", "conv-hotel"],
+  conversational: ["conv-smalltalk", "conv-opinions", "conv-plans", "conv-stories", "conv-work", "conv-feelings", "conv-travel"],
+  advanced: ["conv-natural", "conv-opinions", "conv-stories", "conv-feelings", "conv-work", "conv-phone", "conv-emergency"],
 };
 
 export function bandFor(level: Level): keyof typeof BAND_UNITS {
