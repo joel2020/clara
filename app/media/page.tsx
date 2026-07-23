@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Play, Check, Newspaper, X } from "lucide-react";
+import { ArrowLeft, Play, Check, Newspaper, X, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { repo } from "@/lib/db";
@@ -135,6 +135,19 @@ function MediaSection({
 function Player({ item, lang, onClose }: { item: MediaItem; lang: CoachLang; onClose: () => void }) {
   const [found, setFound] = useState<Set<string>>(new Set());
   const allFound = found.size === item.focusWords.length;
+  const [saidIt, setSaidIt] = useState(false);
+  const [usedIt, setUsedIt] = useState(false);
+
+  const speak = (text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US";
+    u.rate = 0.95;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  };
+  const bankStars = (n: number) =>
+    void repo.getPlayerStats().then((p) => repo.savePlayerStats({ ...p, stars: (p.stars ?? 0) + n, updatedAt: Date.now() }));
 
   const hunt = (word: string, e: React.MouseEvent<HTMLButtonElement>) => {
     if (found.has(word)) return;
@@ -210,6 +223,69 @@ function Player({ item, lang, onClose }: { item: MediaItem; lang: CoachLang; onC
             })}
           </div>
         </div>
+
+        {/* Say it — an app-authored phrase tied to the video's theme (ours, not
+            a quote), so she practices real speaking after watching. */}
+        {item.sayIt && (
+          <div className="mt-4 rounded-2xl border border-hairline bg-card p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+              {lang === "es" ? "Dilo · Say it" : "Say it"}
+            </p>
+            <p className="mt-2 font-display text-xl">{item.sayIt.text}</p>
+            <p className="text-sm italic text-primary/80">{item.sayIt.meaning}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => speak(item.sayIt!.text)}
+                className="inline-flex items-center gap-2 rounded-full border border-hairline px-4 py-2 text-sm font-medium transition-colors hover:border-primary/40"
+              >
+                <Volume2 className="size-4" /> {lang === "es" ? "Escucha" : "Listen"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (saidIt) return;
+                  setSaidIt(true);
+                  sfx.correct(2);
+                  juice.centerBurst();
+                  bankStars(2);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98]",
+                  saidIt ? "bg-success/15 text-success" : "bg-primary text-primary-foreground",
+                )}
+              >
+                {saidIt ? <><Check className="size-4" /> {lang === "es" ? "¡Bien!" : "Nice!"}</> : lang === "es" ? "Lo dije" : "I said it"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Use it — a tiny real-world task with the phrase. */}
+        {item.useIt && saidIt && (
+          <div className="mt-4 rounded-2xl border border-primary/25 bg-primary/[0.05] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+              {lang === "es" ? "Úsalo · Use it" : "Use it"}
+            </p>
+            <p className="mt-2 text-sm text-foreground/90">{item.useIt[lang]}</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (usedIt) return;
+                setUsedIt(true);
+                juice.sweep();
+                sfx.goal();
+                bankStars(3);
+              }}
+              className={cn(
+                "mt-3 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98]",
+                usedIt ? "bg-success/15 text-success" : "bg-foreground text-background",
+              )}
+            >
+              {usedIt ? <><Check className="size-4" /> {lang === "es" ? "¡Listo!" : "Done!"}</> : lang === "es" ? "Listo, lo usé" : "Done, I used it"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
