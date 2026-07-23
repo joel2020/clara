@@ -15,6 +15,17 @@ import { weakestItems } from "@/lib/weak-items";
 import { JoelAvatar } from "@/components/joel-avatar";
 import { Splash } from "@/components/splash";
 import { authHeaders } from "@/lib/auth-client";
+import { SceneVideo } from "@/components/scene-video";
+
+// Which cinematic scene loop backs each roleplay.
+const SCENE_FOR: Record<string, string> = {
+  greetings: "loop-social-9x16",
+  cafe: "loop-cafe-9x16",
+  directions: "loop-citywalk-9x16",
+  shopping: "loop-citywalk-9x16",
+  smalltalk: "loop-social-9x16",
+  plans: "loop-restaurant-9x16",
+};
 import type { ConvItem } from "@/lib/db/types";
 
 // Turn a mined phrase into a stable id so the same phrase isn't added twice.
@@ -295,6 +306,12 @@ export default function TalkPage() {
   // ── Conversation ─────────────────────────────────────────────────────────
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-2xl flex-col px-5 sm:px-6">
+      {/* Immersive scene backdrop — a dim cinematic loop that matches the
+          roleplay, so it feels like she's really in the moment. */}
+      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
+        <SceneVideo base={`/scenes/${SCENE_FOR[scenario.id] ?? "loop-cafe-9x16"}`} className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-background/85 backdrop-blur-[2px]" />
+      </div>
       <header className="flex items-center justify-between gap-3 py-4">
         <button
           type="button"

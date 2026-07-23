@@ -11,6 +11,7 @@ import { sfx } from "@/lib/sfx";
 import { t } from "@/lib/i18n";
 import { introFor } from "@/lib/content/es";
 import { Lumi, type LumiMood } from "@/components/lumi";
+import { SceneVideo } from "@/components/scene-video";
 
 // The "Learn" stage as a mini-class card deck: Lumi presents one idea per
 // card (idea → why it's tricky → how to make it → hear it), swipeable and
@@ -116,7 +117,14 @@ export function LearnIntro({ lesson, onStart }: { lesson: Lesson; onStart: () =>
           />
 
           <div className="flex items-center gap-4">
-            <Lumi frame="bust" mood={art.mood} className="size-16 shrink-0" />
+            {/* Joel himself presents the opening idea; Lumi carries the rest. */}
+            {card.kind === "idea" ? (
+              <div className="size-16 shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/70 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.25)]">
+                <SceneVideo base="/character/joel-avatar" className="h-full w-full object-cover object-[center_18%]" alt="Joel" />
+              </div>
+            ) : (
+              <Lumi frame="bust" mood={art.mood} className="size-16 shrink-0" />
+            )}
             <div>
               <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
                 <Icon className="size-3.5" />
