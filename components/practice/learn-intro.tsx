@@ -42,6 +42,12 @@ export function LearnIntro({ lesson, onStart }: { lesson: Lesson; onStart: () =>
 
   if (!intro) return null;
 
+  // C1–C2 mastery units get the cinematic "Joel teaching" avatar clip.
+  const MASTERY_LESSONS = new Set([
+    "conv-diplomatic", "conv-idioms", "conv-professional", "conv-persuade", "conv-abstract", "conv-humor",
+  ]);
+  const joelBase = MASTERY_LESSONS.has(lesson.id) ? "/character/joel-mastery-9x16" : "/character/joel-avatar";
+
   const examples = intro.exampleIds
     .map((id) => ITEM_BY_ID.get(id) ?? lesson.items.find((i) => i.id === id))
     .filter((i): i is NonNullable<typeof i> => Boolean(i));
@@ -120,7 +126,7 @@ export function LearnIntro({ lesson, onStart }: { lesson: Lesson; onStart: () =>
             {/* Joel himself presents the opening idea; Lumi carries the rest. */}
             {card.kind === "idea" ? (
               <div className="size-16 shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/70 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.25)]">
-                <SceneVideo base="/character/joel-avatar" className="h-full w-full object-cover object-[center_18%]" alt="Joel" />
+                <SceneVideo base={joelBase} className="h-full w-full object-cover object-[center_18%]" alt="Joel" />
               </div>
             ) : (
               <Lumi frame="bust" mood={art.mood} className="size-16 shrink-0" />

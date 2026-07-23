@@ -19,6 +19,13 @@ const SCENE_FOR_LESSON: Record<string, string> = {
   "conv-shopping": "loop-citywalk-9x16",
   "conv-smalltalk": "loop-social-9x16",
   "conv-plans": "loop-restaurant-9x16",
+  // C1–C2 mastery tier (Higgsfield cinematic loops)
+  "conv-diplomatic": "loop-diplomatic-9x16",
+  "conv-idioms": "loop-idioms-9x16",
+  "conv-professional": "loop-professional-9x16",
+  "conv-persuade": "loop-persuade-9x16",
+  "conv-abstract": "loop-abstract-9x16",
+  "conv-humor": "loop-humor-9x16",
 };
 
 export default function LessonPage({ params }: { params: Promise<{ id: string }> }) {
