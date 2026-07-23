@@ -160,6 +160,11 @@ export interface Settings {
    * stricter bar for students chasing polish. See lib/adaptive.ts.
    */
   difficulty: "gentle" | "normal" | "auto";
+  /**
+   * Adaptive-onboarding result: level, goal, commitment, placement subscores.
+   * Absent until the learner completes onboarding (which is what gates the flow).
+   */
+  onboarding?: import("@/lib/onboarding").OnboardingProfile;
 }
 
 /**
