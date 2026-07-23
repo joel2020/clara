@@ -56,7 +56,7 @@ export function SiteHeader() {
             type="button"
             onClick={() => update({ soundEnabled: !settings.soundEnabled })}
             aria-label={settings.soundEnabled ? "Mute sounds" : "Unmute sounds"}
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="-m-1.5 grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
           >
             {settings.soundEnabled ? <Volume2 className="size-[18px]" /> : <VolumeX className="size-[18px]" />}
           </button>
@@ -65,7 +65,7 @@ export function SiteHeader() {
             href="/settings"
             aria-label={t("settingsTitle", lang)}
             className={cn(
-              "text-muted-foreground transition-colors hover:text-foreground",
+              "-m-1.5 grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground",
               pathname === "/settings" && "text-foreground",
             )}
           >
