@@ -38,8 +38,10 @@ export function PetSprite({
           style={{ animationDelay: "0.8s" }}
         />
       ) : (
-        <span className={cn("animate-float drop-shadow-[0_6px_10px_rgba(0,0,0,0.2)]", size)} style={{ animationDelay: "0.8s" }}>
-          {pet.emoji}
+        <span className={cn("animate-float relative grid place-items-center", size)} style={{ animationDelay: "0.8s" }}>
+          {/* soft halo so an emoji companion reads as placed, not a bare glyph */}
+          <span className="absolute inset-0 -z-10 scale-90 rounded-full bg-white/45 blur-md" aria-hidden />
+          <span className="drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)]">{pet.emoji}</span>
         </span>
       )}
       <span className="mt-0.5 h-1.5 w-8 rounded-full bg-black/20 blur-[2px]" style={{ animation: "pet-shadow 4s ease-in-out infinite" }} />

@@ -237,7 +237,7 @@
 }
 @keyframes float-y {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-7px); }
 }
 @keyframes cheer-bounce {
   0% { transform: translateY(0) scale(1); }
@@ -512,12 +512,12 @@ html { scroll-behavior: smooth; }
   transform-style: preserve-3d;
   transform-origin: 50% 88%;
   will-change: transform;
-  animation: lumi-sway 6s ease-in-out infinite;
+  animation: lumi-sway 8s ease-in-out infinite;
 }
 @keyframes lumi-sway {
-  0% { transform: translateY(0) rotateY(-7deg) rotateX(1.5deg); }
-  50% { transform: translateY(-6px) rotateY(7deg) rotateX(-1deg); }
-  100% { transform: translateY(0) rotateY(-7deg) rotateX(1.5deg); }
+  0% { transform: translateY(0) rotateY(-3.5deg) rotateX(0.8deg); }
+  50% { transform: translateY(-5px) rotateY(3.5deg) rotateX(-0.6deg); }
+  100% { transform: translateY(0) rotateY(-3.5deg) rotateX(0.8deg); }
 }
 .lumi-shadow {
   position: absolute;
@@ -684,7 +684,7 @@ html { scroll-behavior: smooth; }
   to { transform: rotate(360deg); }
 }
 
-.animate-float { animation: float-y 4s ease-in-out infinite; }
+.animate-float { animation: float-y 5s ease-in-out infinite; }
 .animate-cheer { animation: cheer-bounce 0.75s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-star-pop { animation: star-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }

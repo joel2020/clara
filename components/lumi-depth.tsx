@@ -168,13 +168,14 @@ export function LumiDepth({
           if (disposed) return;
           t += 0.016;
           resize();
-          // gentle idle orbit so she's alive even with no input
-          const idleX = Math.sin(t * 0.6) * 0.28;
-          const idleY = Math.cos(t * 0.45) * 0.14;
-          const tx = target.x * 0.7 + idleX * 0.5;
-          const ty = target.y * 0.7 + idleY * 0.5;
-          cur.x += (tx - cur.x) * 0.06;
-          cur.y += (ty - cur.y) * 0.06;
+          // A slow, barely-there idle drift so she's alive without wobbling —
+          // calm and intentional, not a bounce. Pointer/tilt still leads.
+          const idleX = Math.sin(t * 0.4) * 0.16;
+          const idleY = Math.cos(t * 0.32) * 0.08;
+          const tx = target.x * 0.6 + idleX * 0.5;
+          const ty = target.y * 0.6 + idleY * 0.5;
+          cur.x += (tx - cur.x) * 0.045;
+          cur.y += (ty - cur.y) * 0.045;
           gl.uniform2f(uOffset, cur.x, cur.y);
           gl.clear(gl.COLOR_BUFFER_BIT);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

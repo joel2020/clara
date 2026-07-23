@@ -117,8 +117,17 @@ export default function HomePage() {
           </div>
 
           <div className="relative -mr-2 h-44 w-32 shrink-0 sm:h-56 sm:w-44">
+            {/* Soft ground contact shadow so Lumi stands on the hero rather than
+                floating pasted over it. */}
+            <span
+              className="pointer-events-none absolute bottom-1 left-1/2 h-2.5 w-[58%] -translate-x-1/2 rounded-[100%] bg-black/20 blur-[6px]"
+              aria-hidden
+            />
             {accessory?.emoji && (
-              <span className="animate-float absolute right-0 top-2 z-10 text-2xl drop-shadow-sm" style={{ animationDelay: "0.4s" }}>
+              <span
+                className="animate-float absolute right-0 top-2 z-10 grid size-9 place-items-center rounded-full bg-white/60 text-xl ring-1 ring-black/5 backdrop-blur-sm drop-shadow-sm"
+                style={{ animationDelay: "0.4s" }}
+              >
                 {accessory.emoji}
               </span>
             )}
