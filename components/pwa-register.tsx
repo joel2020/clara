@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
+import { trackOncePerDay } from "@/lib/analytics";
 
 // Registers the service worker (offline support + installable). Silent — no UI.
+// Also the one client component mounted on every load, so it logs the daily
+// app-open signal here.
 
 export function PwaRegister() {
+  useEffect(() => {
+    trackOncePerDay("app_open");
+  }, []);
+
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
     const onLoad = () => {

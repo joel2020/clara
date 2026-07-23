@@ -228,3 +228,22 @@ export interface CategoryStat {
   masteredItems: number;
   lastPracticedAt: number | null;
 }
+
+/**
+ * A lightweight analytics event — engagement signals not already captured by
+ * attempts (app opens, mode taps, lesson start/abandon). Privacy-respecting:
+ * props carry ids and numbers only, never free text or PII.
+ */
+export interface AnalyticsEvent {
+  id?: number;
+  type:
+    | "app_open"
+    | "mode_open"
+    | "lesson_start"
+    | "lesson_complete"
+    | "lesson_abandon"
+    | "session_complete";
+  at: number;
+  day: string; // "YYYY-MM-DD" local, for daily rollups
+  props?: Record<string, string | number | boolean>;
+}

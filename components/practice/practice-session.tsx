@@ -28,6 +28,7 @@ import { LearnIntro } from "./learn-intro";
 import { Lumi } from "@/components/lumi";
 import { juice } from "@/components/juice";
 import { cinematic } from "@/components/cinematic";
+import { track } from "@/lib/analytics";
 
 // A full lesson runs in stages: Learn (mini-class) → Ear (minimal pairs) →
 // Words (speak each one) → Sentences (the sound in connected speech) → Done.
@@ -41,6 +42,26 @@ export function PracticeSession({ lesson }: { lesson: Lesson }) {
   const lang = settings.coachLanguage;
 
   const [stage, setStage] = useState<Stage>("loading");
+
+  // Funnel instrumentation: start on mount, complete when the session finishes,
+  // abandon if she leaves before finishing (the drop-off signal).
+  const started = useRef(false);
+  const completedRef = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    track("lesson_start", { lesson: lesson.id });
+    return () => {
+      if (started.current && !completedRef.current) track("lesson_abandon", { lesson: lesson.id });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lesson.id]);
+  useEffect(() => {
+    if (stage === "done" && !completedRef.current) {
+      completedRef.current = true;
+      track("lesson_complete", { lesson: lesson.id });
+    }
+  }, [stage, lesson.id]);
   const [wordQueue, setWordQueue] = useState<PracticeItem[]>([]);
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState<Record<string, boolean>>({});

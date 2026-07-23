@@ -1,6 +1,7 @@
 import { WeakSounds } from "@/components/weak-sounds";
 import { Achievements } from "@/components/achievements";
 import { PlayerBar } from "@/components/player-bar";
+import { InsightsPanel } from "@/components/insights-panel";
 
 export default function DashboardPage() {
   return (
@@ -16,6 +17,8 @@ export default function DashboardPage() {
       <div className="mb-12">
         <PlayerBar />
       </div>
+
+      <InsightsPanel />
 
       <WeakSounds />
 
