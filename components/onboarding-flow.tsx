@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Volume2, RotateCcw, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { usePlayer } from "@/lib/hooks/usePlayer";
 import { sfx } from "@/lib/sfx";
 import { Lumi } from "@/components/lumi";
 import { juice } from "@/components/juice";
@@ -34,6 +35,15 @@ const SELF_OPTIONS: { id: SelfLevel; es: string }[] = [
 
 export function OnboardingFlow() {
   const { settings, update, ready } = useSettings();
+  const player = usePlayer();
+  // Give login-time cloud hydration a moment to land before we decide whether
+  // this is a brand-new learner — so an existing user (Mariana) never flashes
+  // into onboarding on a fresh device while her progress is still loading.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSettled(true), 1200);
+    return () => window.clearTimeout(t);
+  }, []);
   const [step, setStep] = useState<Step>("name");
   const [name, setName] = useState("");
   const [country, setCountry] = useState("Colombia");
@@ -57,7 +67,10 @@ export function OnboardingFlow() {
     if (ready && settings.studentName && !name) setName(settings.studentName);
   }, [ready, settings.studentName, name]);
 
-  if (!ready || settings.onboarding) return null;
+  if (!ready || !settled || settings.onboarding || !player) return null;
+  // Only brand-new learners are placed; anyone with existing progress skips
+  // straight to their app (they can retake placement from /profile).
+  if (player.xp > 0 || player.totalAttempts > 0) return null;
 
   const stepIndex = (["name", "place", "goal", "minutes", "self", "test"] as Step[]).indexOf(step) + 1;
 

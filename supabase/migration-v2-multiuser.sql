@@ -10,10 +10,15 @@
 -- (Mariana: 3000 stars, 1084 XP, 66 lessons under a0087329-…).
 
 -- ── User-owned tables: profile_id (or id) must equal the caller's auth uid ────
+-- NOTE: push_subscriptions is intentionally EXCLUDED here. It's written
+-- server-side by /api/push with the anon key (no user JWT), so strict RLS would
+-- break daily reminders. Harden it separately by moving those routes to a
+-- server-only service-role key, then add it to this list. Its rows hold only
+-- Web Push endpoints (low sensitivity), so leaving its current policy is fine.
 do $$
 declare t text;
 begin
-  foreach t in array array['attempts','progress','player_stats','settings','push_subscriptions'] loop
+  foreach t in array array['attempts','progress','player_stats','settings'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists public_all on public.%I', t);
     execute format('drop policy if exists own_rows on public.%I', t);
