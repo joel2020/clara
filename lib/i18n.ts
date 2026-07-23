@@ -250,6 +250,7 @@ const STRINGS = {
   level: { es: "Nivel", en: "Level" },
   xpToNext: { es: "XP para subir", en: "XP to next" },
   dayStreak: { es: "días seguidos", en: "day streak" },
+  streakStart: { es: "¡empieza tu racha!", en: "start your streak!" },
   today: { es: "hoy", en: "today" },
 
   // Stages / stepper

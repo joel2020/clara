@@ -50,7 +50,9 @@ export function PlayerBar() {
           <Flame className={cn("size-5", player.currentStreak > 0 ? "text-warn" : "text-muted-foreground/40")} />
           <div className="leading-tight">
             <p className="font-display text-lg font-medium tabular-nums leading-none">{player.currentStreak}</p>
-            <p className="text-[11px] text-muted-foreground">{t("dayStreak", lang)}</p>
+            <p className={cn("text-[11px]", player.currentStreak > 0 ? "text-muted-foreground" : "font-medium text-warn")}>
+              {player.currentStreak > 0 ? t("dayStreak", lang) : t("streakStart", lang)}
+            </p>
           </div>
           {player.streakFreezes > 0 && (
             <span
