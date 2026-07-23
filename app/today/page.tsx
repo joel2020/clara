@@ -53,7 +53,7 @@ export default function TodayPage() {
   const quests = useTodayQuests();
 
   const dueCount = progressArr && convItems ? countDueReview(progressArr, convItems) : 0;
-  const nextLesson = pickNextLesson(progressMap);
+  const nextLesson = pickNextLesson(progressMap, settings.onboarding?.level);
   const scenario = pickScenario(dayKey());
 
   const reviewDone = quests ? questDone(quests, "review") || dueCount === 0 : false;

@@ -59,6 +59,22 @@ export function bandFor(level: Level): keyof typeof BAND_UNITS {
   return "advanced"; // B2, C1
 }
 
+const BAND_ORDER: (keyof typeof BAND_UNITS)[] = ["beginner", "everyday", "conversational", "advanced"];
+
+/**
+ * The ordered pool of lesson ids appropriate to a level — this band plus the
+ * next one up, so there's always room to progress. The daily lesson picker
+ * walks this before falling back to the full curriculum, which is what makes a
+ * beginner and a B1 learner get different daily lessons.
+ */
+export function levelLessonPool(level: Level): string[] {
+  const b = bandFor(level);
+  const i = BAND_ORDER.indexOf(b);
+  const next = BAND_ORDER[i + 1];
+  const ids = [...BAND_UNITS[b], ...(next ? BAND_UNITS[next] : [])];
+  return [...new Set(ids)]; // de-dupe overlaps between bands
+}
+
 // Goal → a unit to pull forward so week 1 feels personal.
 const GOAL_ANCHOR: Record<Goal, string> = {
   travel: "conv-travel",

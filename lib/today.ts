@@ -1,6 +1,8 @@
 import { LESSONS } from "@/lib/content/lessons";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { isMastered } from "@/lib/srs";
+import { levelLessonPool } from "@/lib/onboarding";
+import type { Level } from "@/lib/placement";
 import type { ItemProgress, Lesson } from "@/lib/db/types";
 import type { Scenario } from "@/lib/content/scenarios";
 
@@ -8,20 +10,37 @@ import type { Scenario } from "@/lib/content/scenarios";
 // to play that role: decide what she should do today and walk her through it in
 // order (warm up → learn → talk). This picks the next thing in each track.
 
-/** The next lesson to work on: conversation track first, then sounds, in order,
- *  choosing the first lesson that still has an un-mastered item. */
-export function pickNextLesson(progressById: Map<string, ItemProgress> | undefined): Lesson {
+function hasUnmastered(lesson: Lesson, progressById: Map<string, ItemProgress> | undefined): boolean {
+  return lesson.items.some((it) => {
+    const p = progressById?.get(it.id);
+    return !p || !isMastered(p);
+  });
+}
+
+/** The next lesson to work on. With a placement `level`, it walks the learner's
+ *  level-appropriate pool first (so a beginner and a B1 learner diverge), then
+ *  falls back to the global order: conversation track first, then sounds. */
+export function pickNextLesson(
+  progressById: Map<string, ItemProgress> | undefined,
+  level?: Level,
+): Lesson {
   const ordered = [...LESSONS].sort((a, b) => {
     const ta = a.track === "conversation" ? 0 : 1;
     const tb = b.track === "conversation" ? 0 : 1;
     return ta - tb || a.order - b.order;
   });
+
+  if (level) {
+    const byId = new Map(LESSONS.map((l) => [l.id, l]));
+    for (const id of levelLessonPool(level)) {
+      const lesson = byId.get(id);
+      if (lesson && hasUnmastered(lesson, progressById)) return lesson;
+    }
+    // everything in her band is mastered — fall through to the global next.
+  }
+
   for (const lesson of ordered) {
-    const unfinished = lesson.items.some((it) => {
-      const p = progressById?.get(it.id);
-      return !p || !isMastered(p);
-    });
-    if (unfinished) return lesson;
+    if (hasUnmastered(lesson, progressById)) return lesson;
   }
   return ordered[0];
 }
