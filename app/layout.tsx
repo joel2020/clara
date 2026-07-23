@@ -66,7 +66,11 @@ export default function RootLayout({
   return (
     // Always the light editorial canvas — the game's warmth reads best on white,
     // so the OS dark preference is intentionally ignored.
-    <html lang="en" className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}>
+    /* Default to Spanish: the coaching UI is Spanish, so a screen reader
+       announces it correctly and Chrome won't offer to (mis)translate the page
+       for a Spanish speaker. The client syncs this to the coach language (see
+       useSettings) for English-coaching users. */
+    <html lang="es" className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SettingsProvider>
           <AuthProvider>

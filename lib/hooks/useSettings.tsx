@@ -73,6 +73,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Keep the document language in sync with the coach language so a screen
+  // reader announces the UI with the right pronunciation (SSR defaults to "es").
+  useEffect(() => {
+    if (typeof document !== "undefined") document.documentElement.lang = settings.coachLanguage;
+  }, [settings.coachLanguage]);
+
   const update = async (patch: Partial<Settings>) => {
     const next = { ...settings, ...patch, id: "app" };
     setSettings(next);

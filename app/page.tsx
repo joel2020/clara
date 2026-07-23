@@ -108,7 +108,7 @@ export default function HomePage() {
               </span>
               {name ? `${greeting}, ${name}` : greeting}
             </p>
-            <h1 className="mt-3 font-display text-3xl font-semibold leading-[1.03] tracking-[-0.03em] sm:text-5xl">
+            <h1 lang="en" className="mt-3 font-display text-3xl font-semibold leading-[1.03] tracking-[-0.03em] sm:text-5xl">
               {t("heroTitleBottom", lang)}
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-foreground/70 sm:text-base">
