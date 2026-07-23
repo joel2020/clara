@@ -152,7 +152,7 @@ export function OnboardingFlow() {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
-      <div className="game-hero pointer-events-none absolute inset-0 opacity-60" aria-hidden />
+      <div className="hero-calm pointer-events-none absolute inset-0" aria-hidden />
       <div className="flag-bar absolute inset-x-0 top-0 h-[3px]" aria-hidden />
 
       <div className="relative mx-auto flex min-h-full max-w-md flex-col px-6 pb-10 pt-8">
