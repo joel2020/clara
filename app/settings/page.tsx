@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { repo } from "@/lib/db";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { isAdmin } from "@/lib/allowlist";
 import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { Splash } from "@/components/splash";
@@ -275,6 +276,14 @@ export default function SettingsPage() {
               <p className="mt-1 truncate text-sm text-foreground/80">{user?.email ?? ""}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {isAdmin(user?.email) && (
+                <a
+                  href="/coach"
+                  className="rounded-full border border-primary/40 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+                >
+                  Coach
+                </a>
+              )}
               <a
                 href="/profile"
                 className="rounded-full border border-hairline px-4 py-2 text-sm font-medium transition-colors hover:border-primary/40"

@@ -20,3 +20,12 @@ export function isAllowed(email: string | null | undefined): boolean {
   if (!email) return false;
   return ALLOWED_EMAILS.includes(email.trim().toLowerCase());
 }
+
+// The teacher(s) who can see the whole roster in the coach cockpit. A strict
+// subset of the allowlist — students can use the app but never see each other.
+export const ADMIN_EMAILS = ["alivio.studio.ops@gmail.com"];
+
+export function isAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
