@@ -12,6 +12,7 @@ import { popConfetti } from "@/lib/fx";
 import { juice } from "@/components/juice";
 import { LumiScene } from "@/components/lumi-scene";
 import { SceneArt } from "@/components/scene-art";
+import { SceneVideo } from "@/components/scene-video";
 import { Splash } from "@/components/splash";
 import {
   cosmeticsByType,
@@ -217,7 +218,11 @@ function Swatch({ cosmetic }: { cosmetic: Cosmetic }) {
   if (cosmetic.type === "background") {
     return (
       <div className="relative h-16 w-full overflow-hidden rounded-xl ring-1 ring-black/5" style={{ background: cosmetic.background }} aria-hidden>
-        <SceneArt bgId={cosmetic.id} />
+        {cosmetic.video ? (
+          <SceneVideo base={cosmetic.video} className="h-full w-full object-cover" />
+        ) : (
+          <SceneArt bgId={cosmetic.id} />
+        )}
       </div>
     );
   }

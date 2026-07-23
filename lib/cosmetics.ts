@@ -39,6 +39,9 @@ export interface Cosmetic {
   image?: string;
   /** For effects: the ambient particle kind. */
   effect?: EffectKind;
+  /** For premium animated backgrounds: a <SceneVideo> base path (a cinematic
+   *  loop plays as the stage, with the poster still as the fallback). */
+  video?: string;
 }
 
 export const COSMETICS: Cosmetic[] = [
@@ -143,6 +146,40 @@ export const COSMETICS: Cosmetic[] = [
       "radial-gradient(80% 70% at 20% 10%, #d7f0ff 0%, transparent 55%), radial-gradient(90% 80% at 90% 90%, #e6c9ff 0%, transparent 55%), linear-gradient(160deg, #bfe3ff 0%, #d9c8ff 55%, #ffd7f0 100%)",
   },
 
+  // ── Cinematic animated backgrounds (premium video loops) ──
+  {
+    id: "bg-medellin",
+    type: "background",
+    name: { es: "Atardecer en Medellín", en: "Medellín sunset" },
+    cost: 300,
+    rarity: "legendary",
+    video: "/scenes/bg-home-medellin-16x9",
+  },
+  {
+    id: "bg-cafe",
+    type: "background",
+    name: { es: "Café al sol", en: "Sunny café" },
+    cost: 220,
+    rarity: "legendary",
+    video: "/scenes/loop-cafe-9x16",
+  },
+  {
+    id: "bg-travel",
+    type: "background",
+    name: { es: "Aeropuerto", en: "Airport" },
+    cost: 220,
+    rarity: "legendary",
+    video: "/scenes/loop-travel-9x16",
+  },
+  {
+    id: "bg-city-walk",
+    type: "background",
+    name: { es: "Paseo por la ciudad", en: "City walk" },
+    cost: 240,
+    rarity: "legendary",
+    video: "/scenes/loop-citywalk-9x16",
+  },
+
   // ── Accessories (props near Lumi) ──
   { id: "acc-none", type: "accessory", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
   { id: "acc-flower", type: "accessory", name: { es: "Flor", en: "Flower" }, cost: 15, emoji: "🌸" },
@@ -160,8 +197,14 @@ export const COSMETICS: Cosmetic[] = [
   { id: "acc-crown", type: "accessory", name: { es: "Corona", en: "Crown" }, cost: 60, emoji: "👑" },
   { id: "acc-puppy", type: "accessory", name: { es: "Perrito", en: "Puppy" }, cost: 70, emoji: "🐶" },
   { id: "acc-unicorn", type: "accessory", name: { es: "Unicornio", en: "Unicorn" }, cost: 110, emoji: "🦄" },
+  { id: "acc-medal", type: "accessory", name: { es: "Medalla", en: "Medal" }, cost: 50, emoji: "🏅" },
+  { id: "acc-coffee", type: "accessory", name: { es: "Cafecito", en: "Coffee" }, cost: 35, emoji: "☕" },
+  { id: "acc-book", type: "accessory", name: { es: "Librito", en: "Book" }, cost: 30, emoji: "📖" },
+  { id: "acc-rose", type: "accessory", name: { es: "Rosa", en: "Rose" }, cost: 40, emoji: "🌹" },
+  { id: "acc-star2", type: "accessory", name: { es: "Estrella fugaz", en: "Shooting star" }, cost: 55, emoji: "💫" },
   { id: "acc-dragon", type: "accessory", name: { es: "Dragón", en: "Dragon" }, cost: 200, rarity: "legendary", emoji: "🐉" },
   { id: "acc-diadem", type: "accessory", name: { es: "Diadema de diamante", en: "Diamond tiara" }, cost: 300, rarity: "legendary", emoji: "💎" },
+  { id: "acc-halo", type: "accessory", name: { es: "Aureola", en: "Halo" }, cost: 260, rarity: "legendary", emoji: "😇" },
 
   // ── Ambient effects ──
   { id: "fx-none", type: "effect", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
@@ -200,6 +243,16 @@ export const COSMETICS: Cosmetic[] = [
   { id: "pet-jaguar", type: "pet", name: { es: "Jaguar", en: "Jaguar" }, cost: 250, rarity: "legendary", emoji: "🐆" },
   { id: "pet-tiger", type: "pet", name: { es: "Tigre blanco", en: "White tiger" }, cost: 300, rarity: "legendary", emoji: "🐅" },
   { id: "pet-dragon", type: "pet", name: { es: "Dragón dorado", en: "Golden dragon" }, cost: 400, rarity: "legendary", emoji: "🐲" },
+  // More companions
+  { id: "pet-fox", type: "pet", name: { es: "Zorrito", en: "Fox" }, cost: 90, emoji: "🦊" },
+  { id: "pet-panda", type: "pet", name: { es: "Panda", en: "Panda" }, cost: 130, emoji: "🐼" },
+  { id: "pet-penguin", type: "pet", name: { es: "Pingüino", en: "Penguin" }, cost: 110, emoji: "🐧" },
+  { id: "pet-koala", type: "pet", name: { es: "Koala", en: "Koala" }, cost: 130, emoji: "🐨" },
+  { id: "pet-owl", type: "pet", name: { es: "Búho", en: "Owl" }, cost: 120, emoji: "🦉" },
+  { id: "pet-frog", type: "pet", name: { es: "Ranita", en: "Frog" }, cost: 70, emoji: "🐸" },
+  { id: "pet-hedgehog", type: "pet", name: { es: "Erizo", en: "Hedgehog" }, cost: 90, emoji: "🦔" },
+  { id: "pet-unicorn", type: "pet", name: { es: "Unicornio", en: "Unicorn" }, cost: 260, rarity: "legendary", emoji: "🦄" },
+  { id: "pet-phoenix", type: "pet", name: { es: "Fénix", en: "Phoenix" }, cost: 350, rarity: "legendary", emoji: "🔥" },
 ];
 
 const BY_ID = new Map(COSMETICS.map((c) => [c.id, c]));

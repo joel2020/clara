@@ -76,9 +76,11 @@ export default function HomePage() {
         style={bg?.background ? { background: bg.background } : undefined}
       >
         <div className="flag-bar absolute inset-x-0 top-0 z-20 h-[3px]" aria-hidden />
-        {/* Default stage → the cinematic Medellín loop; purchased backgrounds
-            keep their hand-built SVG scene. */}
-        {bg?.background ? (
+        {/* A purchased cinematic loop, else a purchased SVG scene, else the
+            default Medellín loop. */}
+        {bg?.video ? (
+          <SceneVideo base={bg.video} className="absolute inset-0 h-full w-full object-cover" />
+        ) : bg?.background ? (
           <SceneArt bgId={bg.id} />
         ) : (
           <SceneVideo base="/scenes/bg-home-medellin-16x9" className="absolute inset-0 h-full w-full object-cover" />

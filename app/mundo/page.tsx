@@ -74,6 +74,14 @@ export default function MundoPage() {
 
   const started = wordsKnown > 0 || attempts.length > 0;
 
+  // "Tu semana" — the last 7 days at a glance, to make progress feel real.
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const weekAttempts = attempts.filter((a) => a.at >= weekAgo);
+  const weekDays = new Set(weekAttempts.map((a) => dayKey(new Date(a.at)))).size;
+  const weekPasses = weekAttempts.filter((a) => a.passed).length;
+  const weekAcc = weekAttempts.length ? Math.round((weekPasses / weekAttempts.length) * 100) : 0;
+  const weekItems = new Set(weekAttempts.map((a) => a.itemId)).size;
+
   return (
     <div className="mx-auto max-w-2xl px-5 pb-28 pt-6 sm:px-6">
       <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -118,6 +126,36 @@ export default function MundoPage() {
       </section>
 
       {!started && <p className="mt-8 text-center text-sm text-muted-foreground">{t("mundoEmpty", lang)}</p>}
+
+      {/* Tu semana — the last 7 days, so progress feels real week to week */}
+      {weekAttempts.length > 0 && (
+        <section className="elev-1 mt-8 rounded-3xl border border-hairline bg-card p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            {lang === "es" ? "Tu semana" : "Your week"}
+          </p>
+          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p className="font-display text-3xl font-semibold">{weekDays}<span className="text-lg text-muted-foreground">/7</span></p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{lang === "es" ? "días activos" : "active days"}</p>
+            </div>
+            <div>
+              <p className="font-display text-3xl font-semibold">{weekItems}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{lang === "es" ? "frases practicadas" : "phrases practiced"}</p>
+            </div>
+            <div>
+              <p className="font-display text-3xl font-semibold">{weekAcc}%</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{lang === "es" ? "aciertos" : "accuracy"}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {weekDays >= 5
+              ? lang === "es" ? "¡Semana increíble! Así se vuelve fluida." : "Amazing week! This is how fluency builds."
+              : weekDays >= 2
+                ? lang === "es" ? "Vas bien — un poquito más y haces el hábito." : "Nice pace — a little more and it's a habit."
+                : lang === "es" ? "Cada día cuenta. Hoy es un buen día para practicar." : "Every day counts. Today's a good day to practice."}
+          </p>
+        </section>
+      )}
 
       {/* Activity calendar */}
       <section className="mt-8">

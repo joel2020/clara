@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Lumi, type LumiMood } from "@/components/lumi";
 import { getCosmetic, type EffectKind } from "@/lib/cosmetics";
 import { SceneArt } from "@/components/scene-art";
+import { SceneVideo } from "@/components/scene-video";
 import { PetSprite } from "@/components/pet-sprite";
 
 // Lumi on her equipped "stage" — the chosen background, ambient effect, and a
@@ -81,7 +82,11 @@ export function LumiScene({
   const fx = getCosmetic(effectId);
   return (
     <div className={cn("relative overflow-hidden rounded-3xl", className)} style={{ background: bg?.background }}>
-      <SceneArt bgId={bgId} />
+      {bg?.video ? (
+        <SceneVideo base={bg.video} className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <SceneArt bgId={bgId} />
+      )}
       {fx?.effect && <EffectLayer kind={fx.effect} />}
       <div className="absolute inset-x-0 bottom-0 top-3">
         <Lumi frame="full" mood={mood} />
