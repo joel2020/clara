@@ -29,6 +29,7 @@ import { Lumi } from "@/components/lumi";
 import { juice } from "@/components/juice";
 import { cinematic } from "@/components/cinematic";
 import { track } from "@/lib/analytics";
+import { SceneVideo } from "@/components/scene-video";
 
 // A full lesson runs in stages: Learn (mini-class) → Ear (minimal pairs) →
 // Words (speak each one) → Sentences (the sound in connected speech) → Done.
@@ -494,6 +495,16 @@ function DoneCard({
           </span>
         )}
       </div>
+
+      {/* Joel himself, proud of her, when the session went well. */}
+      {attempted > 0 && clear / attempted >= 0.5 && (
+        <div className="mx-auto mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <span className="size-11 overflow-hidden rounded-full ring-2 ring-white/70 shadow-[0_8px_20px_-8px_rgba(0,0,0,0.3)]">
+            <SceneVideo base="/character/joel-celebrate" className="h-full w-full object-cover object-[center_18%]" alt="Joel" />
+          </span>
+          <span>{lang === "es" ? "Joel está orgulloso de ti" : "Joel is proud of you"}</span>
+        </div>
+      )}
 
       <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("lessonComplete", lang)}</p>
       <h2 className="mt-3 font-display text-4xl font-medium tracking-[-0.02em]">

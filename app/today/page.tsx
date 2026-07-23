@@ -14,6 +14,7 @@ import { questDone } from "@/lib/quests";
 import { chestAvailable, chestReward } from "@/lib/cosmetics";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
+import { SceneVideo } from "@/components/scene-video";
 import { SparkleBurst } from "@/components/star-reward";
 import { celebrate } from "@/lib/fx";
 import { juice } from "@/components/juice";
@@ -133,7 +134,12 @@ export default function TodayPage() {
             </div>
             <div>
               <h1 className="font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{t("todayTitle", lang)}</h1>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{t("todayIntro", lang)}</p>
+              <p className="mt-1.5 flex items-center gap-2 text-sm leading-relaxed text-muted-foreground">
+                <span className="size-8 shrink-0 overflow-hidden rounded-full ring-1 ring-white/70" aria-hidden>
+                  <SceneVideo base="/character/joel-wave" className="h-full w-full object-cover object-[center_16%]" />
+                </span>
+                {t("todayIntro", lang)}
+              </p>
             </div>
           </div>
           {/* Lumi's word of the day — a coach in her corner, not just a checklist */}
