@@ -42,8 +42,13 @@ KEY CONSTRAINTS (do not violate):
 - Never commit/print secrets (.env.local is gitignored, has only anon key).
 - Audio = ElevenLabs (Joel voice); images = OpenAI gpt-image-1; video =
   Higgsfield MCP + ffmpeg (mp4 libx264 crf30 + webm vp9 + jpg poster).
-- The connected Supabase MCP is pinned to my Elite Funding CRM project, NOT
-  Clara (nwjtvlvzbfrlzgxiqzgd) — it can't run Clara DDL; use the SQL editor.
+- The connected Supabase MCP IS scoped to Clara (project nwjtvlvzbfrlzgxiqzgd,
+  org yhkoiofjaprolrorgree) and can run Clara DDL directly via apply_migration /
+  execute_sql — verified 2026-07-23 (list_projects returns only "clara";
+  list_tables returns the live Clara schema). No need for the manual SQL editor.
+  (Elite Funding CRM is a DIFFERENT project, mdrrcrmowurbrwvdsgnq, not in this
+  MCP's scope. Note: MCP scope can differ in other environments — re-check with
+  list_projects if a future session behaves differently.)
 - I don't want accounts created or passwords typed on my behalf.
 
 Start by reading clara-pronunciation-app.md, then tell me the plan for item 1.
