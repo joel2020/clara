@@ -12,13 +12,14 @@ import { useAuth } from "@/lib/hooks/useAuth";
 // Email + password because magic links break out of the installed iOS PWA.
 
 export function LoginScreen() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resendConfirmation } = useAuth();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +27,13 @@ export function LoginScreen() {
     setBusy(true);
     setError(null);
     setNotice(null);
+    setNeedsConfirm(false);
     const { error } = mode === "in" ? await signIn(email, password) : await signUp(email, password);
     setBusy(false);
     if (error) {
+      // Surface a self-serve "resend confirmation" path when the account exists
+      // but its email was never confirmed — the most common sign-in failure here.
+      if (error.toLowerCase().includes("not confirmed")) setNeedsConfirm(true);
       setError(friendlyError(error));
       return;
     }
@@ -49,8 +54,8 @@ export function LoginScreen() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mx-auto mb-6 flex flex-col items-center text-center">
-          <div className="h-28 w-24">
-            <Lumi mood="wave" priority />
+          <div className="h-44 w-40 px-1">
+            <Lumi mood="wave" priority depth />
           </div>
           <p className="mt-3 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/70">
             <span className="flag-dots" aria-hidden>
@@ -95,6 +100,26 @@ export function LoginScreen() {
 
           {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}
           {notice && <p className="mt-3 text-sm font-medium text-primary">{notice}</p>}
+          {needsConfirm && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (busy) return;
+                setBusy(true);
+                const { error } = await resendConfirmation(email);
+                setBusy(false);
+                setNeedsConfirm(false);
+                if (error) setError(friendlyError(error));
+                else {
+                  setError(null);
+                  setNotice("Correo de confirmación reenviado. Revísalo · Confirmation email resent — check your inbox.");
+                }
+              }}
+              className="mt-2 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              Reenviar correo de confirmación · Resend confirmation email
+            </button>
+          )}
 
           <button
             type="submit"
@@ -125,8 +150,9 @@ export function LoginScreen() {
 
 function friendlyError(raw: string): string {
   const m = raw.toLowerCase();
-  if (m.includes("invalid login") || m.includes("invalid_credentials")) return "Correo o contraseña incorrectos · Wrong email or password.";
-  if (m.includes("email not confirmed")) return "Confirma tu correo primero · Confirm your email first.";
+  if (m.includes("invalid login") || m.includes("invalid_credentials")) return "Correo o contraseña incorrectos — ¿ya creaste la cuenta? · Wrong email or password — did you create the account yet?";
+  if (m.includes("email not confirmed")) return "Confirma tu correo primero (revisa tu bandeja) · Confirm your email first — check your inbox.";
+  if (m.includes("already registered")) return "Esa cuenta ya existe — inicia sesión · That account already exists — sign in instead.";
   if (m.includes("network")) return "Sin conexión · No connection.";
   return raw;
 }

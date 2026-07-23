@@ -17,6 +17,7 @@ interface AuthContextValue {
   user: User | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  resendConfirmation: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -63,6 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const resendConfirmation = async (email: string) => {
+    const sb = supabase();
+    if (!sb) return { error: "auth_unavailable" };
+    const { error } = await sb.auth.resend({ type: "signup", email: email.trim() });
+    return { error: error?.message ?? null };
+  };
+
   const signOut = async () => {
     const sb = supabase();
     if (sb) await sb.auth.signOut();
@@ -70,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ready, required, session, user: session?.user ?? null, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ ready, required, session, user: session?.user ?? null, signIn, signUp, resendConfirmation, signOut }}>
       {children}
     </AuthContext.Provider>
   );
