@@ -133,16 +133,16 @@ export default function HomePage() {
       {/* THE action */}
       <Link
         href="/today"
-        className="sheen group mt-5 flex items-center gap-4 rounded-3xl bg-foreground px-6 py-5 text-background shadow-sm transition-all hover:opacity-95 active:scale-[0.995]"
+        className="sheen group mt-5 flex items-center gap-4 rounded-3xl bg-primary px-6 py-5 text-primary-foreground elev-1 transition-all hover:opacity-95 active:scale-[0.995]"
       >
-        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-background/15">
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-foreground/15">
           <PlayCircle className="size-6" />
         </span>
         <div className="flex-1">
           <p className="font-display text-lg font-semibold tracking-[-0.01em]">{t("todayCard", lang)}</p>
-          <p className="text-sm text-background/70">{t("todayCardSub", lang)}</p>
+          <p className="text-sm text-primary-foreground/70">{t("todayCardSub", lang)}</p>
         </div>
-        <span className="text-background/60 transition-transform group-hover:translate-x-0.5">→</span>
+        <span className="text-primary-foreground/60 transition-transform group-hover:translate-x-0.5">→</span>
       </Link>
 
       <div className="mt-5">
@@ -191,16 +191,16 @@ export default function HomePage() {
         {showMore && (
           <div className="animate-fade-up">
             <div className="mt-4 grid grid-cols-3 gap-3">
-              <Tile href="/duet" icon={Drama} label="duetCard" lang={lang} tone="gold" />
-              <Tile href="/media" icon={Clapperboard} label="mediaCard" lang={lang} tone="red" />
-              <Tile href="/listen" icon={Headphones} label="listenCard" lang={lang} tone="blue" />
-              <Tile href="/shadow" icon={Volume2} label="shadowCard" lang={lang} tone="gold" />
-              <Tile href="/build" icon={Puzzle} label="buildCard" lang={lang} tone="red" />
-              <Tile href="/play" icon={Zap} label="speedRound" lang={lang} tone="gold" />
-              <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} tone="red" />
-              <Tile href="/radio" icon={Radio} label="radioCard" lang={lang} tone="blue" />
-              <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} tone="gold" />
-              <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} tone="red" />
+              <Tile href="/duet" icon={Drama} label="duetCard" lang={lang} />
+              <Tile href="/media" icon={Clapperboard} label="mediaCard" lang={lang} />
+              <Tile href="/listen" icon={Headphones} label="listenCard" lang={lang} />
+              <Tile href="/shadow" icon={Volume2} label="shadowCard" lang={lang} />
+              <Tile href="/build" icon={Puzzle} label="buildCard" lang={lang} />
+              <Tile href="/play" icon={Zap} label="speedRound" lang={lang} />
+              <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} />
+              <Tile href="/radio" icon={Radio} label="radioCard" lang={lang} />
+              <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} />
+              <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} />
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -236,45 +236,28 @@ export default function HomePage() {
   );
 }
 
-// Tricolor icon chips — each game tile carries one of the flag's colors so the
-// grid reads as one Colombian set instead of a wall of identical blue.
-const TILE_CHIP = {
-  blue: "bg-primary/10 text-primary",
-  gold: "bg-[color-mix(in_oklch,var(--co-yellow)_22%,transparent)] text-[color-mix(in_oklch,var(--co-yellow)_60%,#7a5a10)]",
-  red: "bg-[color-mix(in_oklch,var(--co-red)_12%,transparent)] text-co-red",
-} as const;
-
+// One calm tile treatment across the whole grid — a single restrained accent
+// (the primary blue) instead of a rotating tricolor set, so the grid reads as
+// one deliberate family. Red is reserved for the functional "new" badge only.
 function Tile({
   href,
   icon: Icon,
   label,
   lang,
-  accent,
   badge,
-  tone = "blue",
 }: {
   href: string;
   icon: typeof Zap;
   label: StringKey;
   lang: "es" | "en";
-  accent?: boolean;
   badge?: boolean;
-  tone?: keyof typeof TILE_CHIP;
 }) {
   return (
     <Link
       href={href}
-      className={cn(
-        "group relative flex flex-col items-center gap-2 rounded-2xl px-3 py-4 text-center active:scale-[0.98]",
-        accent ? "border border-primary/30 bg-primary/[0.06] card-lift hover:border-primary/60" : "rim-tricolor card-lift",
-      )}
+      className="group relative flex flex-col items-center gap-2 rounded-2xl border border-hairline bg-card px-3 py-4 text-center card-lift hover:border-primary/40 active:scale-[0.98]"
     >
-      <span
-        className={cn(
-          "grid size-10 place-items-center rounded-xl",
-          accent ? "bg-primary text-primary-foreground" : TILE_CHIP[tone],
-        )}
-      >
+      <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
         <Icon className="size-5" />
       </span>
       <span className="text-xs font-medium leading-tight">{t(label, lang)}</span>
