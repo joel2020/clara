@@ -689,6 +689,16 @@ html { scroll-behavior: smooth; }
 .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-star-pop { animation: star-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* Calm hero canvas — the premium default when no cosmetic background is
+   equipped. Warm paper with a whisper of Colombian yellow and a cool anchor,
+   so it feels alive without noise. */
+.hero-calm {
+  background:
+    radial-gradient(115% 95% at 12% 0%, color-mix(in oklch, var(--co-yellow) 11%, var(--card)) 0%, transparent 54%),
+    radial-gradient(120% 120% at 100% 108%, color-mix(in oklch, var(--primary) 7%, var(--card)) 0%, transparent 52%),
+    linear-gradient(180deg, var(--card) 0%, var(--background) 100%);
+}
+
 /* Candy hero gradient for the game hub. */
 .game-hero {
   background:

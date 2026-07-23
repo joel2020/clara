@@ -133,21 +133,13 @@ export function JuiceLayer() {
   const [particles, setParticles] = useState<Particle[]>([]);
 
   useEffect(() => {
+    // Reward particles are spawned deliberately via the `juice.*` API (real wins
+    // and milestones only). We intentionally do NOT sparkle on every tap — a
+    // premium feel comes from restraint, and button press states carry the
+    // per-tap feedback instead.
     listener = setParticles;
-    // Sparkle on taps of interactive elements — throttled so fast taps don't flood.
-    let last = 0;
-    const onDown = (e: PointerEvent) => {
-      const now = Date.now();
-      if (now - last < 90) return;
-      const target = e.target as HTMLElement | null;
-      if (!target?.closest("button, a")) return;
-      last = now;
-      tap(e.clientX, e.clientY);
-    };
-    document.addEventListener("pointerdown", onDown, { passive: true });
     return () => {
       listener = null;
-      document.removeEventListener("pointerdown", onDown);
     };
   }, []);
 
