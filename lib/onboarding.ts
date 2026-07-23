@@ -44,11 +44,12 @@ export interface PlanDay {
 // The thematic spine per level band. A0/A1 = survival; A2 = daily life; B1 =
 // opinions/stories; B2/C1 = nuance/roleplay. Goal tilts the emphasis (e.g. a
 // "dating" learner gets the small-talk/plans units earlier).
-const BAND_UNITS: Record<"beginner" | "everyday" | "conversational" | "advanced", string[]> = {
+const BAND_UNITS: Record<"beginner" | "everyday" | "conversational" | "advanced" | "mastery", string[]> = {
   beginner: ["conv-greetings", "conv-american", "conv-numbers", "conv-cafe", "conv-shopping", "flap-t", "conv-directions"],
   everyday: ["conv-cafe", "conv-directions", "conv-transport", "conv-shopping", "conv-time", "conv-smalltalk", "american-r"],
   conversational: ["conv-smalltalk", "conv-opinions", "conv-plans", "conv-stories", "conv-work", "conv-feelings", "conv-travel"],
   advanced: ["conv-natural", "conv-opinions", "conv-stories", "conv-feelings", "conv-work", "conv-phone", "conv-emergency"],
+  mastery: ["conv-diplomatic", "conv-idioms", "conv-professional", "conv-persuade", "conv-abstract", "conv-humor"],
 };
 
 export function bandFor(level: Level): keyof typeof BAND_UNITS {
@@ -56,10 +57,11 @@ export function bandFor(level: Level): keyof typeof BAND_UNITS {
   if (i <= 1) return "beginner"; // A0, A1
   if (i === 2) return "everyday"; // A2
   if (i === 3) return "conversational"; // B1
-  return "advanced"; // B2, C1
+  if (i === 4) return "advanced"; // B2
+  return "mastery"; // C1, C2
 }
 
-const BAND_ORDER: (keyof typeof BAND_UNITS)[] = ["beginner", "everyday", "conversational", "advanced"];
+const BAND_ORDER: (keyof typeof BAND_UNITS)[] = ["beginner", "everyday", "conversational", "advanced", "mastery"];
 
 /**
  * The ordered pool of lesson ids appropriate to a level — this band plus the
@@ -126,5 +128,7 @@ export function levelBlurbEs(level: Level): { title: string; sub: string } {
       return { title: "Hablas con soltura", sub: "Pulimos naturalidad, matices y pronunciación." };
     case "C1":
       return { title: "Nivel avanzado", sub: "Afinamos acento, modismos y escucha rápida." };
+    case "C2":
+      return { title: "Maestría — casi nativa", sub: "Registro, humor, ironía y matices como una nativa." };
   }
 }

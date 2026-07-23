@@ -521,6 +521,42 @@ export const INTROS_ES: Record<string, LessonIntro> = {
     how: ["Trátalas como una sola unidad — no traduzcas palabra por palabra.", "Úsalas para reaccionar ('for sure', 'no worries').", "Suaviza pedidos ('would you mind…')."],
     exampleIds: ["conv-natural:2", "conv-natural:7"],
   },
+  "conv-diplomatic": {
+    summary: "En C1 la habilidad no es tener razón, sino tenerla con elegancia. Los nativos discrepan todo el tiempo, pero lo acolchan para que nadie quede mal.",
+    whyTricky: "El español traducido directo puede sonar brusco ('No, estás mal'). El inglés envuelve el desacuerdo en suavizadores ('I hear you, but…', 'I'd push back a little') que mantienen la calma.",
+    how: ["Primero acolcha, luego difiere: 'That's fair, but…'.", "Matiza en vez de afirmar: 'I'm not entirely convinced'.", "Deja una salida: 'Correct me if I'm wrong'."],
+    exampleIds: ["conv-diplomatic:1", "conv-diplomatic:6"],
+  },
+  "conv-idioms": {
+    summary: "Los modismos son la huella de quien habla con fluidez. Unos pocos, bien puestos, hacen que suenes como si vivieras en el idioma — no como si lo recitaras.",
+    whyTricky: "No se traducen palabra por palabra ('piece of cake' no es sobre pastel). Aprende cada uno como un bloque completo y úsalo en el momento justo.",
+    how: ["Memoriza cada uno como un bloque, no palabra por palabra.", "Empareja con la situación: 'piece of cake' = fácil.", "No abuses — un modismo bien puesto vale por cinco."],
+    exampleIds: ["conv-idioms:1", "conv-idioms:6"],
+  },
+  "conv-professional": {
+    summary: "El inglés profesional tiene su propio registro — nítido, un poco indirecto, lleno de frases fijas. Estas son las que aparecen en cada reunión y correo.",
+    whyTricky: "La franqueza normal en español puede leerse como agresiva en el trabajo; el inglés de oficina suaviza y empaca ('circle back', 'set expectations'). Es un código que aprendes como bloques.",
+    how: ["Usa la frase fija que el nativo espera: 'circle back', 'follow up'.", "Suaviza pedidos: 'Can you walk me through it?'.", "Señala el proceso: 'let's align on next steps'."],
+    exampleIds: ["conv-professional:1", "conv-professional:6"],
+  },
+  "conv-persuade": {
+    summary: "En C2 puedes ganar una discusión y conservar a un amigo. Persuadir en inglés se apoya en ceder un poco para ganar mucho — conceder un punto y luego girarlo.",
+    whyTricky: "El ritmo del debate es idiomático: concedes ('you've got a point'), pivotas ('that said') y rematas ('at the end of the day'). Los conectores llevan la persuasión, no el vocabulario grande.",
+    how: ["Concede y luego pivota: 'You've got a point, but…'.", "Enmarca tu postura: 'The way I see it…'.", "Remata: 'At the end of the day, it comes down to…'."],
+    exampleIds: ["conv-persuade:2", "conv-persuade:6"],
+  },
+  "conv-abstract": {
+    summary: "La fluidez real aparece cuando el tema se vuelve abstracto — matices, hipótesis, disyuntivas. El inglés tiene frases hechas para justo esos movimientos.",
+    whyTricky: "Hablar en abstracto está lleno de modismos ('gray area', 'cuts both ways', 'slippery slope'). Cada uno comprime una idea entera; conocerlos te deja pensar en voz alta a velocidad nativa.",
+    how: ["Nombra el matiz: 'it's a bit of a gray area'.", "Señala una hipótesis: 'hypothetically speaking…'.", "Comprime la disyuntiva: 'it cuts both ways'."],
+    exampleIds: ["conv-abstract:1", "conv-abstract:6"],
+  },
+  "conv-humor": {
+    summary: "El humor es lo último que dominas en otro idioma — y lo primero que hace sentir a la gente que de verdad perteneces. La chispa americana corre con ironía y bromas suaves.",
+    whyTricky: "El tono invierte el sentido: 'Yeah, right' significa lo contrario de sí. La ironía vive en la entrega, así que el tiempo y un tono plano importan tanto como las palabras.",
+    how: ["Aplana el tono para la ironía: 'Yeah, right'.", "Señala la broma: 'I'm just messing with you'.", "Sígueles la corriente: 'Tell me about it'."],
+    exampleIds: ["conv-humor:2", "conv-humor:4"],
+  },
 };
 
 // ── Category blurbs (Weak Sounds dashboard) ──────────────────────────────────

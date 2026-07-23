@@ -29,7 +29,7 @@ interface ChatRequest {
   history?: Turn[];
   /** Her weakest SRS items — Joel weaves them naturally into the roleplay. */
   focusWords?: string[];
-  /** CEFR level from placement (A0..C1) — pitches Joel's difficulty. */
+  /** CEFR level from placement (A0..C2) — pitches Joel's difficulty. */
   level?: string;
   /** Her stated goal (travel/social/work/moving/dating/fluency). */
   goal?: string;
@@ -84,6 +84,7 @@ const LEVEL_GUIDE: Record<string, string> = {
   B1: "She is intermediate (B1). Have a real back-and-forth: ask for opinions and short stories, use natural everyday American English at a normal pace, 2–3 sentences is fine.",
   B2: "She is upper-intermediate (B2). Speak naturally with idioms, contractions and nuance; challenge her with follow-ups, hypotheticals and opinions, and correct subtle unnatural phrasing.",
   C1: "She is advanced (C1). Speak as with a native — full natural pace, idioms, humor, nuance; push for precision and only correct genuinely non-native or unclear phrasing.",
+  C2: "She is near-native (C2). Talk exactly as you would with a fluent American friend — full speed, sarcasm, wordplay, cultural references, professional and abstract topics. Only flag the rare phrasing that would give her away as non-native; otherwise just have a real, sharp conversation.",
 };
 
 const GOAL_CONTEXT: Record<string, string> = {

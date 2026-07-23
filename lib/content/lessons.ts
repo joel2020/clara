@@ -2,6 +2,7 @@ import type { Lesson, LessonIntro, PracticeItem } from "@/lib/db/types";
 import { CONVERSATION_LESSONS } from "./conversation.ts";
 import { CONVERSATION_LESSONS_2 } from "./conversation-2.ts";
 import { CONVERSATION_LESSONS_3 } from "./conversation-3.ts";
+import { CONVERSATION_LESSONS_4 } from "./conversation-4.ts";
 
 // The full curriculum. Lesson 1 (Short i vs Long ee) is the flagship — the
 // pattern every other lesson follows. Minimal-pair lessons drill two contrasting
@@ -697,6 +698,7 @@ for (const lesson of LESSONS) {
 LESSONS.push(...CONVERSATION_LESSONS);
 LESSONS.push(...CONVERSATION_LESSONS_2);
 LESSONS.push(...CONVERSATION_LESSONS_3);
+LESSONS.push(...CONVERSATION_LESSONS_4);
 
 export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]));
 

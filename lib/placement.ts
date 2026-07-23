@@ -4,13 +4,13 @@
 // transparent, inspectable scoring model (no black box). Pure functions only,
 // so it's fully unit-testable and carries no UI or network concerns.
 
-export const LEVELS = ["A0", "A1", "A2", "B1", "B2", "C1"] as const;
+export const LEVELS = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"] as const;
 export type Level = (typeof LEVELS)[number];
 
 export const SKILLS = ["listening", "vocabulary", "grammar", "reading", "speaking"] as const;
 export type Skill = (typeof SKILLS)[number];
 
-// Difficulty is an integer 0..5 that lines up 1:1 with LEVELS (0=A0 … 5=C1), so
+// Difficulty is an integer 0..6 that lines up 1:1 with LEVELS (0=A0 … 6=C2), so
 // "a B1 question" is difficulty 3. Keeping them aligned makes scoring legible.
 export const MAX_DIFFICULTY = LEVELS.length - 1;
 

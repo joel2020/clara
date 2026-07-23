@@ -1,7 +1,7 @@
 import type { Skill } from "@/lib/placement";
 
 // Seed bank for the adaptive placement check. Each item is tagged with a skill
-// and a CEFR difficulty 0..5 (A0..C1). The onboarding controller rotates skills
+// and a CEFR difficulty 0..6 (A0..C2). The onboarding controller rotates skills
 // and picks an unused item near the running difficulty, stepping up/down with
 // performance. Content is practical American English with Colombian-Spanish
 // support — measuring real conversational ability, not grammar trivia.
@@ -12,7 +12,7 @@ import type { Skill } from "@/lib/placement";
 export interface PlacementQ {
   id: string;
   skill: Skill;
-  difficulty: number; // 0..5
+  difficulty: number; // 0..6
   kind: "mcq" | "listen";
   /** Instruction shown above the item (Spanish). */
   promptEs: string;
@@ -49,6 +49,7 @@ export const PLACEMENT_BANK: PlacementQ[] = [
   Q("v3", "vocabulary", 3, "mcq", "¿Qué significa esta expresión?", { stem: "I'm broke" }, [["No tengo plata", true], ["Estoy roto (herido)", false], ["Estoy aburrido", false]]),
   Q("v4", "vocabulary", 4, "mcq", "¿Qué significa?", { stem: "It's a rip-off" }, [["Es un robo (muy caro)", true], ["Es un regalo", false], ["Es un descuento", false]]),
   Q("v5", "vocabulary", 5, "mcq", "¿Qué significa este modismo?", { stem: "Let's play it by ear" }, [["Vemos sobre la marcha", true], ["Escuchemos música", false], ["Hagamos un plan fijo", false]]),
+  Q("v6", "vocabulary", 6, "mcq", "¿Qué significa esta expresión?", { stem: "That's rich, coming from you" }, [["Mira quién habla (irónico)", true], ["Qué generoso de tu parte", false], ["Estás muy elegante hoy", false]]),
 
   // ── Grammar in context (pick what a native would say) ──
   Q("g0", "grammar", 0, "mcq", "Completa: ¿Cuál suena natural?", { stem: "___ name is Ana." }, [["My", true], ["Me", false], ["I", false]]),
@@ -57,6 +58,7 @@ export const PLACEMENT_BANK: PlacementQ[] = [
   Q("g3", "grammar", 3, "mcq", "¿Cuál es correcta?", { stem: "If it rains, we ___ stay home." }, [["will", true], ["would have", false], ["are", false]]),
   Q("g4", "grammar", 4, "mcq", "Completa naturalmente.", { stem: "I wish I ___ more time." }, [["had", true], ["have", false], ["will have", false]]),
   Q("g5", "grammar", 5, "mcq", "¿Cuál suena más nativa?", { stem: "By the time we arrived, the movie ___." }, [["had already started", true], ["already started", false], ["was already start", false]]),
+  Q("g6", "grammar", 6, "mcq", "¿Cuál suena más nativa?", { stem: "___ harder, she would have passed." }, [["Had she studied", true], ["If she would study", false], ["She had studied", false]]),
 
   // ── Reading (short text → meaning) ──
   Q("r0", "reading", 0, "mcq", "Lee y responde: ¿Qué dice?", { stem: "Open 9am–5pm." }, [["Abierto de 9 a 5", true], ["Cerrado los domingos", false], ["Gratis los lunes", false]]),
@@ -65,6 +67,7 @@ export const PLACEMENT_BANK: PlacementQ[] = [
   Q("r3", "reading", 3, "mcq", "¿Cuál es la idea?", { stem: "I can't make it tonight, let's catch up soon." }, [["Hoy no puede, pero quiere verse pronto", true], ["Está en camino ahora", false], ["Nunca quiere verse", false]]),
   Q("r4", "reading", 4, "mcq", "¿Qué tono tiene?", { stem: "I'd appreciate it if you could get back to me by EOD." }, [["Pide respuesta hoy, con cortesía", true], ["Está molesto y exige ya", false], ["No le importa la respuesta", false]]),
   Q("r5", "reading", 5, "mcq", "¿Qué implica?", { stem: "That's easier said than done." }, [["Es más difícil de lo que parece", true], ["Es muy fácil", false], ["Ya está hecho", false]]),
+  Q("r6", "reading", 6, "mcq", "¿Qué tono tiene?", { stem: "I wouldn't go so far as to say it's a bad idea…" }, [["Duda con delicadeza; no lo condena del todo", true], ["Le encanta la idea sin reservas", false], ["Rechaza la idea con firmeza", false]]),
 
   // ── Listening (UI speaks English → pick meaning) ──
   Q("l0", "listening", 0, "listen", "Escucha y elige el significado.", { speak: "Hello, how are you?" }, [["Hola, ¿cómo estás?", true], ["¿Cuántos años tienes?", false], ["¿Dónde vives?", false]]),
@@ -73,6 +76,7 @@ export const PLACEMENT_BANK: PlacementQ[] = [
   Q("l3", "listening", 3, "listen", "Escucha y elige.", { speak: "Do you want to grab a coffee later?" }, [["¿Tomamos un café más tarde?", true], ["¿Ya te tomaste el café?", false], ["¿Trabajas en un café?", false]]),
   Q("l4", "listening", 4, "listen", "Escucha y elige.", { speak: "I was gonna call you, but I totally forgot." }, [["Te iba a llamar, pero se me olvidó", true], ["Te llamé y no contestaste", false], ["No quiero llamarte", false]]),
   Q("l5", "listening", 5, "listen", "Escucha y elige.", { speak: "Honestly, I'm swamped this week — can we push it?" }, [["Está muy ocupada; pide posponer", true], ["Está libre toda la semana", false], ["Quiere adelantar el plan", false]]),
+  Q("l6", "listening", 6, "listen", "Escucha y elige.", { speak: "I'm not saying it's wrong, but it's a bit of a gray area, if you ask me." }, [["Lo ve dudoso; ni bien ni mal del todo", true], ["Está seguro de que está mal", false], ["Cree que es perfectamente claro", false]]),
 ];
 
 /** Pick an unused question for a skill nearest the target difficulty. */
