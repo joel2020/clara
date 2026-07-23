@@ -29,6 +29,10 @@ interface ChatRequest {
   history?: Turn[];
   /** Her weakest SRS items — Joel weaves them naturally into the roleplay. */
   focusWords?: string[];
+  /** CEFR level from placement (A0..C1) — pitches Joel's difficulty. */
+  level?: string;
+  /** Her stated goal (travel/social/work/moving/dating/fluency). */
+  goal?: string;
 }
 
 interface ChatReply {
@@ -70,26 +74,51 @@ const SCHEMA = {
   additionalProperties: false,
 } as const;
 
+// How Joel pitches the conversation for each CEFR level — vocabulary, sentence
+// length, pace, and how hard to push. This is what makes a beginner and a B1
+// learner get genuinely different conversations.
+const LEVEL_GUIDE: Record<string, string> = {
+  A0: "She is an absolute beginner (A0). Use only the most basic words and very short 3–5 word sentences, one idea per reply. Lots of encouragement.",
+  A1: "She is a beginner (A1). Short simple sentences, common words, 1–2 sentences, always ending in a simple question.",
+  A2: "She is elementary (A2). She can handle full simple sentences and everyday topics — nudge her to answer in complete sentences, and use slightly richer everyday vocabulary.",
+  B1: "She is intermediate (B1). Have a real back-and-forth: ask for opinions and short stories, use natural everyday American English at a normal pace, 2–3 sentences is fine.",
+  B2: "She is upper-intermediate (B2). Speak naturally with idioms, contractions and nuance; challenge her with follow-ups, hypotheticals and opinions, and correct subtle unnatural phrasing.",
+  C1: "She is advanced (C1). Speak as with a native — full natural pace, idioms, humor, nuance; push for precision and only correct genuinely non-native or unclear phrasing.",
+};
+
+const GOAL_CONTEXT: Record<string, string> = {
+  travel: "Her goal is travel English — when it fits naturally, lean into airports, hotels, directions, ordering, and getting around.",
+  social: "Her goal is social confidence — lean into small talk, making friends, hangouts, and casual chit-chat.",
+  work: "Her goal is work/career English — lean into introductions, meetings, and professional small talk.",
+  moving: "Her goal is moving abroad — lean into apartments, appointments, phone calls, and daily-life logistics.",
+  dating: "Her goal is dating and relationships — lean into flirty-but-respectful small talk, making plans, and getting to know someone.",
+  fluency: "Her goal is general fluency — keep a natural mix of everyday topics.",
+};
+
 function systemPrompt(
   scenarioRole: string,
   scenarioSetting: string,
   name: string,
   coachLang: "es" | "en",
   focusWords: string[],
+  level: string,
+  goal: string,
 ): string {
   const coach = coachLang === "es" ? "Spanish" : "English";
+  const levelGuide = LEVEL_GUIDE[level] ?? LEVEL_GUIDE.A2;
+  const goalContext = GOAL_CONTEXT[goal] ?? GOAL_CONTEXT.fluency;
   const focus = focusWords.length
     ? `\n\nFOCUS ITEMS: ${name} is currently struggling with these words/phrases: ${focusWords
         .map((w) => `"${w}"`)
         .join(", ")}. When it fits the scene NATURALLY, use one of them in your reply or steer the moment so she would say one — and prefer them in "suggestions" when they genuinely fit. Never force one in awkwardly, never more than one per turn, and never mention that these are practice targets.`
     : "";
-  return `You are Joel, a warm, patient AMERICAN English conversation partner and tutor for ${name}, an adult beginner from Colombia. Her English is A1–A2 (beginner). Her goal is to become conversational in AMERICAN English. She is practicing speaking out loud.
+  return `You are Joel, a warm, patient AMERICAN English conversation partner and tutor for ${name}, an adult learner from Colombia. ${levelGuide} ${goalContext} She is practicing speaking out loud.
 
 You are role-playing: you are ${scenarioRole}. ${scenarioSetting}${focus}
 
 RULES:
 - Speak natural, everyday AMERICAN English. Use American vocabulary (apartment, elevator, sidewalk, check/bill, "to go", vacation, cell phone, awesome), American spelling (color, favorite, realize), and common American expressions and contractions ("gonna", "wanna", "I'm", "it's", "how's it going", "sounds good", "no worries", "you got it"). Do NOT use British words (flat, lift, pavement, holiday, mobile) or British spelling.
-- Keep it VERY simple: short sentences, common words, 1–2 sentences per reply, ending with a simple question so the conversation keeps going. Simple does not mean stiff — sound like a friendly American, not a textbook.
+- Match her level (above): pitch your vocabulary, sentence length, pace, and how hard you push to it. End with a question that keeps the conversation going. Simple does not mean stiff — sound like a friendly American, not a textbook.
 - Stay fully in the scenario and in character. Never break role or mention that you are an AI.
 - Be encouraging and natural, like a kind friend — never like a test.
 - Her speech is transcribed from audio, so it may have small errors. Read past obvious transcription slips; assume she is trying her best.
@@ -132,11 +161,13 @@ export async function POST(request: Request): Promise<Response> {
         .map((w) => w.trim().slice(0, 60))
         .slice(0, 6)
     : [];
+  const level = typeof body.level === "string" ? body.level.slice(0, 3) : "A2";
+  const goal = typeof body.goal === "string" ? body.goal.slice(0, 20) : "fluency";
 
   // Build the message list: system prompt, then the scenario opener as Joel's
   // first turn (the client rendered it locally), then the running conversation.
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt(scenario.role, scenario.setting, name, coachLang, focusWords) },
+    { role: "system", content: systemPrompt(scenario.role, scenario.setting, name, coachLang, focusWords, level, goal) },
     { role: "assistant", content: scenario.opener.en },
     ...history.map(
       (turn): OpenAI.Chat.Completions.ChatCompletionMessageParam => ({

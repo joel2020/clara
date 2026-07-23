@@ -159,6 +159,8 @@ export default function TalkPage() {
             coachLanguage: lang,
             history,
             focusWords,
+            level: settings.onboarding?.level,
+            goal: settings.onboarding?.goal,
           }),
         });
         if (res.status === 503) {
