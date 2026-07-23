@@ -30,7 +30,6 @@ import { SceneArt } from "@/components/scene-art";
 import { SceneVideo } from "@/components/scene-video";
 import { InstallNudge } from "@/components/install-nudge";
 import { PetSprite } from "@/components/pet-sprite";
-import { AmbientStars } from "@/components/juice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { getCosmetic, chestAvailable } from "@/lib/cosmetics";
@@ -61,6 +60,13 @@ export default function HomePage() {
   const [showMore, setShowMore] = useState(false);
 
   const bg = getCosmetic(player?.equippedBg ?? "bg-default");
+  // Only show a scene background when she has purchased + equipped one. The
+  // default is a calm, premium gradient — no always-on video, no confetti.
+  const hasCosmeticBg = !!(
+    player?.equippedBg &&
+    player.equippedBg !== "bg-default" &&
+    (bg?.video || bg?.background)
+  );
   const accessory = getCosmetic(player?.equippedAccessory ?? "acc-none");
   const effect = getCosmetic(player?.equippedEffect ?? "fx-none");
   const chestReady = player ? chestAvailable(player) : false;
@@ -70,30 +76,29 @@ export default function HomePage() {
       {/* Hero — Lumi on her equipped stage */}
       <section
         className={cn(
-          "animate-fade-up relative overflow-hidden rounded-3xl px-6 pb-0 pt-6 shadow-sm ring-1 ring-black/5 sm:px-8 sm:pt-8",
-          !bg?.background && "game-hero",
+          "animate-fade-up relative overflow-hidden rounded-3xl px-6 pb-0 pt-6 elev-1 sm:px-8 sm:pt-8",
+          !hasCosmeticBg && "hero-calm",
         )}
-        style={bg?.background ? { background: bg.background } : undefined}
+        style={hasCosmeticBg && bg?.background ? { background: bg.background } : undefined}
       >
         <div className="flag-bar absolute inset-x-0 top-0 z-20 h-[3px]" aria-hidden />
-        {/* A purchased cinematic loop, else a purchased SVG scene, else the
-            default Medellín loop. */}
-        {bg?.video ? (
-          <SceneVideo base={bg.video} className="absolute inset-0 h-full w-full object-cover" />
-        ) : bg?.background ? (
-          <SceneArt bgId={bg.id} />
-        ) : (
-          <SceneVideo base="/scenes/bg-home-medellin-16x9" className="absolute inset-0 h-full w-full object-cover" />
-        )}
-        <AmbientStars />
+        {/* A purchased cinematic loop or SVG scene — only when equipped. The
+            default hero is the calm gradient above, not an always-on video. */}
+        {hasCosmeticBg &&
+          (bg?.video ? (
+            <SceneVideo base={bg.video} className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <SceneArt bgId={bg.id} />
+          ))}
         {effect?.effect && <EffectLayer kind={effect.effect} />}
-        {/* Text-protection scrim: keeps the greeting readable over ANY equipped
-            background (Galaxy is nearly black). Uses the theme background color
-            so it adapts to dark mode too. */}
-        <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/80 via-background/40 to-transparent"
-          aria-hidden
-        />
+        {/* Text-protection scrim: only needed over a busy equipped scene so the
+            greeting stays readable (e.g. the near-black Galaxy background). */}
+        {hasCosmeticBg && (
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/80 via-background/40 to-transparent"
+            aria-hidden
+          />
+        )}
 
         <div className="relative z-10 flex items-end justify-between gap-3">
           <div className="max-w-[58%] pb-7">

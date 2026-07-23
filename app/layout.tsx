@@ -10,7 +10,7 @@ import { SiteHeader } from "@/components/site-header";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 import { PwaRegister } from "@/components/pwa-register";
 import { MobileNav } from "@/components/mobile-nav";
-import { JuiceLayer, AmbientFx } from "@/components/juice";
+import { JuiceLayer } from "@/components/juice";
 import { CinematicLayer } from "@/components/cinematic";
 
 const sans = Geist({
@@ -77,7 +77,6 @@ export default function RootLayout({
               <SiteHeader />
               <main className="flex-1">{children}</main>
               <MobileNav />
-              <AmbientFx />
               <JuiceLayer />
               <CinematicLayer />
             </AuthGate>
