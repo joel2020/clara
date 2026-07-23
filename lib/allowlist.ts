@@ -14,6 +14,7 @@ export const ALLOWED_EMAILS = [
   "marianaarango1515@gmail.com", // Mariana
   "jravalentina04@gmail.com", // Valentina
   "alivio.studio.ops@gmail.com", // Joel
+  "joelcarias23@gmail.com", // Joel (teacher/admin)
 ];
 
 export function isAllowed(email: string | null | undefined): boolean {
@@ -23,7 +24,7 @@ export function isAllowed(email: string | null | undefined): boolean {
 
 // The teacher(s) who can see the whole roster in the coach cockpit. A strict
 // subset of the allowlist — students can use the app but never see each other.
-export const ADMIN_EMAILS = ["alivio.studio.ops@gmail.com"];
+export const ADMIN_EMAILS = ["alivio.studio.ops@gmail.com", "joelcarias23@gmail.com"];
 
 export function isAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
