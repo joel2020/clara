@@ -140,6 +140,7 @@ export function pushPlayer(profileId: string, s: PlayerStats): void {
   // column rejects the whole row, so drop back a tier instead of losing the
   // rest of her progress. (equipped_pet is the newest column.)
   const payloads = [
+    { ...base, ...economy, equipped_pet: s.equippedPet ?? "pet-none", equipped_outfit: s.equippedOutfit ?? "outfit-default" },
     { ...base, ...economy, equipped_pet: s.equippedPet ?? "pet-none" },
     { ...base, ...economy },
     base,
@@ -275,6 +276,7 @@ export async function pullProfileData(profileId: string): Promise<PulledData | n
         equippedAccessory: pd.equipped_accessory ?? "acc-none",
         equippedEffect: pd.equipped_effect ?? "fx-none",
         equippedPet: pd.equipped_pet ?? "pet-none",
+        equippedOutfit: pd.equipped_outfit ?? "outfit-default",
         lastChestDay: pd.last_chest_day ?? null,
         streakFreezes: pd.streak_freezes ?? 0,
         freezeUsedDay: pd.freeze_used_day ?? null,
