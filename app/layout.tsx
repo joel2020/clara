@@ -4,6 +4,7 @@ import "./globals.css";
 import { SettingsProvider } from "@/lib/hooks/useSettings";
 import { AuthProvider } from "@/lib/hooks/useAuth";
 import { AuthGate } from "@/components/auth-gate";
+import { ProfileBinder } from "@/components/profile-binder";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/site-header";
 import { Onboarding } from "@/components/onboarding";
@@ -71,6 +72,7 @@ export default function RootLayout({
           <AuthProvider>
             <PwaRegister />
             <AuthGate>
+              <ProfileBinder />
               <Onboarding />
               <SiteHeader />
               <main className="flex-1">{children}</main>
