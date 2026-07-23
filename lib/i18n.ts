@@ -28,6 +28,7 @@ const STRINGS = {
   planCard: { es: "Tu plan de 12 semanas", en: "Your 12-week plan" },
   planCardSub: { es: "Qué practicar cada semana, a tu ritmo", en: "What to practice each week, at your own pace" },
   homeGames: { es: "Juega y practica", en: "Play & practice" },
+  homeExplore: { es: "Explorar todo", en: "Explore everything" },
   lessonsCardSub: { es: "Todas las unidades y sonidos", en: "Every unit and sound" },
 
   // Review page

@@ -17,7 +17,9 @@ import {
   Drama,
   Globe,
   Radio,
+  ChevronDown,
 } from "lucide-react";
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { ReviewCallout } from "@/components/review-callout";
 import { PlayerBar } from "@/components/player-bar";
@@ -55,6 +57,7 @@ export default function HomePage() {
     ? t(greetKey === "morning" ? "greetMorning" : greetKey === "afternoon" ? "greetAfternoon" : "greetEvening", lang)
     : "¡Hola!";
   const streak = player?.currentStreak ?? 0;
+  const [showMore, setShowMore] = useState(false);
 
   const bg = getCosmetic(player?.equippedBg ?? "bg-default");
   const accessory = getCosmetic(player?.equippedAccessory ?? "acc-none");
@@ -140,51 +143,81 @@ export default function HomePage() {
         <ReviewCallout />
       </div>
 
-      {/* Games & places — compact grid, one tap each */}
-      <section className="mt-8">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em]">{t("homeGames", lang)}</h2>
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <Tile href="/talk" icon={MessageCircle} label="navTalk" lang={lang} accent />
-          <Tile href="/duet" icon={Drama} label="duetCard" lang={lang} tone="gold" />
-          <Tile href="/media" icon={Clapperboard} label="mediaCard" lang={lang} tone="red" />
-          <Tile href="/listen" icon={Headphones} label="listenCard" lang={lang} tone="blue" />
-          <Tile href="/shadow" icon={Volume2} label="shadowCard" lang={lang} tone="gold" />
-          <Tile href="/build" icon={Puzzle} label="buildCard" lang={lang} tone="red" />
-          <Tile href="/play" icon={Zap} label="speedRound" lang={lang} tone="gold" />
-          <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} tone="red" />
-          <Tile href="/radio" icon={Radio} label="radioCard" lang={lang} tone="blue" />
-          <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} tone="gold" />
-          <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} tone="red" />
+      {/* The one high-value secondary action: talk to Joel — the thing that
+          actually builds conversation. Everything else waits behind "explore". */}
+      <Link
+        href="/talk"
+        onClick={() => track("mode_open", { mode: "talk" })}
+        className="group mt-4 flex items-center gap-4 rounded-3xl border border-primary/30 bg-primary/[0.06] px-6 py-5 transition-all card-lift hover:border-primary/60"
+      >
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
+          <MessageCircle className="size-6" />
+        </span>
+        <div className="flex-1">
+          <p className="font-display text-lg font-semibold tracking-[-0.01em]">{t("navTalk", lang)}</p>
+          <p className="text-sm text-muted-foreground">
+            {lang === "es" ? "Practica una conversación real con Joel." : "Practice a real conversation with Joel."}
+          </p>
         </div>
-      </section>
+        <span className="text-muted-foreground transition-transform group-hover:translate-x-0.5">→</span>
+      </Link>
 
-      {/* Browse links */}
-      <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        <Link
-          href="/lessons"
-          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-colors hover:border-primary/40"
+      {/* Everything else, tucked away so the daily path stays clear */}
+      <section className="mt-8">
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          aria-expanded={showMore}
+          className="flex w-full items-center justify-between rounded-2xl border border-hairline bg-card px-5 py-4 text-left transition-colors hover:border-primary/40"
         >
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <BookOpen className="size-5" />
-          </span>
-          <div className="flex-1">
-            <p className="font-medium">{t("lessonsHeading", lang)}</p>
-            <p className="text-sm text-muted-foreground">{t("lessonsCardSub", lang)}</p>
+          <span className="font-display text-sm font-semibold uppercase tracking-[0.16em]">{t("homeExplore", lang)}</span>
+          <ChevronDown className={cn("size-5 text-muted-foreground transition-transform", showMore && "rotate-180")} />
+        </button>
+
+        {showMore && (
+          <div className="animate-fade-up">
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <Tile href="/duet" icon={Drama} label="duetCard" lang={lang} tone="gold" />
+              <Tile href="/media" icon={Clapperboard} label="mediaCard" lang={lang} tone="red" />
+              <Tile href="/listen" icon={Headphones} label="listenCard" lang={lang} tone="blue" />
+              <Tile href="/shadow" icon={Volume2} label="shadowCard" lang={lang} tone="gold" />
+              <Tile href="/build" icon={Puzzle} label="buildCard" lang={lang} tone="red" />
+              <Tile href="/play" icon={Zap} label="speedRound" lang={lang} tone="gold" />
+              <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} tone="red" />
+              <Tile href="/radio" icon={Radio} label="radioCard" lang={lang} tone="blue" />
+              <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} tone="gold" />
+              <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} tone="red" />
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Link
+                href="/lessons"
+                className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-colors hover:border-primary/40"
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <BookOpen className="size-5" />
+                </span>
+                <div className="flex-1">
+                  <p className="font-medium">{t("lessonsHeading", lang)}</p>
+                  <p className="text-sm text-muted-foreground">{t("lessonsCardSub", lang)}</p>
+                </div>
+              </Link>
+              <Link
+                href="/plan"
+                className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-colors hover:border-primary/40"
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <CalendarDays className="size-5" />
+                </span>
+                <div className="flex-1">
+                  <p className="font-medium">{t("planCard", lang)}</p>
+                  <p className="text-sm text-muted-foreground">{t("planCardSub", lang)}</p>
+                </div>
+              </Link>
+            </div>
           </div>
-        </Link>
-        <Link
-          href="/plan"
-          className="group flex items-center gap-3 rounded-2xl border border-hairline bg-card px-5 py-4 transition-colors hover:border-primary/40"
-        >
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <CalendarDays className="size-5" />
-          </span>
-          <div className="flex-1">
-            <p className="font-medium">{t("planCard", lang)}</p>
-            <p className="text-sm text-muted-foreground">{t("planCardSub", lang)}</p>
-          </div>
-        </Link>
-      </div>
+        )}
+      </section>
     </div>
   );
 }
