@@ -1,185 +1,214 @@
-# Clara — English pronunciation practice
+# Clara — American English, for real conversations
 
-A warm, interactive pronunciation course built for a native **Colombian Spanish speaker** working toward fluent, conversational English. The instructor teaches live; Clara is the app she drills with between sessions.
+A warm, gamified, mobile-first app that helps native **Colombian Spanish speakers**
+become **conversational in American English** — listening, speaking with real
+pronunciation scoring, live AI conversation, video and music practice, and an
+adaptive path that meets each learner at their level.
 
-Every lesson is built around the specific sounds Spanish speakers struggle with, and the core loop is simple: **hear the native model → distinguish it → say it → get scored on what the app actually heard.**
+The core loop: **hear the native model → say it → get scored on what was actually
+heard → converse and use it for real.** Lumi (the study buddy) and a full game
+layer (XP, stars, streaks, a shop, pets) keep it a habit, not a chore.
 
 ---
 
-## Quick start
+## Quick start (local dev)
 
 ```bash
 npm install
-npm run dev
-# open http://localhost:3000
+npm run dev            # http://localhost:3000
+npm run build          # production build (also full typecheck)
 ```
 
-Build for production:
+**Auth is bypassed locally when no Supabase env vars are set** — the login gate
+only activates when `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` exist. With those set
+(as in `.env.local`), local dev shows the real login gate too.
+
+Type/logic tests (Node strips TS types; no test runner needed):
 
 ```bash
-npm run build && npm start
+node lib/placement.test.mjs      # placement engine + level path (38 assertions)
+node lib/insights.test.mjs       # analytics rollups (13 assertions)
 ```
 
-No accounts, no database, no environment variables — it works the moment it loads. All progress is stored locally in your browser (IndexedDB).
+---
 
-### The native voice is Joel's voice
+## Environment variables
 
-The "Listen" model for every built-in word and phrase is **Joel's own cloned voice**, pre-generated with ElevenLabs and served as static MP3s from `public/audio/` (~2 MB total, works offline and in every browser). "Slow" plays the same clip at 0.65×. Custom words you add in Instructor mode fall back to the browser's `SpeechSynthesis` voice.
+All secrets live in `.env.local` (git-ignored) locally and in the **Vercel
+project env** for production. `NEXT_PUBLIC_*` are exposed to the browser by
+design (Supabase URL + anon key, VAPID public key); everything else is
+**server-only — never prefix a secret with `NEXT_PUBLIC_`.**
 
-**Regenerating the voice clips** (after editing the curriculum, or to change the voice):
-
-```bash
-# Needs ELEVENLABS_API_KEY in .env.local (git-ignored). The Joel voice id is
-# ELEVENLABS_JOEL_VOICE_ID; omit to use the default.
-node scripts/generate-audio.mjs          # generate any missing clips
-node scripts/generate-audio.mjs --force  # regenerate everything
-```
-
-This rewrites `lib/content/audio-manifest.ts` with the list of clips that exist; the player checks it to decide between Joel's voice and the browser fallback. Audio generation goes through the same ElevenLabs account as the `elevenlabs` MCP server (see `~/elevenlabs-mcp-server`).
-
-> Note: ElevenLabs reads each word in isolation, so stress-pair words spelled the same (e.g. *PREsent* the noun vs *preSENT* the verb) may sound similar — the IPA and mouth hint carry that distinction, and you teach it live. Regenerate an individual clip any time it doesn't sound right.
-
-### Install it (PWA)
-
-Clara is an installable Progressive Web App. On iPhone: open the site in Safari → Share → **Add to Home Screen**. It launches fullscreen with its own icon, and practiced audio is cached for **offline** use (service worker in `public/sw.js`). Icons and manifest live in `public/`.
-
-### Scoring works on iPhone too
-
-Recording/scoring uses the browser's **Web Speech API** where available (desktop Chrome — instant and free). **iOS Safari has no Web Speech API**, so there it records with `MediaRecorder` and transcribes server-side via **ElevenLabs Scribe** (`app/api/transcribe/route.ts`, which needs `ELEVENLABS_API_KEY` set in the deployment env). The client picks the method automatically (`lib/speech/recognition.ts` → `createRecognition`). Playback (Joel's voice) works everywhere.
-
-### Browser support
-
-| Feature | What it does | Support |
+| Variable | Used for | Scope |
 | --- | --- | --- |
-| `SpeechSynthesis` | Plays the native voice model (Listen / Slow) | Chrome, Edge, Safari |
-| `SpeechRecognition` | Records her attempt and scores it | **Chrome / Edge only** |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | public |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (auth + RLS-scoped data) | public |
+| `OPENAI_API_KEY` | AI conversation (`/api/chat`) + news rewrites (`/api/news`) | server |
+| `ELEVENLABS_API_KEY` | Joel's TTS voice (`/api/tts`) + iOS transcription (`/api/transcribe`) | server |
+| `AZURE_SPEECH_KEY` | Phoneme-level pronunciation scoring (`/api/assess`) | server |
+| `AZURE_SPEECH_REGION` | Azure Speech region (e.g. `eastus`) | server |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push subscription (needed at **build** time) | public |
+| `VAPID_PRIVATE_KEY` | Web Push signing (`/api/push/send` cron) | server |
+| `VAPID_SUBJECT` | Web Push contact (`mailto:...`) | server |
+| `CRON_SECRET` | Guards the daily-reminder cron | server |
 
-The app **degrades gracefully**: if recognition isn't available, she can still listen and move through words; if synthesis isn't available, she can still record. A friendly banner explains what's missing and points to Chrome. The first recording will ask for **microphone permission** — that's expected.
-
----
-
-## The interaction loop
-
-For every word or phrase:
-
-1. **See it** — the word, its IPA, and a plain-English mouth-position hint (e.g. *"Smile wide, pull your lips back, tongue high. A long 'eeee'."*).
-2. **Listen** — `SpeechSynthesis` speaks it. Replay freely, or hit **Slow** to hear it at 0.55×.
-3. **Record** — `SpeechRecognition` captures her speech and scores how close the transcript is to the target. She sees a clear **Got it! / Almost** result, the score, and **what it heard** — so a mismatch (especially landing on the minimal-pair twin) is visible and teachable.
-4. **Track** — every attempt is saved per sound, feeding the dashboard and spaced repetition.
-
-Every built-in lesson is a **full lesson** that runs in stages (a stepper at the top shows where you are):
-
-1. **Learn** — a short mini-class before any drilling: what the sound is, why it trips up Spanish speakers, how to physically make it, with tappable Joel-voice examples.
-2. **Ear** — minimal-pair lessons train listening first ("Which word did you hear?").
-3. **Words** — the core listen → speak → score loop, SRS-ordered.
-4. **Sentences** — the same sound inside real connected speech (3 sentences per lesson, each with a rhythm tip), so it transfers out of isolated words.
-
-Stages a lesson doesn't have are skipped automatically; custom Instructor-mode lessons run drill-only.
+Every route degrades gracefully: if a key is absent, the feature reports "not
+configured" and the rest of the app keeps working.
 
 ---
 
-## Curriculum
+## Authentication & access
 
-Lessons are organized by the contrast sets that trip up Spanish speakers. **Short i vs Long ee** is the fully-built flagship; every other lesson follows the same pattern.
+- **Supabase Auth, email + password** (magic links break out of an installed iOS
+  PWA, so password is the default). Session persisted client-side; the whole app
+  is wrapped in `AuthProvider` → `AuthGate` (`app/layout.tsx`).
+- **Server-side allowlist** (`lib/allowlist.ts`): sign-up is open, but only
+  allow-listed emails can enter the app or hit the paid AI routes — a stranger
+  who self-registers gets a "no access" screen and every paid route returns 403.
+  **Add a student = add their email to `ALLOWED_EMAILS` and deploy.**
+- **Paid routes are protected** (`lib/api-guard.ts` + `lib/auth-server.ts`):
+  same-origin check + per-IP rate limit, then a valid Supabase session, then the
+  allowlist. Unauthenticated → 401, non-allowlisted → 403, cross-origin → 403.
+- **Account = identity.** After login, `components/profile-binder.tsx` sets
+  `profile_id = auth.user.id`, retiring the old passwordless "sync code" model.
 
-1. **/ɪ/ vs /iː/** — ship/sheep, bit/beat, fill/feel, live/leave, sit/seat (minimal pairs)
-2. **/b/ vs /v/** — berry/very, ban/van, boat/vote, base/vase
-3. **/dʒ/ vs /j/** — jail/Yale, jet/yet, joke/yolk, jam/yam
-4. **/θ/ and /ð/** — think, three, both / this, the, mother, breathe (+ think/sink, thin/tin traps)
-5. **/h/** — hat, house, behind … and silent-h traps: hour, honest, honor
-6. **s-cluster onsets** — speak, school, student, Spain, street (start clean, no "espeak")
-7. **-ed endings** — /t/ walked · /d/ played · /ɪd/ wanted
-8. **final consonant clusters** — texts, asked, world, films, helped
-9. **schwa /ə/** — about, banana, the, problem, supply
-10. **word stress** — PHOto vs photoGRAPHy, a REcord vs to reCORD
-11. **connected speech** — "She sells seashells…", "I've been thinking about it" (rhythm & linking)
+> Production also has Vercel Deployment Protection to consider: it must be
+> **off** for the app to be publicly reachable (Settings → Deployment Protection).
 
 ---
 
-## Features
+## Database & migrations (Supabase)
 
-- **Lessons** with progress per lesson and per sound (words mastered / total).
-- **Spaced repetition** (Leitner boxes): missed words resurface within the same session; mastered ones space out to days. A **Review** queue on the home screen surfaces everything currently due across all lessons.
-- **Weak Sounds dashboard** — accuracy by sound category, weakest first, with all-time vs recent comparison and a dot-trend of the last attempts.
-- **The game layer** (`lib/gamification.ts` — pure, unit-tested):
-  - **XP & levels** — +10 per clear word (+2 for trying), combo bonuses for consecutive clears, levels that stretch as she climbs. A level ring, streak flame, and daily-goal ring live in the player bar on the home screen and dashboard.
-  - **Combos** — a "3× combo" chip during sessions, higher-pitched success chimes as the streak heats up.
-  - **Daily streak & goal** — practice every day to keep the flame; a configurable XP goal per day (default 40) with a toast when she crosses it.
-  - **12 achievements** — from *First words* to *Flawless* (perfect lesson) and *Sound master* (every word in a sound mastered), unlocking with toasts and displayed on the dashboard.
-  - **Speed round** (`/play`) — 15 rapid-fire words from everything or one sound; keep the combo alive, beat your best.
-  - **Celebrations** — confetti pops on clear words, a full burst + overlay on level-ups, on-brand colors, all `prefers-reduced-motion`-aware; tiny synthesized sound effects (Web Audio, no assets) with a mute toggle in the header.
-- **Instructor mode** (gated behind a header toggle, no auth):
-  - Add custom words/phrases as mini-lessons (`text | ipa | mouth hint`, one per line) — they appear in her lesson list and feed the same SRS + dashboard.
-  - **Recent attempts** feed — exactly what to target in the next live session (target → what was heard → score).
-  - **Voice & audio** — choose the playback voice, set the default speed, or reset all local data.
-- **Sentence/phrase mode** for connected speech and rhythm, alongside single-word drills.
+Postgres tables keyed by `profile_id` (= the auth user id): `profiles`,
+`attempts`, `progress`, `player_stats`, `settings`, `custom_lessons`,
+`push_subscriptions`, `events`. Apply SQL files in the Supabase SQL editor **in
+this order**:
+
+1. `supabase/schema.sql` — base tables (permissive policy for v1 bring-up).
+2. `supabase/player_stats_economy.sql` — stars/cosmetics/chest/freeze columns.
+3. `supabase/push_subscriptions.sql` — Web Push table.
+4. `supabase/events.sql` — analytics events (per-user RLS).
+5. `supabase/migration-v2-multiuser.sql` — **strict per-user RLS**
+   (`profile_id = auth.uid()`). **Apply only AFTER the account-binding app is
+   deployed**, or it locks out the sync-code app. `push_subscriptions` is
+   intentionally excluded (server-written) — harden it with a service-role key
+   before adding it to the strict list.
+
+Data flow is **cloud-authoritative**: the phone is a cache re-seeded from
+Supabase on every launch (`lib/sync/restore.ts` `hydrateFromCloud`), with an
+`updatedAt` tiebreak so offline work is preserved. Local reads stay instant via
+Dexie/IndexedDB behind the `DataRepository` interface (`lib/db/`).
+
+---
+
+## Adaptive onboarding & placement
+
+New learners get a 5–8 min Spanish flow (`components/onboarding-flow.tsx`):
+name → country/city (default Colombia/Medellín) → goal → daily minutes →
+self-level → an **adaptive placement check** (`lib/placement.ts`, unit-tested)
+that gets harder/easier per answer and assigns a **CEFR level (A0–C1)** with
+per-skill subscores and a personalized first week (`lib/onboarding.ts`).
+
+The level then drives the experience: the daily lesson picker walks a
+level-appropriate pool (`lib/today.ts` `pickNextLesson`), and the AI conversation
+(`/api/chat`) pitches vocabulary/pace/difficulty to the level and leans into the
+learner's goal. Existing users skip onboarding and can run it from **/profile →
+retake placement**.
+
+---
+
+## Learning surfaces
+
+- **Lessons** — conversation units (chunks-first) + phonics contrast sets, staged
+  Learn → Ear → Words → Sentences, SRS-ordered (`lib/srs.ts`). Scoring adapts to
+  recent performance (`lib/adaptive.ts`, "auto" difficulty).
+- **/talk** — live AI conversation as Joel (level- and goal-adaptive, weaves in
+  weak words). **The moat.**
+- **Pronunciation scoring** — Web Speech (desktop) or record-and-transcribe
+  (iOS); phoneme-level accuracy via **Azure** when configured (`/api/assess`).
+- **/radio, /shadow, /duet, /listen, /build, /play** — passive listening,
+  shadowing, roleplay, ear-training, sentence-building, speed rounds.
+- **/media** — official educational video + music practice ("watch → catch →
+  say → use"); no copyrighted content is downloaded or rehosted.
+- **Game layer** — XP/levels/streaks, stars, a shop with cosmetics + pets, daily
+  chest, quests. Voice throughout is mostly **Joel's cloned voice** with an
+  American cast mixed in.
+
+---
+
+## Analytics & insights
+
+Privacy-respecting event logging (`lib/analytics.ts`, ids/numbers only) —
+local-first with a best-effort per-user cloud mirror (needs `events.sql`).
+Funnel: `app_open`, `lesson_start/complete/abandon`, `mode_open`. Rollups
+(`lib/insights.ts`, tested): active days, pass rate, score trend, completion
+rate, top modes — surfaced on the instructor **/dashboard**.
+
+---
+
+## Audio generation
+
+The "Listen" model is **Joel's cloned ElevenLabs voice**, pre-generated to static
+MP3s in `public/audio/` (offline-safe, every browser). After editing the
+curriculum:
+
+```bash
+# needs ELEVENLABS_API_KEY in .env.local
+node scripts/generate-audio.mjs          # English/cast clips (skips existing)
+node scripts/generate-es-audio.mjs       # Spanish meaning clips (Lisa voice)
+```
+
+These rewrite `lib/content/*-audio-manifest.ts`, which the player checks to pick
+Joel's voice vs the browser fallback. Note: relative imports in Node scripts use
+explicit `.ts` extensions (`allowImportingTsExtensions` in tsconfig).
+
+---
+
+## Deploying to Vercel
+
+Git-connected: **push to `main` auto-builds and deploys to production.** For a
+first-time or config change:
+
+1. Set all env vars above in the Vercel project (Production + Preview).
+2. Ensure Deployment Protection is off for public access.
+3. Apply the Supabase SQL migrations (order above). Apply the strict RLS
+   (`migration-v2-multiuser.sql`) **after** the account-binding build is live.
+4. `git push origin main` → Vercel builds (Turbopack) and deploys.
+5. Verify: root 200, `/api/assess` `{enabled:true}`, `/api/chat` (no auth) → 401.
+
+Commits are authored `46899218+joel2020@users.noreply.github.com` so Vercel can
+associate the committer (otherwise deploys block with `COMMIT_AUTHOR_REQUIRED`).
 
 ---
 
 ## Architecture
 
 ```
-app/                     Next.js App Router pages (home, lesson, review, dashboard, instructor)
+app/                 App Router pages + API routes (chat, tts, assess, transcribe, news, push)
 components/
-  practice/              The core loop: listen, distinguish, produce, session orchestration
-  ui/                    shadcn/ui primitives
-  ...                    lesson list, dashboard, instructor panels, header
+  auth-gate, login-screen, profile-binder, onboarding-flow, insights-panel
+  practice/          the core loop (listen, distinguish, produce, session)
 lib/
-  db/                    Data layer (see "Swapping to Supabase" below)
-    types.ts             Backend-agnostic domain types
-    repository.ts        DataRepository interface — the single contract
-    dexie.ts             IndexedDB schema (the only Dexie-aware file)
-    dexie-repository.ts  Local-first implementation
-    index.ts            <- the swap point: `export const repo = new DexieRepository()`
-  content/               Curriculum data (categories + lessons)
-  speech/                Web Speech API wrappers: synthesis, recognition, scoring, support
-  srs.ts                 Leitner spaced-repetition logic
-  practice.ts            Ties scoring + SRS + persistence together for one attempt
-  hooks/                 Reactive read hooks + settings provider
-types/speech.d.ts        Ambient types for SpeechRecognition (not in TS's DOM lib)
+  db/                DataRepository interface + Dexie impl + Supabase client + types
+  sync/              cloud-authoritative sync (restore/hydrate), durability
+  hooks/             useAuth, useSettings, usePlayer, useData
+  content/           curriculum (conversation, phonics, placement questions, es glosses)
+  placement.ts, onboarding.ts   CEFR engine + level/goal plan
+  adaptive.ts, srs.ts, practice.ts, gamification.ts   learning + game logic
+  analytics.ts, insights.ts     instrumentation
+  allowlist.ts, api-guard.ts, auth-server.ts, auth-client.ts   access control
+supabase/            SQL: schema + migrations (see Database section)
 ```
 
-**Design principle:** components never touch the database directly. They go through the `DataRepository` interface (writes) and the hooks in `lib/hooks/useData.ts` (reactive reads). The data layer is the only thing that knows storage exists.
-
-### Swapping to Supabase later (cross-device sync)
-
-The whole point of the abstraction: moving off local-first is a contained change.
-
-1. Build a `SupabaseRepository` that implements the same `DataRepository` interface (`lib/db/repository.ts`).
-2. Change one line in `lib/db/index.ts`:
-   ```ts
-   export const repo: DataRepository = new SupabaseRepository(client);
-   ```
-3. Reimplement the reactive hooks in `lib/hooks/useData.ts` with Supabase realtime or polling.
-
-No component, no page, and no curriculum code changes. The domain types in `lib/db/types.ts` map cleanly to SQL tables (`attempts`, `progress`, `custom_lessons`, `settings`).
+**Principle:** components never touch the database directly — they go through the
+`DataRepository` interface (writes) and reactive hooks (reads). Auth and the paid
+API routes are protected in depth (origin + rate limit + session + allowlist).
 
 ---
 
 ## Tech stack
 
-- **Next.js (App Router)** + **TypeScript**
-- **Tailwind CSS v4** + **shadcn/ui** (base-ui)
-- **Dexie** (IndexedDB) for local-first persistence
-- **Web Speech API** for playback and recognition
-- Deployable to **Vercel** out of the box
-
----
-
-## Deploying to Vercel
-
-```bash
-npm i -g vercel
-vercel
-```
-
-It's a standard Next.js app with no server-side secrets, so it deploys with zero configuration. Recognition requires **HTTPS** (Vercel provides it automatically) and a microphone-permission grant.
-
----
-
-## Notes for the instructor
-
-- Flip **Instructor** on (top-right) to reach the builder and the attempts feed.
-- The attempts feed shows you her real misses — including when the recognizer heard the *wrong* minimal-pair word — so you know exactly what to drill live.
-- Add a quick custom mini-lesson for vocabulary that's relevant to her week; it'll resurface on the same spaced-repetition schedule.
-- All data lives in *her* browser. "Reset data" (Instructor → Voice & audio) wipes it. Cross-device sync is the Supabase upgrade described above.
+Next.js 16 (App Router, Turbopack) · TypeScript · Tailwind v4 · Dexie
+(IndexedDB, local cache) · **Supabase** (Auth + Postgres + RLS, source of truth)
+· OpenAI (gpt-4o-mini + gpt-image-1) · ElevenLabs (voice) · Azure AI Speech
+(phoneme scoring) · Web Push · deployed on **Vercel**.
