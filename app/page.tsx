@@ -27,6 +27,7 @@ import { DailyQuests } from "@/components/daily-quests";
 import { LumiDepth } from "@/components/lumi-depth";
 import { EffectLayer } from "@/components/lumi-scene";
 import { SceneArt } from "@/components/scene-art";
+import { SceneVideo } from "@/components/scene-video";
 import { InstallNudge } from "@/components/install-nudge";
 import { PetSprite } from "@/components/pet-sprite";
 import { AmbientStars } from "@/components/juice";
@@ -75,7 +76,13 @@ export default function HomePage() {
         style={bg?.background ? { background: bg.background } : undefined}
       >
         <div className="flag-bar absolute inset-x-0 top-0 z-20 h-[3px]" aria-hidden />
-        {bg && <SceneArt bgId={bg.id} />}
+        {/* Default stage → the cinematic Medellín loop; purchased backgrounds
+            keep their hand-built SVG scene. */}
+        {bg?.background ? (
+          <SceneArt bgId={bg.id} />
+        ) : (
+          <SceneVideo base="/scenes/bg-home-medellin-16x9" className="absolute inset-0 h-full w-full object-cover" />
+        )}
         <AmbientStars />
         {effect?.effect && <EffectLayer kind={effect.effect} />}
         {/* Text-protection scrim: keeps the greeting readable over ANY equipped
