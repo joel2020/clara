@@ -11,7 +11,7 @@ import { t, type StringKey } from "@/lib/i18n";
 // day, so the daily surfaces need to be a thumb-tap away. Shown only on hub
 // pages — practice flows (/lesson, /talk, rounds) stay immersive.
 
-const SHOW_ON = new Set(["/", "/today", "/map", "/shop", "/plan", "/dashboard", "/lessons", "/settings", "/mundo"]);
+const SHOW_ON = new Set(["/", "/today", "/map", "/shop", "/plan", "/dashboard", "/lessons", "/settings", "/mundo", "/profile"]);
 
 const ITEMS: { href: string; label: StringKey; icon: typeof Home }[] = [
   { href: "/", label: "navHome", icon: Home },

@@ -274,13 +274,21 @@ export default function SettingsPage() {
               </p>
               <p className="mt-1 truncate text-sm text-foreground/80">{user?.email ?? ""}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="shrink-0 rounded-full border border-hairline px-4 py-2 text-sm font-medium transition-colors hover:border-foreground/30"
-            >
-              {lang === "es" ? "Cerrar sesión" : "Sign out"}
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <a
+                href="/profile"
+                className="rounded-full border border-hairline px-4 py-2 text-sm font-medium transition-colors hover:border-primary/40"
+              >
+                {lang === "es" ? "Perfil" : "Profile"}
+              </a>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="rounded-full border border-hairline px-4 py-2 text-sm font-medium transition-colors hover:border-foreground/30"
+              >
+                {lang === "es" ? "Salir" : "Sign out"}
+              </button>
+            </div>
           </section>
         )}
 
