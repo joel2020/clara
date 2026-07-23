@@ -49,7 +49,7 @@ export function LoginScreen() {
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 py-10">
-      <div className="game-hero pointer-events-none absolute inset-0 opacity-70" aria-hidden />
+      <div className="hero-calm pointer-events-none absolute inset-0" aria-hidden />
       <div className="flag-bar absolute inset-x-0 top-0 h-[3px]" aria-hidden />
 
       <div className="relative z-10 w-full max-w-sm">
