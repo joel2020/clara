@@ -81,6 +81,10 @@ export async function hydrateFromCloud(profileId: string): Promise<{ settingsPat
     if (cloudSettings.speechRate != null) settingsPatch.speechRate = cloudSettings.speechRate;
     if (cloudSettings.voiceURI !== undefined) settingsPatch.voiceURI = cloudSettings.voiceURI ?? undefined;
     if (cloudSettings.recognitionLang != null) settingsPatch.recognitionLang = cloudSettings.recognitionLang;
+    // Identity + placement restore: what keeps a returning learner from being
+    // re-onboarded as brand new on a fresh device/origin.
+    if (cloudSettings.studentName) settingsPatch.studentName = cloudSettings.studentName;
+    if (cloudSettings.onboarding) settingsPatch.onboarding = cloudSettings.onboarding;
   }
   return { settingsPatch };
 }

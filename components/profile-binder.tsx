@@ -23,16 +23,20 @@ export function ProfileBinder() {
     done.current = true;
 
     void (async () => {
-      const name = settings.studentName?.trim() || user.email?.split("@")[0] || "Clara";
-      // The account IS the profile now.
-      await update({ profileId: user.id, studentName: name });
-      await ensureProfile({ id: user.id, name, coachLanguage: settings.coachLanguage }).catch(() => {});
-      // Cloud is the source of truth: pull the account's consolidated data down.
-      try {
-        await hydrateFromCloud(user.id);
-      } catch {
-        /* offline — the local cache stands in until next launch */
-      }
+      // Cloud is the source of truth. Pull the account's consolidated data first
+      // (this also seeds player/progress into Dexie) and APPLY its settings —
+      // including the restored name and onboarding/placement — so a returning
+      // learner on a fresh device/origin isn't treated as brand new.
+      const cloud = await hydrateFromCloud(user.id).catch(() => null);
+      const patch = cloud?.settingsPatch ?? {};
+      const name =
+        patch.studentName?.trim() ||
+        settings.studentName?.trim() ||
+        user.email?.split("@")[0] ||
+        "Clara";
+      // The account IS the profile now; cloud values win over local/email defaults.
+      await update({ ...patch, profileId: user.id, studentName: name });
+      await ensureProfile({ id: user.id, name, coachLanguage: patch.coachLanguage ?? settings.coachLanguage }).catch(() => {});
     })();
   }, [required, ready, session, user, settings.profileId, settings.studentName, settings.coachLanguage, update]);
 

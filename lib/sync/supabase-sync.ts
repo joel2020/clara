@@ -165,6 +165,10 @@ export function pushSettings(profileId: string, s: Settings): void {
         speech_rate: s.speechRate,
         voice_uri: s.voiceURI ?? null,
         recognition_lang: s.recognitionLang,
+        // Persist identity + placement so a fresh device restores them instead
+        // of re-running onboarding as if she were brand new.
+        student_name: s.studentName ?? null,
+        onboarding: s.onboarding ?? null,
         updated_at: Date.now(),
       },
       { onConflict: "profile_id" },
@@ -192,6 +196,8 @@ export interface PulledSettings {
   speechRate?: number;
   voiceURI?: string | null;
   recognitionLang?: string;
+  studentName?: string;
+  onboarding?: Settings["onboarding"];
 }
 
 export async function pullSettings(profileId: string): Promise<PulledSettings | null> {
@@ -199,7 +205,7 @@ export async function pullSettings(profileId: string): Promise<PulledSettings | 
   if (!sb) return null;
   const { data } = await sb
     .from("settings")
-    .select("daily_goal,speech_rate,voice_uri,recognition_lang")
+    .select("daily_goal,speech_rate,voice_uri,recognition_lang,student_name,onboarding")
     .eq("profile_id", profileId)
     .maybeSingle();
   if (!data) return null;
@@ -208,6 +214,8 @@ export async function pullSettings(profileId: string): Promise<PulledSettings | 
     speechRate: data.speech_rate ?? undefined,
     voiceURI: data.voice_uri ?? undefined,
     recognitionLang: data.recognition_lang ?? undefined,
+    studentName: data.student_name ?? undefined,
+    onboarding: (data.onboarding as Settings["onboarding"]) ?? undefined,
   };
 }
 
