@@ -192,6 +192,28 @@ export function OnboardingFlow() {
     window.location.href = "/today";
   };
 
+  // Skip the adaptive test: complete onboarding using the self-assessed level so
+  // it PERSISTS and never nags again — she can retake real placement any time
+  // from /profile. Without this, onboarding only saved at the end of the full
+  // quiz, so an unfinished quiz meant being re-onboarded on every login.
+  const skipTest = async () => {
+    if (!goal || !self) return;
+    const level: Level = difficultyToLevel(startDifficulty(self));
+    const profile: OnboardingProfile = {
+      name: name.trim() || settings.studentName || "Clara",
+      country: country.trim() || "Colombia",
+      city: city.trim() || "Medellín",
+      goal,
+      dailyMinutes: minutes,
+      selfLevel: self,
+      level,
+      completedAt: Date.now(),
+    };
+    sfx.finish?.();
+    await update({ studentName: profile.name, onboarding: profile, dailyGoal: minutes === 10 ? 20 : minutes === 20 ? 40 : 60 });
+    window.location.href = "/today";
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
       <div className="hero-calm pointer-events-none absolute inset-0" aria-hidden />
@@ -275,6 +297,14 @@ export function OnboardingFlow() {
             </div>
             <Primary disabled={!self} onClick={beginTest}>Hacer la prueba rápida</Primary>
             <p className="mt-3 text-center text-xs text-muted-foreground">Toma 2–3 min y se ajusta a ti.</p>
+            <button
+              type="button"
+              disabled={!self}
+              onClick={skipTest}
+              className="mt-4 block w-full text-center text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground disabled:opacity-40"
+            >
+              Saltar la prueba y empezar
+            </button>
           </Card>
         )}
 
