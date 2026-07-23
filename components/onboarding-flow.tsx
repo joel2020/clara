@@ -15,6 +15,47 @@ import {
 } from "@/lib/placement";
 import { GOALS, type Goal, type DailyMinutes, firstWeekPlan, levelBlurbEs, type OnboardingProfile } from "@/lib/onboarding";
 import { PLACEMENT_BANK, pickQuestion, type PlacementQ } from "@/lib/content/placement-questions";
+import { authHeaders } from "@/lib/auth-client";
+
+// Fisher–Yates: return a shuffled copy (never mutate the shared question bank).
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Speak a listening prompt in Joel's real (ElevenLabs) voice via /api/tts,
+// falling back to browser speech only if the request fails so an item is never
+// silent. Reuses the audio element across calls.
+async function playJoelVoice(text: string, audioRef: React.MutableRefObject<HTMLAudioElement | null>) {
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error("tts");
+    const url = URL.createObjectURL(await res.blob());
+    let el = audioRef.current;
+    if (!el) {
+      el = new Audio();
+      audioRef.current = el;
+    }
+    el.src = url;
+    el.onended = () => URL.revokeObjectURL(url);
+    await el.play().catch(() => {});
+  } catch {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US";
+    u.rate = 0.95;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+}
 
 // Premium adaptive onboarding, in Colombian Spanish. Collects who she is and what
 // she's after, then runs a short adaptive English check that gets harder or
@@ -92,7 +133,8 @@ export function OnboardingFlow() {
       const q = pickQuestion(skill, difficulty.current, usedIds.current);
       if (q) {
         usedIds.current.add(q.id);
-        setCurrent(q);
+        // Shuffle so the correct choice isn't always the first option.
+        setCurrent({ ...q, options: shuffle(q.options) });
         setPicked(null);
         return;
       }
@@ -256,15 +298,12 @@ export function OnboardingFlow() {
 
 // ── the adaptive question card ──
 function TestCard({ q, picked, onAnswer, index }: { q: PlacementQ; picked: number | null; onAnswer: (i: number) => void; index: number }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const speak = () => {
-    if (!q.speak || typeof window === "undefined" || !window.speechSynthesis) return;
-    const u = new SpeechSynthesisUtterance(q.speak);
-    u.lang = "en-US";
-    u.rate = 0.95;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+    if (!q.speak) return;
+    void playJoelVoice(q.speak, audioRef);
   };
-  // auto-play listening items when they appear
+  // auto-play listening items in Joel's voice when they appear
   useEffect(() => { if (q.kind === "listen") speak(); // eslint-disable-next-line
   }, [q.id]);
 
