@@ -186,6 +186,7 @@ export const COSMETICS: Cosmetic[] = [
 
   // ── Outfits (Lumi's look — a full pose set per outfit) ──
   { id: "outfit-default", type: "outfit", name: { es: "Clásico", en: "Classic" }, cost: 0, free: true, outfit: "/character/lumi" },
+  { id: "outfit-rosa", type: "outfit", name: { es: "Rosa acogedor", en: "Cozy pink" }, cost: 120, outfit: "/character/outfits/rosa" },
 
   // ── Accessories (props near Lumi) ──
   { id: "acc-none", type: "accessory", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
