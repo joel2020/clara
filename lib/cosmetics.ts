@@ -7,7 +7,7 @@ import type { PlayerStats } from "@/lib/db/types";
 // here is cosmetic (backgrounds, props, ambient effects) and rendered in-app, so
 // it costs nothing to run and can grow freely.
 
-export type CosmeticType = "background" | "accessory" | "effect" | "pet";
+export type CosmeticType = "background" | "accessory" | "effect" | "pet" | "outfit";
 export type EffectKind =
   | "hearts"
   | "petals"
@@ -42,6 +42,10 @@ export interface Cosmetic {
   /** For premium animated backgrounds: a <SceneVideo> base path (a cinematic
    *  loop plays as the stage, with the poster still as the fallback). */
   video?: string;
+  /** For outfits: the art base path for Lumi's pose set, e.g.
+   *  "/character/outfits/rosa" → rosa.png (idle/wave), rosa-cheer.png, etc.
+   *  The shared depth map is reused (every outfit has the same silhouette). */
+  outfit?: string;
 }
 
 export const COSMETICS: Cosmetic[] = [
@@ -180,6 +184,9 @@ export const COSMETICS: Cosmetic[] = [
     video: "/scenes/loop-citywalk-9x16",
   },
 
+  // ── Outfits (Lumi's look — a full pose set per outfit) ──
+  { id: "outfit-default", type: "outfit", name: { es: "Clásico", en: "Classic" }, cost: 0, free: true, outfit: "/character/lumi" },
+
   // ── Accessories (props near Lumi) ──
   { id: "acc-none", type: "accessory", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
   { id: "acc-flower", type: "accessory", name: { es: "Flor", en: "Flower" }, cost: 15, emoji: "🌸" },
@@ -271,14 +278,23 @@ export function isOwned(player: Pick<PlayerStats, "ownedCosmetics">, id: string)
 }
 
 /** The equipped-slot field name for a cosmetic type. */
-function slotFor(type: CosmeticType): "equippedBg" | "equippedAccessory" | "equippedEffect" | "equippedPet" {
+function slotFor(type: CosmeticType): "equippedBg" | "equippedAccessory" | "equippedEffect" | "equippedPet" | "equippedOutfit" {
   return type === "background"
     ? "equippedBg"
     : type === "accessory"
       ? "equippedAccessory"
       : type === "pet"
         ? "equippedPet"
-        : "equippedEffect";
+        : type === "outfit"
+          ? "equippedOutfit"
+          : "equippedEffect";
+}
+
+/** The art base path for the outfit Lumi is currently wearing (default = her
+ *  signature look). Every Lumi render resolves her pose art from this base. */
+export function equippedOutfitBase(player: Pick<PlayerStats, "equippedOutfit"> | null | undefined): string {
+  const c = getCosmetic(player?.equippedOutfit ?? "outfit-default");
+  return c?.outfit ?? "/character/lumi";
 }
 
 export interface BuyResult {

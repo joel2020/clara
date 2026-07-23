@@ -224,6 +224,7 @@ const STRINGS = {
   installTitle: { es: "Instala Clara en tu iPhone", en: "Install Clara on your iPhone" },
   installBody: { es: "Toca Compartir y luego “Agregar a inicio”. Así tu progreso queda protegido y te llegan los recordatorios.", en: "Tap Share, then “Add to Home Screen”. That protects your progress and enables reminders." },
   installDismiss: { es: "Ahora no", en: "Not now" },
+  shopOutfits: { es: "Looks de Lumi", en: "Lumi's looks" },
   shopBackgrounds: { es: "Fondos", en: "Backgrounds" },
   shopAccessories: { es: "Accesorios", en: "Accessories" },
   shopEffects: { es: "Efectos", en: "Effects" },

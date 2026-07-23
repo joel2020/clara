@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { usePlayer } from "@/lib/hooks/usePlayer";
+import { equippedOutfitBase } from "@/lib/cosmetics";
 
 // A real-time "3D photo" of Lumi: her flat artwork gains volume by displacing
 // pixels in a WebGL shader according to a depth map, so she parallaxes and
@@ -68,7 +70,7 @@ function loadTexture(gl: WebGLRenderingContext, url: string): Promise<WebGLTextu
 }
 
 export function LumiDepth({
-  color = "/character/lumi.png",
+  color,
   depth = "/character/lumi-depth.png",
   amp = 0.05,
   className,
@@ -82,6 +84,10 @@ export function LumiDepth({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [failed, setFailed] = useState(false);
+  // Front art follows the equipped outfit; the depth map is shared (same
+  // silhouette across outfits). An explicit `color` still overrides.
+  const player = usePlayer();
+  const resolvedColor = color ?? `${equippedOutfitBase(player)}.png`;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -135,7 +141,7 @@ export function LumiDepth({
         gl.enableVertexAttribArray(aPos);
         gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-        const [colorTex, depthTex] = await Promise.all([loadTexture(gl, color), loadTexture(gl, depth)]);
+        const [colorTex, depthTex] = await Promise.all([loadTexture(gl, resolvedColor), loadTexture(gl, depth)]);
         if (disposed) return;
 
         gl.activeTexture(gl.TEXTURE0);
@@ -193,13 +199,13 @@ export function LumiDepth({
       window.removeEventListener("pointermove", onPointer);
       window.removeEventListener("deviceorientation", onOrient);
     };
-  }, [color, depth, amp]);
+  }, [resolvedColor, depth, amp]);
 
   if (failed) {
     return (
       <div className={cn("relative h-full w-full select-none", className)}>
         <Image
-          src={color}
+          src={resolvedColor}
           alt="Lumi, tu amiga de estudio"
           fill
           sizes="(max-width: 640px) 45vw, 320px"

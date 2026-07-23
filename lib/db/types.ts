@@ -194,6 +194,8 @@ export interface PlayerStats {
   equippedEffect: string;
   /** Her companion pet on Lumi's stage (pet-none = no pet). */
   equippedPet?: string;
+  /** The outfit Lumi is wearing (outfit-default = her signature look). */
+  equippedOutfit?: string;
   /** Local day the daily reward chest was last opened (null = never). */
   lastChestDay: string | null;
   /** Streak "freezes" banked — one covers a single missed day so the streak survives. */

@@ -42,7 +42,9 @@ export default function ShopPage() {
         ? player.equippedAccessory
         : type === "pet"
           ? (player.equippedPet ?? "pet-none")
-          : player.equippedEffect;
+          : type === "outfit"
+            ? (player.equippedOutfit ?? "outfit-default")
+            : player.equippedEffect;
 
   const onTap = async (c: Cosmetic) => {
     const owned = isOwned(player, c.id);
@@ -136,7 +138,7 @@ export default function ShopPage() {
       </div>
 
       {/* Cosmetic sections */}
-      {(["pet", "background", "accessory", "effect"] as CosmeticType[]).map((type) => (
+      {(["outfit", "pet", "background", "accessory", "effect"] as CosmeticType[]).map((type) => (
         <section key={type} className="mt-10">
           <h2 className="border-b border-hairline pb-3 font-display text-sm font-semibold uppercase tracking-[0.16em]">
             {t(
@@ -146,7 +148,9 @@ export default function ShopPage() {
                   ? "shopAccessories"
                   : type === "pet"
                     ? "shopPets"
-                    : "shopEffects",
+                    : type === "outfit"
+                      ? "shopOutfits"
+                      : "shopEffects",
               lang,
             )}
           </h2>
@@ -223,6 +227,14 @@ function Swatch({ cosmetic }: { cosmetic: Cosmetic }) {
         ) : (
           <SceneArt bgId={cosmetic.id} />
         )}
+      </div>
+    );
+  }
+  if (cosmetic.type === "outfit" && cosmetic.outfit) {
+    return (
+      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`${cosmetic.outfit}.png`} alt="" className="shop-figure h-16 w-auto object-contain drop-shadow-[0_6px_8px_rgba(0,0,0,0.22)]" />
       </div>
     );
   }

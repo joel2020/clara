@@ -2,24 +2,28 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { usePlayer } from "@/lib/hooks/usePlayer";
+import { equippedOutfitBase } from "@/lib/cosmetics";
 
-// Lumi — the app's anime study-buddy character. Three real illustrations
-// (same girl, generated from the same reference): waving, mid-jump cheering,
-// and thinking with a hand on her chin. Moods map to artwork; animation and
-// framing layer on top. `full` shows the whole sticker; `bust` crops to her
-// face for reaction moments (result card, etc.).
+// Lumi — the app's anime study-buddy character. A set of real illustrations
+// (same girl): waving, cheering, thinking, and more. Moods map to artwork;
+// animation and framing layer on top. `full` shows the whole figure; `bust`
+// crops to her face for reaction moments. Her outfit is swappable in the shop —
+// each outfit is a full pose set under its own art base (see cosmetics.ts).
 
 export type LumiMood = "idle" | "wave" | "cheer" | "think" | "encourage" | "clap" | "point" | "love";
 
-const MOOD_ART: Record<LumiMood, string> = {
-  idle: "/character/lumi.png",
-  wave: "/character/lumi.png",
-  cheer: "/character/lumi-cheer.png",
-  think: "/character/lumi-think.png",
-  encourage: "/character/lumi-encourage.png",
-  clap: "/character/lumi-clap.png",
-  point: "/character/lumi-point.png",
-  love: "/character/lumi-love.png",
+// Per-mood filename suffix appended to the outfit's art base
+// (base "/character/lumi" → "/character/lumi-cheer.png"; idle/wave = the base).
+export const MOOD_SUFFIX: Record<LumiMood, string> = {
+  idle: "",
+  wave: "",
+  cheer: "-cheer",
+  think: "-think",
+  encourage: "-encourage",
+  clap: "-clap",
+  point: "-point",
+  love: "-love",
 };
 
 export function Lumi({
@@ -28,6 +32,7 @@ export function Lumi({
   className,
   priority,
   depth,
+  outfit,
 }: {
   mood?: LumiMood;
   frame?: "full" | "bust";
@@ -36,7 +41,14 @@ export function Lumi({
   /** Full-frame only: a gentle perspective sway + ground shadow so she reads
    *  as a standing figure on a stage rather than a flat sticker. */
   depth?: boolean;
+  /** Art base override (e.g. a shop preview). Defaults to the equipped outfit. */
+  outfit?: string;
 }) {
+  // Resolve her current look: an explicit override, else the equipped outfit.
+  const player = usePlayer();
+  const base = outfit ?? equippedOutfitBase(player);
+  const art = `${base}${MOOD_SUFFIX[mood]}.png`;
+
   if (frame === "bust") {
     return (
       <div
@@ -49,7 +61,7 @@ export function Lumi({
         {/* soft candy backdrop behind her */}
         <div className="absolute inset-0 game-hero" aria-hidden />
         <Image
-          src={MOOD_ART[mood]}
+          src={art}
           alt="Lumi"
           fill
           sizes="160px"
@@ -78,7 +90,7 @@ export function Lumi({
         <span className="lumi-shadow" aria-hidden />
         <div className={cn("lumi-3d absolute inset-0", mood === "cheer" ? "animate-cheer" : "")}>
           <Image
-            src={MOOD_ART[mood]}
+            src={art}
             alt="Lumi, tu amiga de estudio"
             fill
             sizes="(max-width: 640px) 45vw, 320px"
@@ -93,7 +105,7 @@ export function Lumi({
   return (
     <div className={cn("relative h-full w-full select-none", mood !== "cheer" && "animate-float", mood === "cheer" && "animate-cheer", className)}>
       <Image
-        src={MOOD_ART[mood]}
+        src={art}
         alt="Lumi, tu amiga de estudio"
         fill
         sizes="(max-width: 640px) 45vw, 320px"
