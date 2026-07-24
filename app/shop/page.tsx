@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Star, Gift, Check, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SectionHeader } from "@/components/ui/section-header";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
@@ -140,8 +141,9 @@ export default function ShopPage() {
       {/* Cosmetic sections */}
       {(["outfit", "pet", "background", "accessory", "effect"] as CosmeticType[]).map((type) => (
         <section key={type} className="mt-10">
-          <h2 className="border-b border-hairline pb-3 font-display text-sm font-semibold uppercase tracking-[0.16em]">
-            {t(
+          <SectionHeader
+            bordered
+            label={t(
               type === "background"
                 ? "shopBackgrounds"
                 : type === "accessory"
@@ -153,7 +155,7 @@ export default function ShopPage() {
                       : "shopEffects",
               lang,
             )}
-          </h2>
+          />
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {cosmeticsByType(type).map((c) => {
               const owned = isOwned(player, c.id);

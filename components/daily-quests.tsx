@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useTodayQuests } from "@/lib/hooks/useData";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { QUESTS, questTarget, allQuestsDone, type QuestKind } from "@/lib/quests";
+import { SectionHeader } from "@/components/ui/section-header";
 import { t, type StringKey } from "@/lib/i18n";
 
 // Three tiny daily missions. Consistency is the biggest driver of getting to
@@ -28,10 +29,7 @@ export function DailyQuests() {
   return (
     <section className="rounded-2xl border border-hairline bg-card p-5">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em]">{t("questsTitle", lang)}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t("questsSub", lang)}</p>
-        </div>
+        <SectionHeader label={t("questsTitle", lang)} sub={t("questsSub", lang)} />
         {done && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
             <PartyPopper className="size-3.5" />

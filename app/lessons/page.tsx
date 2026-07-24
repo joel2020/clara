@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { LessonList } from "@/components/lesson-list";
+import { SectionHeader } from "@/components/ui/section-header";
 import { InstructorEntry } from "@/components/instructor-entry";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
@@ -26,22 +27,12 @@ export default function LessonsPage() {
       </h1>
 
       <section className="mt-8">
-        <div className="border-b border-hairline pb-4">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-foreground">
-            {t("trackConversation", lang)}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t("trackConversationSub", lang)}</p>
-        </div>
+        <SectionHeader label={t("trackConversation", lang)} sub={t("trackConversationSub", lang)} bordered />
         <LessonList track="conversation" />
       </section>
 
       <section className="mt-14">
-        <div className="border-b border-hairline pb-4">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-foreground">
-            {t("trackSounds", lang)}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">{t("trackSoundsSub", lang)}</p>
-        </div>
+        <SectionHeader label={t("trackSounds", lang)} sub={t("trackSoundsSub", lang)} bordered />
         <LessonList track="sounds" />
       </section>
 
