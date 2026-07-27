@@ -136,6 +136,7 @@ export class DexieRepository implements DataRepository {
 
   async saveTalkSession(session: Omit<TalkSession, "id">): Promise<void> {
     await db.talkSessions.add(session as TalkSession);
+    void this.mirror((profileId, sync) => sync.pushTalkSession(profileId, session as TalkSession));
   }
 
   /** Fire-and-forget cloud mirror, skipped when there is no profile or no env. */

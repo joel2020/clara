@@ -237,7 +237,10 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const completion = await brain.client.chat.completions.create({
       model: brain.model,
-      max_completion_tokens: 600,
+      // Raised from 600 for reasoning-capable models: on gpt-5.6-luna the internal
+      // reasoning tokens count against this ceiling, so a tight limit returns an
+      // empty reply rather than a short one. Costs nothing when unused.
+      max_completion_tokens: 2000,
       messages,
       response_format: {
         type: "json_schema",

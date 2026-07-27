@@ -1,7 +1,7 @@
 "use client";
 
 import { supabase, syncEnabled } from "@/lib/db/supabase";
-import type { Attempt, CallScore, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings } from "@/lib/db/types";
+import type { Attempt, CallScore, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession } from "@/lib/db/types";
 
 // The cloud-sync layer. The app writes to Dexie first (instant, offline); these
 // helpers mirror each profile's data to Supabase in the background and can pull
@@ -361,4 +361,41 @@ export async function pullExamsAndCalls(
       checks: r.checks ?? {},
     })),
   };
+}
+
+export function pushTalkSession(profileId: string, t: TalkSession): void {
+  const sb = supabase();
+  if (!ok() || !sb) return;
+  bg(
+    sb.from("talk_sessions").upsert(
+      {
+        profile_id: profileId,
+        scenario_id: t.scenarioId,
+        at: t.at,
+        duration_ms: t.durationMs,
+        student_turns: t.studentTurns,
+        avg_pause_ms: t.avgPauseMs,
+        completed: t.completed,
+      },
+      { onConflict: "profile_id,at", ignoreDuplicates: true },
+    ),
+  );
+}
+
+export async function pullTalkSessions(profileId: string): Promise<TalkSession[] | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const res = await sb
+    .from("talk_sessions")
+    .select("*")
+    .eq("profile_id", profileId)
+    .order("at", { ascending: false });
+  return (res.data ?? []).map((r) => ({
+    scenarioId: r.scenario_id,
+    at: Number(r.at),
+    durationMs: Number(r.duration_ms),
+    studentTurns: r.student_turns,
+    avgPauseMs: r.avg_pause_ms ?? null,
+    completed: r.completed,
+  }));
 }

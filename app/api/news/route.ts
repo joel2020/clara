@@ -70,7 +70,10 @@ export async function GET(): Promise<Response> {
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model: MODEL,
-      max_completion_tokens: 500,
+      // Also raised for reasoning-capable models — see app/api/chat/route.ts. A
+      // three-story rewrite needs far fewer than this, so the ceiling only ever
+      // matters as headroom for internal reasoning.
+      max_completion_tokens: 2000,
       messages: [
         {
           role: "system",
