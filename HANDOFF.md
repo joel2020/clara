@@ -28,27 +28,34 @@ SHIPPED AND LIVE:
 - Phase 1 complete: lib/paths.ts, lib/readiness.ts (score + 4 subskills + named
   blocker + provisional flag), onboarding path step, /profile switcher,
   components/readiness-card.tsx leading the home page.
-- Phase 2 partial: lib/exams.ts (eligibility at 80% band mastery, weighted
-  six-section scoring, one attempt per day, promotion) + the gate shown on the
-  readiness card as visible progress.
+- Phase 2 COMPLETE: /exam is live. lib/exams.ts (80% mastery unlocks a sitting,
+  weighted six sections, pass mark 70, one sitting per day, promotion),
+  lib/exam-compose.ts (sittings composed from existing curriculum so no new audio
+  is needed; seeded by day+level so a sitting is reproducible), app/api/grade
+  (LLM grader for retell + open response), Dexie v6 examAttempts.
 - Four Medellin outfits in the shop (jean, cargo, noche, feria; 28 poses).
 - Azure OpenAI resource clara-openai-eastus + deployment gpt-5.6-luna, wired
   env-gated in lib/ai/chat-client.ts.
-- Bug fix: weakest-item ranking treated a miss the same as a pass, which had been
-  inverting both the AI focus phrases and the radio playlist.
+- Bug fixes: weakest-item ranking treated a miss the same as a pass (it had been
+  inverting both the AI focus phrases and the radio playlist); reset() left
+  examAttempts and events behind.
 
-NEXT UP — Phase 2's remaining piece, the exam route itself:
-1. A Dexie store for exam attempts (bump the db version), recording day, score,
-   sections, and pass/fail, so canAttemptToday has data and readiness.provisional
-   can finally go false.
-2. /exam — six sections wired to primitives that already exist: read-aloud
-   (produce-panel), repeat (shadow-round), build (build-round), short answer
-   (listen-round), retell and open response (talk + Azure /api/assess). Timed, no
-   retry same day.
-3. On pass: promote settings.onboarding.level via levelUp and fire the existing
-   cinematic. On fail: name the weakest section and hand back the items to drill.
-Then Phase 3 (support-English + interview curriculum with ElevenLabs audio),
-Phase 4 (call simulator), Phase 5 (recruiter report).
+DO NOT "FIX" THESE — they are deliberate:
+- The exam writes no SRS progress (otherwise a sitting inflates the very mastery
+  percentage that unlocks the next sitting).
+- A failed mic capture scores zero (an exam cannot be dodged with a silent mic).
+- The readiness card says "Provisional" until an exam is passed.
+
+NEXT UP:
+- Phase 3: support-English + interview curriculum (8 units), authored like
+  lib/content/conversation-*.ts, with ElevenLabs audio via the existing scripts.
+  This is what unlocks the job path's content ordering.
+- Phase 4: call simulator — extend /talk so Joel plays an impatient American
+  customer, scored against a QA checklist (empathised, verified identity, read
+  digits back, closed).
+- Phase 5: recruiter report, emitted by a passed B2 exam on the job path.
+- Thread Azure's real FluencyScore onto Attempt and stop using pass rate as the
+  fluency proxy in lib/readiness.ts.
 
 TWO THINGS ONLY YOU CAN DO:
 1. Set AZURE_OPENAI_API_KEY. Until then prod deliberately still runs
@@ -69,8 +76,8 @@ through in Phase 2 and stop calling it a proxy. This is why the card shows
 "Provisional" until an exam is passed — do not remove that label before the exam
 route exists.
 
-TEST SUITE (135 checks, all green): placement 45, exams 28, weak-items 16,
-readiness 16, insights 13, chat-client 11, paths 6. Run the alias-free ones with
+TEST SUITE (159 checks, all green): placement 45, exams 28, exam-compose 24,
+weak-items 16, readiness 16, insights 13, chat-client 11, paths 6. Run the alias-free ones with
 `node lib/<x>.test.mjs`; those importing through "@/" need `npx tsx`.
 
 KEY CONSTRAINTS (do not violate):
@@ -86,5 +93,5 @@ KEY CONSTRAINTS (do not violate):
   "./paths.ts" extension so its tests run under bare node.
 - I don't want accounts created or passwords typed on my behalf.
 
-Start by reading clara-pronunciation-app.md, then build the exam route.
+Start by reading clara-pronunciation-app.md, then begin Phase 3.
 ```
