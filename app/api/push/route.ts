@@ -1,6 +1,6 @@
 // Push subscription management. The client subscribes via the service worker
-// and posts the subscription here; we store it in Supabase (permissive-RLS v1,
-// same posture as the rest of the schema). Env-gated twice: VAPID keys AND
+// and posts the subscription here; we store it in Supabase.
+// The table is locked to no client access, so this route uses the service role. Env-gated twice: VAPID keys AND
 // Supabase must be configured, otherwise the client hides the feature.
 
 import { createClient } from "@supabase/supabase-js";
@@ -9,7 +9,12 @@ export const runtime = "nodejs";
 
 function supa() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Service role, not the anon key. push_subscriptions is locked to no client
+  // access (its rows hold each device's push endpoint and crypto keys), so this
+  // trusted server route is the only thing that may read or write it. Falls back to
+  // the anon key so a deployment without the service role still reports
+  // enabled:false rather than throwing — but writes will correctly be refused.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: false } });
 }

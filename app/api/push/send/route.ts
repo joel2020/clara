@@ -61,7 +61,9 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Service role: push_subscriptions denies all client roles, and the cron sender
+  // must read every subscription to deliver reminders.
+  const anon = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
   if (!url || !anon || !pub || !priv) return Response.json({ error: "not_configured" }, { status: 503 });

@@ -61,6 +61,9 @@ export class DexieRepository implements DataRepository {
 
   async saveCustomLesson(lesson: Lesson): Promise<void> {
     await db.customLessons.put(lesson);
+    // pushCustomLesson existed but was never called, so instructor-authored lessons
+    // were silently device-only — the same class of gap as conv_items.
+    void this.mirror((_profileId, sync) => sync.pushCustomLesson(lesson));
   }
 
   async deleteCustomLesson(id: string): Promise<void> {
