@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAllAttempts, useAllProgress } from "@/lib/hooks/useData";
 import { computeReadiness, TARGET_SCORE, type SubskillKey } from "@/lib/readiness";
@@ -205,16 +206,20 @@ export function ReadinessCard() {
       {gate && gate.total > 0 && (
         <div className="mt-5 border-t border-hairline pt-4">
           {gate.eligible ? (
-            <p className="text-sm">
-              <span className="font-semibold text-primary">
-                {lang === "es" ? "Examen disponible" : "Exam available"}
-              </span>{" "}
-              <span className="text-muted-foreground">
-                {lang === "es"
-                  ? `— pásalo y subes a ${readiness.band === "C2" ? "C2" : "el siguiente nivel"}.`
-                  : "— pass it to move up a level."}
+            <Link
+              href="/exam"
+              className="flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-primary/[0.06] px-4 py-3 transition-colors hover:border-primary/70"
+            >
+              <span className="text-sm">
+                <span className="font-semibold text-primary">
+                  {lang === "es" ? "Examen disponible" : "Exam available"}
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  {lang === "es" ? "— pásalo y subes de nivel." : "— pass it to move up a level."}
+                </span>
               </span>
-            </p>
+              <span className="text-muted-foreground">&rarr;</span>
+            </Link>
           ) : (
             <>
               <div className="flex items-baseline justify-between gap-2 text-sm">
