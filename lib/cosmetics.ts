@@ -191,6 +191,12 @@ export const COSMETICS: Cosmetic[] = [
   { id: "outfit-verano", type: "outfit", name: { es: "Verano", en: "Summer" }, cost: 130, outfit: "/character/outfits/verano" },
   { id: "outfit-elegante", type: "outfit", name: { es: "Elegante", en: "Elegant" }, cost: 160, rarity: "legendary", outfit: "/character/outfits/elegante" },
   { id: "outfit-invierno", type: "outfit", name: { es: "Invierno", en: "Winter" }, cost: 160, rarity: "legendary", outfit: "/character/outfits/invierno" },
+  // Looks a paisa would actually wear — everyday street style through to the
+  // city's own August festival.
+  { id: "outfit-jean", type: "outfit", name: { es: "Jean y crop", en: "Jeans & crop top" }, cost: 130, outfit: "/character/outfits/jean" },
+  { id: "outfit-cargo", type: "outfit", name: { es: "Cargo urbano", en: "Urban cargo" }, cost: 140, outfit: "/character/outfits/cargo" },
+  { id: "outfit-noche", type: "outfit", name: { es: "Noche en Poblado", en: "Night in Poblado" }, cost: 180, rarity: "legendary", outfit: "/character/outfits/noche" },
+  { id: "outfit-feria", type: "outfit", name: { es: "Feria de las Flores", en: "Flower Festival" }, cost: 200, rarity: "legendary", outfit: "/character/outfits/feria" },
 
   // ── Accessories (props near Lumi) ──
   { id: "acc-none", type: "accessory", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },
