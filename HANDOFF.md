@@ -24,38 +24,45 @@ for existing students:
               Medellin BPO hiring bar; they screen with Versant-style tests)
   - general — climb to B2 plus hold a 10-minute unscripted chat without freezing
 
-SHIPPED AND LIVE:
-- Phase 1 complete: lib/paths.ts, lib/readiness.ts (score + 4 subskills + named
-  blocker + provisional flag), onboarding path step, /profile switcher,
-  components/readiness-card.tsx leading the home page.
-- Phase 2 COMPLETE: /exam is live. lib/exams.ts (80% mastery unlocks a sitting,
+ALL FIVE PHASES ARE SHIPPED AND LIVE:
+- Phase 1 — paths + readiness: lib/paths.ts, lib/readiness.ts, the onboarding path
+  step, the /profile switcher, components/readiness-card.tsx leading the home page.
+- Phase 2 — stage exams: /exam. lib/exams.ts (80% mastery unlocks a sitting,
   weighted six sections, pass mark 70, one sitting per day, promotion),
-  lib/exam-compose.ts (sittings composed from existing curriculum so no new audio
-  is needed; seeded by day+level so a sitting is reproducible), app/api/grade
-  (LLM grader for retell + open response), Dexie v6 examAttempts.
-- Four Medellin outfits in the shop (jean, cargo, noche, feria; 28 poses).
-- Azure OpenAI resource clara-openai-eastus + deployment gpt-5.6-luna, wired
-  env-gated in lib/ai/chat-client.ts.
-- Bug fixes: weakest-item ranking treated a miss the same as a pass (it had been
-  inverting both the AI focus phrases and the radio playlist); reset() left
-  examAttempts and events behind.
+  lib/exam-compose.ts (composed from existing curriculum so no new audio is needed;
+  seeded by day+level so a sitting is reproducible), app/api/grade (LLM grader for
+  the two open-ended sections), Dexie v6 examAttempts.
+- Phase 3 — support curriculum: lib/content/conversation-support.ts, 9 units and 90
+  phrases with Joel + full cast audio (630 clips) and 90 Spanish gloss clips.
+  pickNextLesson is path-aware, so the job path walks these first.
+- Phase 4 — call simulator: /call. Five personas from calm to furious, /api/chat
+  mode:"call" (customer, never a tutor), /api/call-score against the BPO QA rubric,
+  Dexie v7 callScores.
+- Phase 5 — recruiter report: /report, print-to-PDF, gated behind a passed exam.
+- Plus: four Medellin outfits, the Azure gpt-5.6-luna deployment (env-gated), and
+  three real bug fixes (weak-item ranking inversion, reset() leaks, and
+  computeReadiness never receiving examPassed so provisional could never clear).
 
 DO NOT "FIX" THESE — they are deliberate:
 - The exam writes no SRS progress (otherwise a sitting inflates the very mastery
   percentage that unlocks the next sitting).
 - A failed mic capture scores zero (an exam cannot be dodged with a silent mic).
-- The readiness card says "Provisional" until an exam is passed.
+- On a call, correction and practice are forced null server-side — a customer does
+  not teach.
+- The report shows nothing until an exam is passed, and never claims a band above
+  what was demonstrated.
+- The report has no "hours studied" figure because Clara does not measure time.
 
-NEXT UP:
-- Phase 3: support-English + interview curriculum (8 units), authored like
-  lib/content/conversation-*.ts, with ElevenLabs audio via the existing scripts.
-  This is what unlocks the job path's content ordering.
-- Phase 4: call simulator — extend /talk so Joel plays an impatient American
-  customer, scored against a QA checklist (empathised, verified identity, read
-  digits back, closed).
-- Phase 5: recruiter report, emitted by a passed B2 exam on the job path.
-- Thread Azure's real FluencyScore onto Attempt and stop using pass rate as the
-  fluency proxy in lib/readiness.ts.
+WHAT IS LEFT (in rough value order):
+1. Thread Azure's real FluencyScore onto Attempt and drop the pass-rate proxy in
+   lib/readiness.ts. This is the last "honest approximation" in the product.
+2. The general path's 10-minute conversation milestone is defined in the spec but not
+   implemented: /talk does not record session duration or turn counts yet.
+3. Cloud sync for examAttempts and callScores (both are local-only today, so a
+   device change loses them — progress and stars already sync).
+4. Real-device QA of /exam and /call on Mariana's iPhone. Neither has been through a
+   full run with a real microphone.
+5. Optionally surface support-track progress on /mundo.
 
 TWO THINGS ONLY YOU CAN DO:
 1. Set AZURE_OPENAI_API_KEY. Until then prod deliberately still runs
@@ -71,13 +78,12 @@ TWO THINGS ONLY YOU CAN DO:
    exams will chew through that. S0 is about $1/audio-hour.
 
 KNOWN HONEST GAP: readiness fluency is a PROXY (recent pass rate). Azure returns a
-real FluencyScore per attempt but nothing persists it on `Attempt`. Thread it
-through in Phase 2 and stop calling it a proxy. This is why the card shows
-"Provisional" until an exam is passed — do not remove that label before the exam
-route exists.
+real FluencyScore per attempt but nothing persists it on `Attempt`. That is item 1
+in WHAT IS LEFT, and until it is done the copy must not call it measured fluency.
 
-TEST SUITE (159 checks, all green): placement 45, exams 28, exam-compose 24,
-weak-items 16, readiness 16, insights 13, chat-client 11, paths 6. Run the alias-free ones with
+TEST SUITE (191 checks, all green): placement 45, exams 28, exam-compose 24,
+report 24, readiness 16, weak-items 16, insights 13, chat-client 11, today 8,
+paths 6. Run the alias-free ones with
 `node lib/<x>.test.mjs`; those importing through "@/" need `npx tsx`.
 
 KEY CONSTRAINTS (do not violate):
@@ -93,5 +99,5 @@ KEY CONSTRAINTS (do not violate):
   "./paths.ts" extension so its tests run under bare node.
 - I don't want accounts created or passwords typed on my behalf.
 
-Start by reading clara-pronunciation-app.md, then begin Phase 3.
+Start by reading clara-pronunciation-app.md, then pick from WHAT IS LEFT.
 ```
