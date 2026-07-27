@@ -32,6 +32,12 @@ export interface Readiness {
   subskills: Subskill[];
   /** The single lowest subskill below target — the one thing to work on. */
   blocker: SubskillKey | null;
+  /**
+   * True when fluency came from Azure's measured FluencyScore rather than the
+   * pass-rate proxy. The UI must not describe fluency as measured when this is
+   * false — on Web Speech there is nothing measuring it.
+   */
+  fluencyMeasured: boolean;
   /** True until a stage exam has actually been passed at this band. */
   provisional: boolean;
 }
@@ -76,12 +82,16 @@ export function computeReadiness(input: ReadinessInput): Readiness {
   // Intelligibility — how accurately her recent speech was recognised.
   const intelligibility = clamp(mean(recent.map((a) => a.score)));
 
-  // Fluency — recent pass rate. This is a proxy: Azure returns a real
-  // FluencyScore per attempt, but it is not persisted on Attempt yet, so this
-  // stands in until Phase 2 threads it through. Do not present it as measured
-  // fluency in copy while it is still a proxy.
+  // Fluency — Azure's measured FluencyScore when the acoustic path ran, which is
+  // the real thing. Attempts recorded through Web Speech carry no fluency at all,
+  // so they are excluded rather than counted as zero; only if NONE of her recent
+  // attempts were measured do we fall back to the pass-rate proxy.
+  const measured = recent.filter((a) => typeof a.fluency === "number");
+  const fluencyMeasured = measured.length > 0;
   const passRate = recent.length ? recent.filter((a) => a.passed).length / recent.length : 0;
-  const fluency = clamp(passRate * 100);
+  const fluency = fluencyMeasured
+    ? clamp(mean(measured.map((a) => a.fluency as number)))
+    : clamp(passRate * 100);
 
   // Listening — the share of what she has touched that reached mastery.
   const listening = clamp(practised.length ? (practised.filter(isMastered).length / practised.length) * 100 : 0);
@@ -105,5 +115,5 @@ export function computeReadiness(input: ReadinessInput): Readiness {
   const lowest = subskills.reduce((a, b) => (b.score < a.score ? b : a));
   const blocker = score > 0 && !lowest.atTarget ? lowest.key : null;
 
-  return { score, band, target: TARGET_SCORE, subskills, blocker, provisional: !examPassed };
+  return { score, band, target: TARGET_SCORE, subskills, blocker, provisional: !examPassed, fluencyMeasured };
 }

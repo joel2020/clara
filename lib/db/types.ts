@@ -86,6 +86,12 @@ export interface Attempt {
   passed: boolean;
   /** True when the recognizer heard the minimal-pair partner instead. */
   heardPartner?: boolean;
+  /**
+   * Azure's measured FluencyScore (0-100) for this attempt, when the acoustic path
+   * ran. Absent on Web Speech attempts, which cannot measure fluency at all — so
+   * consumers must treat absence as "unknown", never as zero.
+   */
+  fluency?: number;
   at: number; // epoch ms
 }
 

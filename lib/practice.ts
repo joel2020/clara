@@ -66,6 +66,9 @@ export async function recordPracticeAttempt(args: {
     score: result.score,
     passed: result.passed,
     heardPartner: result.heardPartner,
+    // Only present on the Azure path; left undefined rather than 0 so readiness can
+    // tell "not measured" from "measured badly".
+    fluency: assessment?.fluencyScore,
     at: now,
   };
   await repo.recordAttempt(attempt);

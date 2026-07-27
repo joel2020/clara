@@ -79,6 +79,7 @@ export function pushAttempt(profileId: string, a: Attempt): void {
       score: a.score,
       passed: a.passed,
       heard_partner: a.heardPartner ?? false,
+      fluency: a.fluency ?? null,
       at: a.at,
     }),
   );
@@ -240,6 +241,7 @@ export async function pullProfileData(profileId: string): Promise<PulledData | n
     passed: r.passed,
     heardPartner: r.heard_partner,
     at: r.at,
+    fluency: r.fluency ?? undefined,
   }));
 
   const progress: ItemProgress[] = (progressRes.data ?? []).map((r) => ({

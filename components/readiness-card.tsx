@@ -182,6 +182,14 @@ export function ReadinessCard() {
               <div className="flex items-baseline justify-between gap-2 text-sm">
                 <span className="flex flex-wrap items-baseline gap-2">
                   {LABELS[s.key][lang]}
+                  {/* Says so when fluency is still the pass-rate proxy: on Web
+                      Speech nothing measures it, and claiming otherwise would be
+                      the one dishonest number on the card. */}
+                  {s.key === "fluency" && !readiness.fluencyMeasured && (
+                    <span className="text-[11px] text-muted-foreground">
+                      {lang === "es" ? "(estimada)" : "(estimated)"}
+                    </span>
+                  )}
                   {/* State carries a word, never colour alone. */}
                   {isBlocker && (
                     <span className="rounded-full bg-[oklch(0.66_0.11_70_/_0.16)] px-2 py-0.5 text-[11px] font-semibold text-[oklch(0.42_0.08_60)]">
