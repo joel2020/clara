@@ -64,26 +64,24 @@ WHAT IS LEFT (in rough value order):
    full run with a real microphone.
 5. Optionally surface support-track progress on /mundo.
 
-TWO THINGS ONLY YOU CAN DO:
-1. Set AZURE_OPENAI_API_KEY. Until then prod deliberately still runs
-   gpt-4o-mini, because getChatModel() requires all three variables:
-     cd ~/clara && read -rs "K?Azure key: " && echo && \
-       printf 'AZURE_OPENAI_API_KEY=%s\n' "$K" >> .env.local && \
-       for e in production preview; do printf %s "$K" | npx vercel env add AZURE_OPENAI_API_KEY $e; done && \
-       unset K
-   Then redeploy and verify a real /talk turn. WATCH FOR: gpt-5.6-luna is
-   reasoning-capable, and reasoning tokens count against max_completion_tokens
-   (currently 600 in app/api/chat/route.ts) — empty replies mean raise it.
-2. Azure Speech is still F0 = 5 audio-hours/month across ALL students. The stage
-   exams will chew through that. S0 is about $1/audio-hour.
+AZURE IS FULLY LIVE (2026-07-27):
+- clara-speech is on S0 Standard, so the 5-audio-hour/month cap is gone
+  (~$1/audio-hour, no idle cost).
+- AZURE_OPENAI_API_KEY is set locally and in Vercel prod+preview, and a rebuild has
+  picked it up — so /talk, /call, the exam grader and the QA scorer all run on
+  gpt-5.6-luna now, not gpt-4o-mini.
+- Verified against the live deployment: strict json_schema works on api-version
+  2024-12-01-preview, ~2.5s latency with ~150ms to first token, and 74-78 reasoning
+  tokens per reply. That last number is why max_completion_tokens is 2000 everywhere
+  and must not be lowered — a tight ceiling returns an EMPTY reply on this model.
 
-KNOWN HONEST GAP: readiness fluency is a PROXY (recent pass rate). Azure returns a
-real FluencyScore per attempt but nothing persists it on `Attempt`. That is item 1
-in WHAT IS LEFT, and until it is done the copy must not call it measured fluency.
+NO KNOWN DISHONEST NUMBERS: fluency now comes from Azure's measured FluencyScore,
+with unmeasured attempts EXCLUDED rather than zeroed, and the card says "(estimada)"
+whenever it has to fall back to the pass-rate proxy. Keep that label honest.
 
-TEST SUITE (191 checks, all green): placement 45, exams 28, exam-compose 24,
-report 24, readiness 16, weak-items 16, insights 13, chat-client 11, today 8,
-paths 6. Run the alias-free ones with
+TEST SUITE (217 checks, all green): placement 45, exams 28, exam-compose 24,
+report 24, readiness 21, milestone 21, weak-items 16, insights 13, chat-client 11,
+today 8, paths 6. Run the alias-free ones with
 `node lib/<x>.test.mjs`; those importing through "@/" need `npx tsx`.
 
 KEY CONSTRAINTS (do not violate):
