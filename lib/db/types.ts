@@ -96,6 +96,25 @@ export interface Attempt {
 }
 
 /**
+ * One /talk conversation, recorded so the general path's ten-minute milestone can
+ * be measured rather than asserted.
+ *
+ * `avgPauseMs` is captured but not yet used as a gate — see lib/milestone.ts for
+ * why. `completed` is false for a session she walked away from.
+ */
+export interface TalkSession {
+  id?: number; // auto-increment (Dexie)
+  scenarioId: string;
+  at: number; // epoch ms, when it started
+  durationMs: number;
+  /** How many turns SHE took, not counting Joel's. */
+  studentTurns: number;
+  /** Mean gap between his line finishing and her speaking, when measurable. */
+  avgPauseMs: number | null;
+  completed: boolean;
+}
+
+/**
  * One completed call in the call simulator, kept so progress on the job path is
  * measurable and can appear on her report. Append-only, like exam sittings.
  */

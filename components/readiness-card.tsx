@@ -7,11 +7,12 @@ import { useAllAttempts, useAllProgress } from "@/lib/hooks/useData";
 import { computeReadiness, TARGET_SCORE, type SubskillKey } from "@/lib/readiness";
 import { pathOf } from "@/lib/paths";
 import { examEligibility } from "@/lib/exams";
+import { milestoneProgress, MILESTONE_MINUTES } from "@/lib/milestone";
 import { levelLessonPool } from "@/lib/onboarding";
 import { LESSON_BY_ID } from "@/lib/content/lessons";
 import { repo } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import type { Attempt } from "@/lib/db/types";
+import type { Attempt, TalkSession } from "@/lib/db/types";
 
 // The destination, made legible: one number, where it is heading, and the single
 // thing holding her back. Both paths render the same card — only the target's
@@ -62,8 +63,10 @@ export function ReadinessCard() {
   // never clear, so the band would read "Provisional" forever and the report would
   // stay unreachable.
   const [examPassed, setExamPassed] = useState(false);
+  const [sessions, setSessions] = useState<TalkSession[] | null>(null);
   useEffect(() => {
     void repo.getExamAttempts().then((rows) => setExamPassed(rows.some((r) => r.passed)));
+    void repo.getTalkSessions().then(setSessions);
   }, []);
 
   const readiness = useMemo(() => {
@@ -107,6 +110,7 @@ export function ReadinessCard() {
         ? "conversación fluida"
         : "fluent conversation";
 
+  const milestone = sessions ? milestoneProgress(sessions) : null;
   const blockerLabel = readiness.blocker ? LABELS[readiness.blocker][lang] : null;
   const hasTrend = points.filter((p) => p > 0).length >= 2;
 
@@ -172,6 +176,40 @@ export function ReadinessCard() {
             );
           })()}
         </svg>
+      )}
+
+      {/* The confidence path's felt milestone. The job path has the exam and the
+          report instead, so this would just be noise there. */}
+      {path === "general" && milestone && (
+        <div className="mt-5 rounded-2xl bg-muted p-4">
+          <div className="flex items-baseline justify-between gap-2 text-sm">
+            <span>
+              {milestone.achieved
+                ? lang === "es"
+                  ? "Charla de 10 minutos: lograda"
+                  : "10-minute conversation: done"
+                : lang === "es"
+                  ? "Tu charla más larga sin trabarte"
+                  : "Your longest chat without stalling"}
+            </span>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {milestone.bestMinutes} / {MILESTONE_MINUTES} min
+            </span>
+          </div>
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full rounded-r bg-primary"
+              style={{ width: `${Math.max(milestone.percent, 1)}%` }}
+            />
+          </div>
+          {milestone.bestTurns > 0 && !milestone.achieved && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {lang === "es"
+                ? `${milestone.bestTurns} turnos tuyos en tu mejor charla.`
+                : `${milestone.bestTurns} turns from you in your best chat.`}
+            </p>
+          )}
+        </div>
       )}
 
       <div className="mt-5 grid gap-3">

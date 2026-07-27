@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings } from "./types";
+import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession } from "./types";
 
 /**
  * Local-first storage via IndexedDB. This is the ONLY file that knows we use
@@ -19,6 +19,7 @@ export class ClaraDB extends Dexie {
   events!: Table<AnalyticsEvent, number>;
   examAttempts!: Table<ExamAttempt, number>;
   callScores!: Table<CallScore, number>;
+  talkSessions!: Table<TalkSession, number>;
 
   constructor() {
     super("clara");
@@ -61,6 +62,11 @@ export class ClaraDB extends Dexie {
     // and can be counted on her report.
     this.version(7).stores({
       callScores: "++id, at, scenarioId",
+    });
+    // v8 adds /talk session records, so the ten-minute conversation milestone is
+    // measured from real sessions instead of asserted.
+    this.version(8).stores({
+      talkSessions: "++id, at",
     });
   }
 }

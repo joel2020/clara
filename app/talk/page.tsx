@@ -75,6 +75,14 @@ export default function TalkPage() {
   const recRef = useRef<RecognitionHandle | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const lastJoelLine = useRef<string>("");
+  // Session tracking for the ten-minute milestone. Refs, not state: these are
+  // written from audio callbacks and timeouts, where a closure would go stale.
+  const sessionStart = useRef<number | null>(null);
+  const herTurns = useRef(0);
+  const pauses = useRef<number[]>([]);
+  const readyToSpeakAt = useRef<number | null>(null);
+  const savedSession = useRef(false);
+  const scenarioIdRef = useRef<string>("unknown");
   const [focusWords, setFocusWords] = useState<string[]>([]);
 
   // Ensure a single reusable <audio> element (created on the client).
@@ -118,6 +126,8 @@ export default function TalkPage() {
       el.onended = () => {
         URL.revokeObjectURL(url);
         setSpeaking(false);
+        // His line just finished: the clock on her hesitation starts here.
+        readyToSpeakAt.current = Date.now();
       };
       el.onpause = () => setSpeaking(false);
       setSpeaking(true);
@@ -130,6 +140,12 @@ export default function TalkPage() {
   const start = useCallback(
     (s: Scenario) => {
       sfx.tap();
+      sessionStart.current = Date.now();
+      herTurns.current = 0;
+      pauses.current = [];
+      readyToSpeakAt.current = null;
+      savedSession.current = false;
+      scenarioIdRef.current = s.id;
       setScenario(s);
       setTurns([{ role: "joel", en: s.opener.en, es: s.opener.es }]);
       setCorrection(null);
@@ -141,7 +157,36 @@ export default function TalkPage() {
     [speak],
   );
 
+  /**
+   * Persist the session once — the milestone's evidence.
+   *
+   * Reads only refs, so it has no dependencies and stays safe to call from an
+   * unmount cleanup, where a callback captured during render would be stale.
+   */
+  const saveSession = useCallback((completed: boolean) => {
+    const startedAt = sessionStart.current;
+    if (!startedAt || savedSession.current || herTurns.current === 0) return;
+    savedSession.current = true;
+    const measured = pauses.current.filter((p) => p > 0 && p < 60_000);
+    void repo.saveTalkSession({
+      scenarioId: scenarioIdRef.current,
+      at: startedAt,
+      durationMs: Date.now() - startedAt,
+      studentTurns: herTurns.current,
+      avgPauseMs: measured.length ? Math.round(measured.reduce((a, b) => a + b, 0) / measured.length) : null,
+      completed,
+    });
+  }, []);
+
+  // Navigating away mid-conversation: record it as abandoned rather than losing it.
+  useEffect(() => {
+    return () => saveSession(false);
+  }, [saveSession]);
+
   const reset = useCallback(() => {
+    // Leaving a conversation deliberately still counts as completing it — she
+    // talked. Only an unmount mid-session is treated as abandoned.
+    saveSession(true);
     recRef.current?.cancel();
     audioRef.current?.pause();
     setScenario(null);
@@ -151,7 +196,7 @@ export default function TalkPage() {
     setSuggestions([]);
     setError(null);
     setNotConfigured(false);
-  }, []);
+  }, [saveSession]);
 
   // Send the running conversation to Joel and handle his reply.
   const send = useCallback(
@@ -232,10 +277,16 @@ export default function TalkPage() {
     [scenario, studentName, level, goal, focusWords, lang, speak],
   );
 
+
   const addHerLine = useCallback(
     (text: string) => {
       const clean = text.trim();
       if (!clean) return;
+      herTurns.current += 1;
+      if (readyToSpeakAt.current) {
+        pauses.current.push(Date.now() - readyToSpeakAt.current);
+        readyToSpeakAt.current = null;
+      }
       setTurns((prev) => {
         const next: Turn[] = [...prev, { role: "her", en: clean }];
         void send(clean, next);

@@ -10,6 +10,7 @@ import type {
   PhraseRecording,
   PlayerStats,
   Settings,
+  TalkSession,
 } from "./types";
 
 /**
@@ -55,6 +56,9 @@ export interface DataRepository {
   getExamAttempts(): Promise<ExamAttempt[]>;
   /** Completed call-simulator runs, newest first. Append-only. */
   getCallScores(): Promise<CallScore[]>;
+  /** /talk sessions, newest first — the milestone's evidence. */
+  getTalkSessions(): Promise<TalkSession[]>;
+  saveTalkSession(session: Omit<TalkSession, "id">): Promise<void>;
   saveCallScore(score: Omit<CallScore, "id">): Promise<void>;
   saveExamAttempt(attempt: Omit<ExamAttempt, "id">): Promise<void>;
 

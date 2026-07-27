@@ -12,6 +12,7 @@ import type {
   PhraseRecording,
   PlayerStats,
   Settings,
+  TalkSession,
 } from "./types";
 
 const RECENT_WINDOW = 20; // attempts per category counted as "recent"
@@ -128,6 +129,15 @@ export class DexieRepository implements DataRepository {
     void this.mirror((profileId, sync) => sync.pushCallScore(profileId, score as CallScore));
   }
 
+  async getTalkSessions(): Promise<TalkSession[]> {
+    const rows = await db.talkSessions.toArray();
+    return rows.sort((a, b) => b.at - a.at);
+  }
+
+  async saveTalkSession(session: Omit<TalkSession, "id">): Promise<void> {
+    await db.talkSessions.add(session as TalkSession);
+  }
+
   /** Fire-and-forget cloud mirror, skipped when there is no profile or no env. */
   private async mirror(
     fn: (profileId: string, sync: typeof import("@/lib/sync/supabase-sync")) => void,
@@ -227,6 +237,7 @@ export class DexieRepository implements DataRepository {
       // as far as this profile is concerned, never happened.
       db.examAttempts.clear(),
       db.callScores.clear(),
+      db.talkSessions.clear(),
       // events was omitted here before — analytics for a wiped profile is
       // meaningless and reset is meant to clear the device.
       db.events.clear(),
