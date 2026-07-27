@@ -5,17 +5,14 @@
 // say next. The reply text is then spoken back in Joel's real voice via
 // /api/tts. The OpenAI key stays on the server.
 
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import { getScenario } from "@/lib/content/scenarios";
 import { guardApi } from "@/lib/api-guard";
 import { requireUser } from "@/lib/auth-server";
+import { getChatModel } from "@/lib/ai/chat-client";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
-
-// gpt-4o-mini: cheap and fast, plenty for simple A1–A2 roleplay. Swap the model
-// string here if you ever want a stronger (pricier) model.
-const MODEL = "gpt-4o-mini";
 
 interface Turn {
   role: "assistant" | "user";
@@ -141,8 +138,9 @@ export async function POST(request: Request): Promise<Response> {
   const unauth = await requireUser(request);
   if (unauth) return unauth;
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  // Azure deployment when configured, plain OpenAI otherwise.
+  const brain = getChatModel();
+  if (!brain) {
     // Not configured yet — the client shows a friendly "coming soon" state.
     return Response.json({ error: "not_configured" }, { status: 503 });
   }
@@ -188,11 +186,9 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Nothing to respond to." }, { status: 400 });
   }
 
-  const client = new OpenAI({ apiKey });
-
   try {
-    const completion = await client.chat.completions.create({
-      model: MODEL,
+    const completion = await brain.client.chat.completions.create({
+      model: brain.model,
       max_completion_tokens: 600,
       messages,
       response_format: {
