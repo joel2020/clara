@@ -197,6 +197,61 @@ export const HINTS_ES: Record<string, string> = {
 // ── Lesson intros (the Learn stage) ──────────────────────────────────────────
 
 export const INTROS_ES: Record<string, LessonIntro> = {
+  // ── Soporte al cliente + entrevista (camino de trabajo) ──
+  "sup-open": {
+    summary: "Los primeros quince segundos de una llamada definen todo. A los agentes los califican por si saludaron, dieron su nombre y verificaron la cuenta antes de tocar nada más.",
+    whyTricky: "Es un guion fijo, y eso es lo bueno: lo dices igual siempre, así tu cabeza queda libre para pensar en el problema del cliente. Apurarlo es el error más común al empezar.",
+    how: ["Empresa, luego tu nombre, luego el ofrecimiento de ayudar.", "Verifica antes de actuar: nombre y un dato más.", "Sonríe — de verdad cambia tu voz al teléfono."],
+    exampleIds: ["sup-open:1", "sup-open:4"],
+  },
+  "sup-repeat": {
+    summary: "No vas a entender a todos los clientes — nadie lo hace, ni los nativos. Lo que distingue a una buena agente es volver a preguntar sonando profesional en vez de perdida.",
+    whyTricky: "'What?' y 'Repeat please' suenan groseros en inglés. Y decir 'yes' cuando no entendiste es el hábito más costoso de una llamada: crea el caso equivocado.",
+    how: ["Discúlpate suave y luego pide: 'I'm sorry, could you…'.", "Pide solo la parte que te faltó, no toda la frase.", "Nunca confirmes algo que no escuchaste."],
+    exampleIds: ["sup-repeat:1", "sup-repeat:5"],
+  },
+  "sup-empathy": {
+    summary: "El cliente molesto no está molesto contigo. Tu trabajo es reconocer la emoción antes de tocar los hechos — un cliente que no se siente escuchado repite lo mismo más fuerte.",
+    whyTricky: "Las traducciones directas suenan frías ('No es mi culpa', 'Cálmese'). Nunca le digas a un cliente americano que se calme; escala siempre. Y discúlpate por la situación sin admitir culpa.",
+    how: ["Nombra la emoción: 'I understand how frustrating that is'.", "Discúlpate por la experiencia, no por una culpa sin confirmar.", "Luego pasa a la acción: 'Let me fix this'."],
+    exampleIds: ["sup-empathy:1", "sup-empathy:6"],
+  },
+  "sup-hold": {
+    summary: "El silencio es lo que hace que los clientes cuelguen. Toda espera necesita una razón, un tiempo y un agradecimiento al volver — eso es lo que revisa la calificación.",
+    whyTricky: "Hay que pedir permiso, no anunciar. 'I put you on hold' es una orden; 'May I place you on hold?' es una petición. Y da siempre un número: dos minutos, no 'un momento'.",
+    how: ["Pide, da la razón, da el tiempo.", "Vuelve antes del tiempo que prometiste.", "Explica la transferencia antes de hacerla."],
+    exampleIds: ["sup-hold:1", "sup-hold:5"],
+  },
+  "sup-explain": {
+    summary: "El cliente perdona casi cualquier problema si sabe exactamente qué pasa después. Los cierres vagos ('lo vamos a revisar') son los que generan llamadas repetidas.",
+    whyTricky: "El inglés quiere el resultado primero y el detalle después — al contrario de como el español suele construir hasta el punto. Y da plazos reales: 'within 24 hours', no 'pronto'.",
+    how: ["Resultado primero: 'Good news — I can replace it'.", "Luego los pasos, en orden, con un plazo.", "Cierra verificando que te siguió."],
+    exampleIds: ["sup-explain:1", "sup-explain:7"],
+  },
+  "sup-spell": {
+    summary: "Aquí es donde las llamadas se rompen de verdad. Un dígito mal oído crea el pedido equivocado; una letra mal oída, la cuenta equivocada. Y es pura pronunciación, así que todo lo de las lecciones de sonidos te sirve aquí.",
+    whyTricky: "Los nombres de las letras en inglés son trampa: la E suena como la i española, la I suena 'ai', y la G y la J están al revés de tu costumbre. Y fifteen/fifty solo se diferencian por dónde va el acento.",
+    how: ["Usa el truco del alfabeto: 'M as in Mary'.", "Agrupa los dígitos y pausa: 'four four nine — two one seven'.", "Siempre repítelo antes de actuar."],
+    exampleIds: ["sup-spell:1", "sup-spell:4"],
+  },
+  "sup-close": {
+    summary: "El cierre se califica por dos cosas: si preguntaste si faltaba algo, y si agradeciste por el nombre. Toma ocho segundos y es lo que el cliente recuerda.",
+    whyTricky: "'Anything else?' solo suena a que quieres colgar. Y 'Bye' es muy seco para el inglés de servicio americano — hay un pequeño ritual antes.",
+    how: ["Pregunta si queda algo pendiente — completo, no cortado.", "Resume en una línea lo que va a pasar.", "Agradece, usa el nombre y cierra."],
+    exampleIds: ["sup-close:1", "sup-close:6"],
+  },
+  "sup-limits": {
+    summary: "No vas a poder hacer todo lo que el cliente pida. Decirlo con claridad es una habilidad de nivel senior — el 'sí' vago para evitar el conflicto es lo que crea escalamientos después.",
+    whyTricky: "Un 'no' solo suena hostil en el inglés de servicio, pero disculparse demasiado también. El patrón es: lo que no puedes hacer, y de inmediato lo que sí.",
+    how: ["Nunca dejes un no sin alternativa.", "'I don't know' está bien si sigue 'let me find out'.", "Sé cálida y firme — no son opuestos."],
+    exampleIds: ["sup-limits:1", "sup-limits:4"],
+  },
+  "sup-interview": {
+    summary: "La entrevista es la puerta de verdad. Casi todo son cuatro o cinco preguntas predecibles, así que la estrategia ganadora es tener tus respuestas tan ensayadas que tu inglés suene sin esfuerzo.",
+    whyTricky: "'Tell me about yourself' no pide la historia de tu vida — quiere noventa segundos sobre tu trabajo. Y cuando pregunten por una debilidad, di una real y qué estás haciendo al respecto.",
+    how: ["Presente, luego pasado, luego por qué este trabajo.", "Da números cuando puedas — suenan concretos.", "Ten siempre dos preguntas listas para ellos."],
+    exampleIds: ["sup-interview:1", "sup-interview:5"],
+  },
   "i-vs-ii": {
     summary: "El inglés parte la 'i' del español en dos vocales distintas: una corta y relajada, otra larga y tensa.",
     whyTricky:

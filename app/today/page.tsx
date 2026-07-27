@@ -8,6 +8,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useAllProgress, useProgressMap, useConvItems, useTodayQuests } from "@/lib/hooks/useData";
 import { countDueReview } from "@/lib/review";
+import { pathOf } from "@/lib/paths";
 import { pickNextLesson, pickScenario } from "@/lib/today";
 import { dayKey } from "@/lib/gamification";
 import { questDone } from "@/lib/quests";
@@ -54,7 +55,7 @@ export default function TodayPage() {
   const quests = useTodayQuests();
 
   const dueCount = progressArr && convItems ? countDueReview(progressArr, convItems) : 0;
-  const nextLesson = pickNextLesson(progressMap, settings.onboarding?.level);
+  const nextLesson = pickNextLesson(progressMap, settings.onboarding?.level, pathOf(settings.onboarding));
   const scenario = pickScenario(dayKey());
 
   const reviewDone = quests ? questDone(quests, "review") || dueCount === 0 : false;

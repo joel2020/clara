@@ -2,6 +2,8 @@ import { LESSONS } from "@/lib/content/lessons";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { isMastered } from "@/lib/srs";
 import { levelLessonPool } from "@/lib/onboarding";
+import { SUPPORT_UNIT_IDS } from "@/lib/content/conversation-support";
+import type { LearningPath } from "@/lib/paths";
 import type { Level } from "@/lib/placement";
 import type { ItemProgress, Lesson } from "@/lib/db/types";
 import type { Scenario } from "@/lib/content/scenarios";
@@ -23,12 +25,25 @@ function hasUnmastered(lesson: Lesson, progressById: Map<string, ItemProgress> |
 export function pickNextLesson(
   progressById: Map<string, ItemProgress> | undefined,
   level?: Level,
+  path: LearningPath = "general",
 ): Lesson {
   const ordered = [...LESSONS].sort((a, b) => {
     const ta = a.track === "conversation" ? 0 : 1;
     const tb = b.track === "conversation" ? 0 : 1;
     return ta - tb || a.order - b.order;
   });
+
+  // On the job path the support units come first: they are the reason she is
+  // here, and the general conversation ladder is support material for them. They
+  // are NOT added to levelLessonPool, because that pool is what gates the stage
+  // exam and folding 90 items into it would push the gate out of reach.
+  if (path === "job") {
+    const byId = new Map(LESSONS.map((l) => [l.id, l]));
+    for (const id of SUPPORT_UNIT_IDS) {
+      const lesson = byId.get(id);
+      if (lesson && hasUnmastered(lesson, progressById)) return lesson;
+    }
+  }
 
   if (level) {
     const byId = new Map(LESSONS.map((l) => [l.id, l]));

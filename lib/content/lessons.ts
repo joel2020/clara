@@ -3,6 +3,7 @@ import { CONVERSATION_LESSONS } from "./conversation.ts";
 import { CONVERSATION_LESSONS_2 } from "./conversation-2.ts";
 import { CONVERSATION_LESSONS_3 } from "./conversation-3.ts";
 import { CONVERSATION_LESSONS_4 } from "./conversation-4.ts";
+import { SUPPORT_LESSONS } from "./conversation-support.ts";
 
 // The full curriculum. Lesson 1 (Short i vs Long ee) is the flagship — the
 // pattern every other lesson follows. Minimal-pair lessons drill two contrasting
@@ -699,6 +700,8 @@ LESSONS.push(...CONVERSATION_LESSONS);
 LESSONS.push(...CONVERSATION_LESSONS_2);
 LESSONS.push(...CONVERSATION_LESSONS_3);
 LESSONS.push(...CONVERSATION_LESSONS_4);
+// The support-English + interview track (job path).
+LESSONS.push(...SUPPORT_LESSONS);
 
 export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]));
 
