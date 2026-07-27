@@ -66,11 +66,35 @@ Shared by both — this is what makes two paths cheap:
 | Listening under pressure | comprehension at natural speed / degraded audio |
 | Interactive response | latency and relevance of unscripted answers |
 
+## Stages and the exams that gate them
+
+Added 2026-07-26 after review: **both paths advance through stages, and a stage
+is only cleared by passing its exam.** This replaces "placement sets the band" as
+the ongoing mechanism — placement now only sets the *starting* stage.
+
+Stages are the CEFR levels already in the engine (`LEVELS`, `BAND_UNITS`,
+`levelLessonPool`), so no new taxonomy is invented: A0 → A1 → A2 → B1 → B2 → C1
+→ C2.
+
+- **Unlocking an attempt.** The stage exam becomes available once the learner has
+  mastered at least 80% of the items in her current band's lesson pool. Without a
+  gate on the gate, students would spam the exam and it would stop meaning
+  anything.
+- **Passing** promotes her a stage, unlocks the next band's content, and fires
+  the existing cinematic reward. The band she shows the world is now *earned*.
+- **Failing** names the blocking subskill, hands back the specific items to drill,
+  and allows one attempt per day. A fail is never a loss of progress.
+- **Same engine, both paths.** Six sections mirroring the industry format. The job
+  path's B2 exam additionally emits the recruiter report; the general path's B2
+  exam is what certifies "fluent" alongside the conversation milestone.
+
+This resolves the provisional-band problem honestly: there is no window in which
+the app claims a level the learner has not demonstrated.
+
 ## Score contract
 
-1. **The band is set by an assessment, never by grinding.** On the general path
-   that is the existing CEFR placement (`lib/placement.ts`). On the job path it
-   is the timed mock exam, one sitting per day, no retries.
+1. **The band is set by a passed stage exam, never by grinding.** Placement sets
+   the opening stage only. One sitting per day, no retries within a day.
 2. **Daily practice moves a provisional trend** between assessments, from
    telemetry already stored.
 3. **Repeating mastered material must not move it.** Weight new and unmastered
@@ -158,17 +182,19 @@ almost no new content, because the conversation ladder already spans A0–C2. So
 the design transformation can ship first and serve a real student immediately,
 instead of waiting behind content authoring.
 
-1. **Path choice, readiness score, new home.** Serves both paths. The general
-   path is fully functional at the end of this phase using existing curriculum
-   and existing placement. Mariana benefits on day one.
-2. **Support-English and interview curriculum.** Unlocks the job path.
-3. **Call simulator.** The differentiator.
-4. **Mock exam and report.** Makes the job path's band verifiable and gives the
-   student the artifact she sends with an application.
+1. **Path choice, readiness score, new home.** Serves both paths. Uses existing
+   curriculum and existing placement. Mariana benefits on day one.
+2. **Stage exams and the gates.** Promoted out of last position, because
+   progression now depends on it: both paths need it, and it is what makes the
+   band honest rather than provisional.
+3. **Support-English and interview curriculum.** Unlocks the job path.
+4. **Call simulator.** The differentiator.
+5. **Recruiter report.** The artifact a student sends with an application,
+   emitted by a passed B2 exam on the job path.
 
-Interim honesty note: until phase 4, the job path's band also comes from
-placement rather than the exam. The UI must say "provisional" until an exam has
-been sat, or the number overclaims.
+Interim honesty note: between phases 1 and 2 the band comes from placement alone,
+so the UI must label it "provisional" until a stage exam has actually been
+passed.
 
 ## Risks and costs
 
