@@ -5,6 +5,9 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { useAllAttempts, useAllProgress } from "@/lib/hooks/useData";
 import { computeReadiness, TARGET_SCORE, type SubskillKey } from "@/lib/readiness";
 import { pathOf } from "@/lib/paths";
+import { examEligibility } from "@/lib/exams";
+import { levelLessonPool } from "@/lib/onboarding";
+import { LESSON_BY_ID } from "@/lib/content/lessons";
 import { cn } from "@/lib/utils";
 import type { Attempt } from "@/lib/db/types";
 
@@ -68,6 +71,16 @@ export function ReadinessCard() {
     const latest = attempts.reduce((m, a) => (a.at > m ? a.at : m), 0);
     return trajectory(attempts, latest);
   }, [attempts]);
+
+  // The stage gate, shown as progress rather than as a hidden rule: she can see
+  // exactly how far she is from being allowed to sit the exam.
+  const gate = useMemo(() => {
+    if (!progress || !ob) return null;
+    const poolItemIds = levelLessonPool(ob.level).flatMap(
+      (lessonId) => LESSON_BY_ID.get(lessonId)?.items.map((i) => i.id) ?? [],
+    );
+    return examEligibility(progress, poolItemIds);
+  }, [progress, ob]);
 
   // Nothing to show until her data has loaded, and nothing worth showing until
   // she has been placed — a score with no band behind it means nothing.
@@ -185,6 +198,47 @@ export function ReadinessCard() {
             ? `Para subir a B2, lo único bajo la meta es tu ${blockerLabel.toLowerCase()}.`
             : `To reach B2, the only thing below target is your ${blockerLabel.toLowerCase()}.`}
         </p>
+      )}
+
+      {/* The stage gate. Passing the exam is the only way the band changes, so it
+          is shown as visible progress rather than an unexplained lock. */}
+      {gate && gate.total > 0 && (
+        <div className="mt-5 border-t border-hairline pt-4">
+          {gate.eligible ? (
+            <p className="text-sm">
+              <span className="font-semibold text-primary">
+                {lang === "es" ? "Examen disponible" : "Exam available"}
+              </span>{" "}
+              <span className="text-muted-foreground">
+                {lang === "es"
+                  ? `— pásalo y subes a ${readiness.band === "C2" ? "C2" : "el siguiente nivel"}.`
+                  : "— pass it to move up a level."}
+              </span>
+            </p>
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between gap-2 text-sm">
+                <span className="text-muted-foreground">
+                  {lang === "es" ? "Para desbloquear el examen" : "To unlock the exam"}
+                </span>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {gate.mastered}/{gate.total}
+                </span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-r bg-primary/50"
+                  style={{ width: `${Math.max(Math.round(gate.ratio * 100), 1)}%` }}
+                />
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {lang === "es"
+                  ? `Te faltan ${gate.remaining} frases dominadas.`
+                  : `${gate.remaining} more phrases to master.`}
+              </p>
+            </>
+          )}
+        </div>
       )}
     </section>
   );
