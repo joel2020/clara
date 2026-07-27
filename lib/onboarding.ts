@@ -1,4 +1,5 @@
 import { type Level, type SelfLevel, levelIndex } from "./placement.ts";
+import type { LearningPath } from "./paths.ts";
 
 // What onboarding collects, and how a learner's level + goal turn into a
 // personalized first week. Kept as pure data + functions so it's testable and
@@ -29,6 +30,12 @@ export interface OnboardingProfile {
   level: Level;
   /** Per-skill subscores from placement, 0..5 CEFR-aligned. */
   subscores?: Record<string, number>;
+  /**
+   * Which destination she is working toward. Optional because profiles saved
+   * before paths existed have no value; read it through `pathOf` so those
+   * students default to the general track rather than the job track.
+   */
+  path?: LearningPath;
   completedAt: number;
 }
 

@@ -1,6 +1,7 @@
 import type { Attempt, ItemProgress } from "@/lib/db/types";
 import type { Level } from "@/lib/placement";
 import { isMastered } from "@/lib/srs";
+import type { LearningPath } from "@/lib/paths";
 
 // The one number the whole app points at.
 //
@@ -15,7 +16,7 @@ import { isMastered } from "@/lib/srs";
 //   3. The blocker is always the single lowest subskill, named, so the student
 //      is told the one thing to fix rather than graded on everything.
 
-export type LearningPath = "job" | "general";
+export type { LearningPath };
 export type SubskillKey = "intelligibility" | "fluency" | "listening" | "interaction";
 
 export interface Subskill {
