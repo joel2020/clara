@@ -104,6 +104,7 @@ export class DexieRepository implements DataRepository {
 
   async saveConvItem(item: ConvItem): Promise<void> {
     await db.convItems.put(item);
+    void this.mirror((profileId, sync) => sync.pushConvItem(profileId, item));
   }
 
   async getExamAttempts(): Promise<ExamAttempt[]> {
@@ -159,6 +160,7 @@ export class DexieRepository implements DataRepository {
 
   async saveQuests(state: DailyQuestState): Promise<void> {
     await db.quests.put(state);
+    void this.mirror((profileId, sync) => sync.pushQuests(profileId, state));
   }
 
   async getCategoryStats(recentWindow = RECENT_WINDOW): Promise<CategoryStat[]> {

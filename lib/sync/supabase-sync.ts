@@ -1,7 +1,7 @@
 "use client";
 
 import { supabase, syncEnabled } from "@/lib/db/supabase";
-import type { Attempt, CallScore, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession } from "@/lib/db/types";
+import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession } from "@/lib/db/types";
 
 // The cloud-sync layer. The app writes to Dexie first (instant, offline); these
 // helpers mirror each profile's data to Supabase in the background and can pull
@@ -171,6 +171,13 @@ export function pushSettings(profileId: string, s: Settings): void {
         // of re-running onboarding as if she were brand new.
         student_name: s.studentName ?? null,
         onboarding: s.onboarding ?? null,
+        // Preferences that were device-only before: without them a student
+        // signing in elsewhere loses her coaching language, her difficulty mode
+        // and her sound choice, and the app stops feeling like hers.
+        coach_language: s.coachLanguage,
+        difficulty: s.difficulty,
+        sound_enabled: s.soundEnabled,
+        instructor_mode: s.instructorMode,
         updated_at: Date.now(),
       },
       { onConflict: "profile_id" },
@@ -200,6 +207,10 @@ export interface PulledSettings {
   recognitionLang?: string;
   studentName?: string;
   onboarding?: Settings["onboarding"];
+  coachLanguage?: Settings["coachLanguage"];
+  difficulty?: Settings["difficulty"];
+  soundEnabled?: boolean;
+  instructorMode?: boolean;
 }
 
 export async function pullSettings(profileId: string): Promise<PulledSettings | null> {
@@ -207,7 +218,7 @@ export async function pullSettings(profileId: string): Promise<PulledSettings | 
   if (!sb) return null;
   const { data } = await sb
     .from("settings")
-    .select("daily_goal,speech_rate,voice_uri,recognition_lang,student_name,onboarding")
+    .select("daily_goal,speech_rate,voice_uri,recognition_lang,student_name,onboarding,coach_language,difficulty,sound_enabled,instructor_mode")
     .eq("profile_id", profileId)
     .maybeSingle();
   if (!data) return null;
@@ -218,6 +229,10 @@ export async function pullSettings(profileId: string): Promise<PulledSettings | 
     recognitionLang: data.recognition_lang ?? undefined,
     studentName: data.student_name ?? undefined,
     onboarding: (data.onboarding as Settings["onboarding"]) ?? undefined,
+    coachLanguage: (data.coach_language as Settings["coachLanguage"]) ?? undefined,
+    difficulty: (data.difficulty as Settings["difficulty"]) ?? undefined,
+    soundEnabled: data.sound_enabled ?? undefined,
+    instructorMode: data.instructor_mode ?? undefined,
   };
 }
 
@@ -398,4 +413,67 @@ export async function pullTalkSessions(profileId: string): Promise<TalkSession[]
     avgPauseMs: r.avg_pause_ms ?? null,
     completed: r.completed,
   }));
+}
+
+/**
+ * Phrases mined from her live conversations, which feed the review deck as
+ * homework. Keyed on (profile, item) so re-saving the same phrase updates rather
+ * than duplicating.
+ */
+export function pushConvItem(profileId: string, c: ConvItem): void {
+  const sb = supabase();
+  if (!ok() || !sb) return;
+  bg(
+    sb.from("conv_items").upsert(
+      {
+        profile_id: profileId,
+        item_id: c.id,
+        text: c.text,
+        meaning: c.meaning ?? null,
+        source: c.source ?? null,
+        scenario_id: c.scenarioId ?? null,
+        created_at_ms: c.createdAt,
+      },
+      { onConflict: "profile_id,item_id" },
+    ),
+  );
+}
+
+/** Today's quest progress, so it does not reset when she changes device. */
+export function pushQuests(profileId: string, q: DailyQuestState): void {
+  const sb = supabase();
+  if (!ok() || !sb) return;
+  bg(
+    sb.from("quests").upsert(
+      { profile_id: profileId, day: q.day, state: q, updated_at: Date.now() },
+      { onConflict: "profile_id,day" },
+    ),
+  );
+}
+
+export async function pullConvItemsAndQuests(
+  profileId: string,
+): Promise<{ convItems: ConvItem[]; quests: DailyQuestState[] } | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const [ci, q] = await Promise.all([
+    sb.from("conv_items").select("*").eq("profile_id", profileId).order("created_at_ms", { ascending: true }),
+    sb.from("quests").select("*").eq("profile_id", profileId),
+  ]);
+  return {
+    convItems: (ci.data ?? []).map((r) => ({
+      id: r.item_id,
+      text: r.text,
+      ipa: "",
+      mouthHint: "",
+      kind: "phrase" as const,
+      categoryId: "conversation",
+      phoneme: "chunk",
+      meaning: r.meaning ?? undefined,
+      source: r.source ?? undefined,
+      scenarioId: r.scenario_id ?? undefined,
+      createdAt: Number(r.created_at_ms),
+    })),
+    quests: (q.data ?? []).map((r) => r.state as DailyQuestState),
+  };
 }

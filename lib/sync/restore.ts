@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/dexie";
 import type { Settings } from "@/lib/db/types";
-import { getProfile, pullProfileData, pullSettings, pullExamsAndCalls, pullTalkSessions, type Profile } from "./supabase-sync";
+import { getProfile, pullProfileData, pullSettings, pullExamsAndCalls, pullTalkSessions, pullConvItemsAndQuests, type Profile } from "./supabase-sync";
 
 // "Logging in" on a new device: the sync code is the account. Pull everything
 // the cloud has for that profile and seed the local Dexie stores with it, so
@@ -22,7 +22,25 @@ export interface RestoreSummary {
  * because an earned band must reappear on a new device without any extra step.
  */
 async function seedEarnedHistory(profileId: string): Promise<void> {
-  const [remote, talks] = await Promise.all([pullExamsAndCalls(profileId), pullTalkSessions(profileId)]);
+  const [remote, talks, extras] = await Promise.all([
+    pullExamsAndCalls(profileId),
+    pullTalkSessions(profileId),
+    pullConvItemsAndQuests(profileId),
+  ]);
+  // Mined conversation phrases are assigned homework, so a fresh device must get
+  // them back or she silently loses work. Quests come along so today's progress
+  // does not reset when she switches device mid-day.
+  if (extras) {
+    await db.transaction("rw", [db.convItems, db.quests], async () => {
+      for (const c of extras.convItems) {
+        if (!(await db.convItems.get(c.id))) await db.convItems.put(c);
+      }
+      for (const q of extras.quests) {
+        const local = await db.quests.get(q.day);
+        if (!local) await db.quests.put(q);
+      }
+    });
+  }
   if (talks?.length) {
     await db.transaction("rw", [db.talkSessions], async () => {
       const localAt = new Set((await db.talkSessions.toArray()).map((t) => t.at));
@@ -116,6 +134,11 @@ export async function hydrateFromCloud(profileId: string): Promise<{ settingsPat
     // re-onboarded as brand new on a fresh device/origin.
     if (cloudSettings.studentName) settingsPatch.studentName = cloudSettings.studentName;
     if (cloudSettings.onboarding) settingsPatch.onboarding = cloudSettings.onboarding;
+    // Preferences, so the app feels like hers on any device she signs into.
+    if (cloudSettings.coachLanguage) settingsPatch.coachLanguage = cloudSettings.coachLanguage;
+    if (cloudSettings.difficulty) settingsPatch.difficulty = cloudSettings.difficulty;
+    if (cloudSettings.soundEnabled != null) settingsPatch.soundEnabled = cloudSettings.soundEnabled;
+    if (cloudSettings.instructorMode != null) settingsPatch.instructorMode = cloudSettings.instructorMode;
   }
   return { settingsPatch };
 }
