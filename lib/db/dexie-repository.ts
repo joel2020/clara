@@ -32,7 +32,7 @@ export class DexieRepository implements DataRepository {
     limit?: number;
     since?: number;
   } = {}): Promise<Attempt[]> {
-    let coll = db.attempts.orderBy("at").reverse();
+    const coll = db.attempts.orderBy("at").reverse();
     const rows = await coll.toArray();
     let filtered = rows;
     if (opts.itemId) filtered = filtered.filter((a) => a.itemId === opts.itemId);
@@ -113,6 +113,9 @@ export class DexieRepository implements DataRepository {
   async saveExamAttempt(attempt: Omit<ExamAttempt, "id">): Promise<void> {
     // Append-only: sittings are never overwritten, so a band stays auditable.
     await db.examAttempts.add(attempt as ExamAttempt);
+    // Mirrored to the cloud so an earned band survives a device change — the whole
+    // point of an exam is that it is not device-local trivia.
+    void this.mirror((profileId, sync) => sync.pushExamAttempt(profileId, attempt as ExamAttempt));
   }
 
   async getCallScores(): Promise<CallScore[]> {
@@ -122,6 +125,21 @@ export class DexieRepository implements DataRepository {
 
   async saveCallScore(score: Omit<CallScore, "id">): Promise<void> {
     await db.callScores.add(score as CallScore);
+    void this.mirror((profileId, sync) => sync.pushCallScore(profileId, score as CallScore));
+  }
+
+  /** Fire-and-forget cloud mirror, skipped when there is no profile or no env. */
+  private async mirror(
+    fn: (profileId: string, sync: typeof import("@/lib/sync/supabase-sync")) => void,
+  ): Promise<void> {
+    try {
+      const settings = await this.getSettings();
+      if (!settings.profileId) return;
+      const sync = await import("@/lib/sync/supabase-sync");
+      fn(settings.profileId, sync);
+    } catch {
+      /* sync is best-effort; the local write already succeeded */
+    }
   }
 
   async getQuests(day: string): Promise<DailyQuestState | undefined> {

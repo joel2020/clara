@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/dexie";
 import type { Settings } from "@/lib/db/types";
-import { getProfile, pullProfileData, pullSettings, type Profile } from "./supabase-sync";
+import { getProfile, pullProfileData, pullSettings, pullExamsAndCalls, type Profile } from "./supabase-sync";
 
 // "Logging in" on a new device: the sync code is the account. Pull everything
 // the cloud has for that profile and seed the local Dexie stores with it, so
@@ -13,6 +13,29 @@ export interface RestoreSummary {
   hasPlayer: boolean;
 }
 
+/**
+ * Pull her stage-exam sittings and call runs down into the local cache.
+ *
+ * Additive by design: a row is inserted only when this device has no sitting for
+ * that day (or no call at that timestamp), so a cloud pull can never erase local
+ * history that has not been mirrored yet. Called from both restore and hydrate,
+ * because an earned band must reappear on a new device without any extra step.
+ */
+async function seedExamsAndCalls(profileId: string): Promise<void> {
+  const remote = await pullExamsAndCalls(profileId);
+  if (!remote) return;
+  await db.transaction("rw", [db.examAttempts, db.callScores], async () => {
+    const localDays = new Set((await db.examAttempts.toArray()).map((e) => e.day));
+    for (const e of remote.exams) {
+      if (!localDays.has(e.day)) await db.examAttempts.add(e);
+    }
+    const localCallTimes = new Set((await db.callScores.toArray()).map((c) => c.at));
+    for (const c of remote.calls) {
+      if (!localCallTimes.has(c.at)) await db.callScores.add(c);
+    }
+  });
+}
+
 export async function restoreProfile(profileId: string): Promise<RestoreSummary | null> {
   const id = profileId.trim().toLowerCase();
   if (!id) return null;
@@ -20,6 +43,7 @@ export async function restoreProfile(profileId: string): Promise<RestoreSummary 
   if (!profile) return null;
   const data = await pullProfileData(id);
   if (!data) return null;
+  await seedExamsAndCalls(id).catch(() => {});
 
   await db.transaction("rw", [db.attempts, db.progress, db.player], async () => {
     if (data.attempts.length) await db.attempts.bulkAdd(data.attempts);
@@ -57,6 +81,7 @@ export async function hydrateFromCloud(profileId: string): Promise<{ settingsPat
   if (!id) return null;
   const [data, cloudSettings] = await Promise.all([pullProfileData(id), pullSettings(id)]);
   if (!data) return null; // sync disabled — nothing to do
+  await seedExamsAndCalls(id).catch(() => {});
 
   await db.transaction("rw", [db.progress, db.player], async () => {
     if (data.player) {

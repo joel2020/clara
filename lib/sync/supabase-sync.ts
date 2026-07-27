@@ -1,7 +1,7 @@
 "use client";
 
 import { supabase, syncEnabled } from "@/lib/db/supabase";
-import type { Attempt, ItemProgress, PlayerStats, Settings, Lesson } from "@/lib/db/types";
+import type { Attempt, CallScore, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings } from "@/lib/db/types";
 
 // The cloud-sync layer. The app writes to Dexie first (instant, offline); these
 // helpers mirror each profile's data to Supabase in the background and can pull
@@ -285,4 +285,78 @@ export async function pullProfileData(profileId: string): Promise<PulledData | n
     : null;
 
   return { attempts, progress, player };
+}
+
+/**
+ * Stage-exam sittings and call runs.
+ *
+ * Both are append-only history rather than mutable state, and both are upserted
+ * on their natural key (profile+day for a sitting, profile+at for a call) so a
+ * replayed write from a second device cannot duplicate a record. `ignoreDuplicates`
+ * keeps the first write authoritative — the sitting she actually sat.
+ */
+export function pushExamAttempt(profileId: string, e: ExamAttempt): void {
+  const sb = supabase();
+  if (!ok() || !sb) return;
+  bg(
+    sb.from("exam_attempts").upsert(
+      {
+        profile_id: profileId,
+        day: e.day,
+        at: e.at,
+        level: e.level,
+        score: e.score,
+        passed: e.passed,
+        sections: e.sections,
+        weakest: e.weakest,
+      },
+      { onConflict: "profile_id,day", ignoreDuplicates: true },
+    ),
+  );
+}
+
+export function pushCallScore(profileId: string, c: CallScore): void {
+  const sb = supabase();
+  if (!ok() || !sb) return;
+  bg(
+    sb.from("call_scores").upsert(
+      {
+        profile_id: profileId,
+        scenario_id: c.scenarioId,
+        at: c.at,
+        score: c.score,
+        checks: c.checks,
+      },
+      { onConflict: "profile_id,at", ignoreDuplicates: true },
+    ),
+  );
+}
+
+/** Everything needed to restore her earned band and job-path history on a new device. */
+export async function pullExamsAndCalls(
+  profileId: string,
+): Promise<{ exams: ExamAttempt[]; calls: CallScore[] } | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const [examRes, callRes] = await Promise.all([
+    sb.from("exam_attempts").select("*").eq("profile_id", profileId).order("at", { ascending: false }),
+    sb.from("call_scores").select("*").eq("profile_id", profileId).order("at", { ascending: false }),
+  ]);
+  return {
+    exams: (examRes.data ?? []).map((r) => ({
+      day: r.day,
+      at: Number(r.at),
+      level: r.level,
+      score: r.score,
+      passed: r.passed,
+      sections: r.sections ?? {},
+      weakest: r.weakest ?? null,
+    })),
+    calls: (callRes.data ?? []).map((r) => ({
+      scenarioId: r.scenario_id,
+      at: Number(r.at),
+      score: r.score,
+      checks: r.checks ?? {},
+    })),
+  };
 }
