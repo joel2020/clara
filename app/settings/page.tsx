@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Copy, Check, Trash2, Bell, BellOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { repo } from "@/lib/db";
+import { lastSyncFailure } from "@/lib/sync/supabase-sync";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { isAdmin } from "@/lib/allowlist";
@@ -23,6 +24,11 @@ const GOALS = [20, 40, 60];
 type PushUi = "hidden" | "needs_install" | "off" | "on" | "denied" | "error";
 
 export default function SettingsPage() {
+  // Read once on mount via a lazy initialiser rather than in an effect: this is a
+  // diagnostic snapshot, not a live indicator, and a spinner for background sync
+  // would worry her over nothing.
+  const [syncFailure] = useState(lastSyncFailure);
+
   const { settings, update, ready } = useSettings();
   const { required: authOn, user, signOut } = useAuth();
   const lang = settings.coachLanguage;
@@ -224,6 +230,16 @@ export default function SettingsPage() {
               </button>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{t("settingsSyncSub", lang)}</p>
+            {/* A sync that quietly stops working is indistinguishable from one that
+                works, and this app promises progress follows the account. So a
+                failure is stated plainly here rather than only in the console. */}
+            {syncFailure && (
+              <p className="mt-3 rounded-xl bg-[oklch(0.66_0.11_70_/_0.12)] p-3 text-sm">
+                {lang === "es"
+                  ? `No se pudo guardar en la nube (${syncFailure.label}). Tu progreso está seguro en este dispositivo; revisa tu conexión.`
+                  : `Could not save to the cloud (${syncFailure.label}). Your progress is safe on this device; check your connection.`}
+              </p>
+            )}
           </section>
         )}
 

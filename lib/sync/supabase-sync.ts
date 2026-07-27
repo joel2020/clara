@@ -22,9 +22,43 @@ function ok() {
   return syncEnabled() && supabase() !== null;
 }
 
-/** Fire-and-forget: never let a sync failure surface to the learner. */
-function bg(p: PromiseLike<unknown> | undefined): void {
-  void Promise.resolve(p).catch(() => {});
+/**
+ * The last sync failure, for diagnosis. Read via `lastSyncFailure()`.
+ *
+ * Kept because a silent sync is indistinguishable from a working one, and this app
+ * promises that a student's progress follows her account.
+ */
+let lastFailure: { label: string; code?: string; message?: string; at: number } | null = null;
+
+/** The most recent sync failure, or null if every write has succeeded. */
+export function lastSyncFailure(): typeof lastFailure {
+  return lastFailure;
+}
+
+/**
+ * Fire-and-forget, but NOT silent.
+ *
+ * A sync failure must never interrupt the learner mid-practice, so nothing is
+ * thrown or shown. But it must not vanish either: supabase-js RESOLVES with
+ * `{ error }` rather than rejecting, so the previous `.catch(() => {})` could not
+ * have caught a bad column name, an RLS rejection or a constraint violation. Those
+ * wrote nothing and reported nothing — the student's data was simply gone.
+ *
+ * So the resolved value is inspected, and anything wrong is recorded and warned.
+ */
+function bg(p: PromiseLike<unknown> | undefined, label: string): void {
+  void Promise.resolve(p)
+    .then((res) => {
+      const error = (res as { error?: { message?: string; code?: string } } | null | undefined)?.error;
+      if (!error) return;
+      lastFailure = { label, code: error.code, message: error.message, at: Date.now() };
+      console.warn(`[clara sync] ${label} failed${error.code ? ` (${error.code})` : ""}: ${error.message ?? "unknown"}`);
+    })
+    .catch((e: unknown) => {
+      const message = e instanceof Error ? e.message : String(e);
+      lastFailure = { label, message, at: Date.now() };
+      console.warn(`[clara sync] ${label} threw: ${message}`);
+    });
 }
 
 // ── Profiles ─────────────────────────────────────────────────────────────────
@@ -81,8 +115,7 @@ export function pushAttempt(profileId: string, a: Attempt): void {
       heard_partner: a.heardPartner ?? false,
       fluency: a.fluency ?? null,
       at: a.at,
-    }),
-  );
+    }), "attempts");
 }
 
 export function pushProgress(profileId: string, p: ItemProgress): void {
@@ -105,8 +138,7 @@ export function pushProgress(profileId: string, p: ItemProgress): void {
         updated_at: p.updatedAt,
       },
       { onConflict: "profile_id,item_id" },
-    ),
-  );
+    ), "progress");
 }
 
 export function pushPlayer(profileId: string, s: PlayerStats): void {
@@ -152,8 +184,7 @@ export function pushPlayer(profileId: string, s: PlayerStats): void {
         const res = await sb.from("player_stats").upsert(payload, { onConflict: "profile_id" });
         if (!res.error) return;
       }
-    })(),
-  );
+    })(), "player_stats");
 }
 
 export function pushSettings(profileId: string, s: Settings): void {
@@ -181,14 +212,13 @@ export function pushSettings(profileId: string, s: Settings): void {
         updated_at: Date.now(),
       },
       { onConflict: "profile_id" },
-    ),
-  );
+    ), "settings");
 }
 
 export function pushCustomLesson(lesson: Lesson): void {
   const sb = supabase();
   if (!ok() || !sb) return;
-  bg(sb.from("custom_lessons").upsert({ id: lesson.id, data: lesson, order: lesson.order, updated_at: Date.now() }));
+  bg(sb.from("custom_lessons").upsert({ id: lesson.id, data: lesson, order: lesson.order, updated_at: Date.now() }), "custom_lessons");
 }
 
 // ── Pull (cloud → Dexie shapes) for a second device ──────────────────────────
@@ -328,8 +358,7 @@ export function pushExamAttempt(profileId: string, e: ExamAttempt): void {
         weakest: e.weakest,
       },
       { onConflict: "profile_id,day", ignoreDuplicates: true },
-    ),
-  );
+    ), "exam_attempts");
 }
 
 export function pushCallScore(profileId: string, c: CallScore): void {
@@ -345,8 +374,7 @@ export function pushCallScore(profileId: string, c: CallScore): void {
         checks: c.checks,
       },
       { onConflict: "profile_id,at", ignoreDuplicates: true },
-    ),
-  );
+    ), "call_scores");
 }
 
 /** Everything needed to restore her earned band and job-path history on a new device. */
@@ -393,8 +421,7 @@ export function pushTalkSession(profileId: string, t: TalkSession): void {
         completed: t.completed,
       },
       { onConflict: "profile_id,at", ignoreDuplicates: true },
-    ),
-  );
+    ), "talk_sessions");
 }
 
 export async function pullTalkSessions(profileId: string): Promise<TalkSession[] | null> {
@@ -435,8 +462,7 @@ export function pushConvItem(profileId: string, c: ConvItem): void {
         created_at_ms: c.createdAt,
       },
       { onConflict: "profile_id,item_id" },
-    ),
-  );
+    ), "conv_items");
 }
 
 /** Today's quest progress, so it does not reset when she changes device. */
@@ -447,8 +473,7 @@ export function pushQuests(profileId: string, q: DailyQuestState): void {
     sb.from("quests").upsert(
       { profile_id: profileId, day: q.day, state: q, updated_at: Date.now() },
       { onConflict: "profile_id,day" },
-    ),
-  );
+    ), "quests");
 }
 
 export async function pullConvItemsAndQuests(
