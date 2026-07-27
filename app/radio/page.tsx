@@ -12,6 +12,7 @@ import { hasRecordedVoice } from "@/lib/speech/player";
 import { audioUrl } from "@/lib/speech/audio-key";
 import { hasEsMeaningClip, esMeaningUrl } from "@/lib/speech/es-audio";
 import { isMastered } from "@/lib/srs";
+import { weakness } from "@/lib/weak-items";
 import { t } from "@/lib/i18n";
 import { JoelAvatar } from "@/components/joel-avatar";
 import { Splash } from "@/components/splash";
@@ -29,7 +30,7 @@ const GAP_MS = 900;
 function buildPlaylist(progress: ItemProgress[]): PracticeItem[] {
   const practiced = progress
     .filter((p) => p.attempts > 0 && ITEM_BY_ID.has(p.itemId) && hasRecordedVoice(p.itemId))
-    .sort((a, b) => weakness(a) - weakness(b))
+    .sort((a, b) => playlistWeight(a) - playlistWeight(b))
     .map((p) => ITEM_BY_ID.get(p.itemId)!);
   if (practiced.length >= 8) return practiced.slice(0, MAX_ITEMS);
   // Day-one fallback: pad with the first conversation units, in course order.
@@ -39,10 +40,11 @@ function buildPlaylist(progress: ItemProgress[]): PracticeItem[] {
   return [...practiced, ...pad].slice(0, MAX_ITEMS);
 }
 
-function weakness(p: ItemProgress): number {
-  const passRate = p.attempts > 0 ? p.passes / p.attempts : 0;
-  const masteredBump = isMastered(p) ? 100 : 0;
-  return masteredBump + (p.lastResult ? 3 : 0) + p.box * 2 + passRate * 4;
+// Same weakness ranking the AI partner uses, plus a bump that sends mastered
+// items to the back of the playlist. Shared so the "pass"/"fail" handling can
+// only ever be wrong in one place.
+function playlistWeight(p: ItemProgress): number {
+  return (isMastered(p) ? 100 : 0) + weakness(p);
 }
 
 /**

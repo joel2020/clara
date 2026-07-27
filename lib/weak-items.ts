@@ -39,8 +39,16 @@ export function weakestItems(progress: ItemProgress[], limit = 5, opts: WeakItem
     });
 }
 
-/** Lower = weaker. */
-function weakness(p: ItemProgress): number {
+/**
+ * Lower = weaker, so the sort puts the shakiest item first.
+ *
+ * `lastResult` is "pass" | "fail" | null, NOT a boolean. The original check was
+ * `p.lastResult ? 3 : 0`, which scored a miss and a pass identically (both
+ * truthy) and gave a never-resolved item the *lowest* score — so the words she
+ * had just gotten wrong were ranked as her strongest. Only a miss may earn the
+ * penalty-free 0.
+ */
+export function weakness(p: ItemProgress): number {
   const passRate = p.attempts > 0 ? p.passes / p.attempts : 0;
-  return (p.lastResult ? 3 : 0) + p.box * 2 + passRate * 4;
+  return (p.lastResult === "fail" ? 0 : 3) + p.box * 2 + passRate * 4;
 }
