@@ -90,6 +90,28 @@ export interface Attempt {
 }
 
 /**
+ * One sitting of a stage exam — the gate between CEFR bands.
+ *
+ * Stored per attempt (never overwritten) so a band is backed by a record: `day`
+ * enforces one sitting per calendar day, and the presence of a passed row at a
+ * level is what lets the readiness card stop saying "provisional".
+ */
+export interface ExamAttempt {
+  id?: number; // auto-increment (Dexie)
+  /** dayKey of the sitting, e.g. "2026-07-27". */
+  day: string;
+  at: number; // epoch ms
+  /** The level she held going IN. */
+  level: string;
+  score: number;
+  passed: boolean;
+  /** Per-section scores, keyed by SectionKey from lib/exams.ts. */
+  sections: Record<string, number>;
+  /** The weakest section, so a fail stays actionable after the fact. */
+  weakest: string | null;
+}
+
+/**
  * Per-item learning state for spaced repetition (Leitner boxes). One row per
  * practice item the learner has touched.
  */

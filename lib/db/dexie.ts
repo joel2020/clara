@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { AnalyticsEvent, Attempt, ConvItem, DailyQuestState, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings } from "./types";
+import type { AnalyticsEvent, Attempt, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings } from "./types";
 
 /**
  * Local-first storage via IndexedDB. This is the ONLY file that knows we use
@@ -17,6 +17,7 @@ export class ClaraDB extends Dexie {
   quests!: Table<DailyQuestState, string>;
   recordings!: Table<PhraseRecording, string>;
   events!: Table<AnalyticsEvent, number>;
+  examAttempts!: Table<ExamAttempt, number>;
 
   constructor() {
     super("clara");
@@ -48,6 +49,12 @@ export class ClaraDB extends Dexie {
     // best-effort mirrored to the cloud per user.
     this.version(5).stores({
       events: "++id, type, at, day",
+    });
+    // v6 adds stage-exam attempts. These are what make a CEFR band earned rather
+    // than self-reported: one row per sitting, keyed by day so the one-per-day
+    // rule has something to check.
+    this.version(6).stores({
+      examAttempts: "++id, day, at, level",
     });
   }
 }

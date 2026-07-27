@@ -5,6 +5,7 @@ import type {
   CategoryStat,
   ConvItem,
   DailyQuestState,
+  ExamAttempt,
   ItemProgress,
   Lesson,
   PhraseRecording,
@@ -103,6 +104,16 @@ export class DexieRepository implements DataRepository {
     await db.convItems.put(item);
   }
 
+  async getExamAttempts(): Promise<ExamAttempt[]> {
+    const rows = await db.examAttempts.toArray();
+    return rows.sort((a, b) => b.at - a.at);
+  }
+
+  async saveExamAttempt(attempt: Omit<ExamAttempt, "id">): Promise<void> {
+    // Append-only: sittings are never overwritten, so a band stays auditable.
+    await db.examAttempts.add(attempt as ExamAttempt);
+  }
+
   async getQuests(day: string): Promise<DailyQuestState | undefined> {
     return db.quests.get(day);
   }
@@ -183,6 +194,13 @@ export class DexieRepository implements DataRepository {
       db.convItems.clear(),
       db.quests.clear(),
       db.recordings.clear(),
+      // Exam sittings must go too: otherwise a reset device is still blocked by
+      // the one-attempt-per-day rule and still claims a band from a sitting that,
+      // as far as this profile is concerned, never happened.
+      db.examAttempts.clear(),
+      // events was omitted here before — analytics for a wiped profile is
+      // meaningless and reset is meant to clear the device.
+      db.events.clear(),
     ]);
   }
 }

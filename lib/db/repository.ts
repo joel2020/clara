@@ -3,6 +3,7 @@ import type {
   CategoryStat,
   ConvItem,
   DailyQuestState,
+  ExamAttempt,
   ItemProgress,
   Lesson,
   PhraseRecording,
@@ -49,6 +50,10 @@ export interface DataRepository {
   saveConvItem(item: ConvItem): Promise<void>;
 
   // --- Daily quests ---
+  /** Stage-exam sittings, newest first. Append-only: a band must stay auditable. */
+  getExamAttempts(): Promise<ExamAttempt[]>;
+  saveExamAttempt(attempt: Omit<ExamAttempt, "id">): Promise<void>;
+
   getQuests(day: string): Promise<DailyQuestState | undefined>;
   saveQuests(state: DailyQuestState): Promise<void>;
 
