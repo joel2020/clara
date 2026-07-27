@@ -1,0 +1,53 @@
+name: CI
+
+# Runs on every push and pull request. Until now every check in this repo ran only
+# because someone chose to run it locally, which meant a regression could ship and
+# the first report would come from a confused student.
+#
+# No secrets are needed: every integration in the app is env-gated, so with no keys
+# present the paid routes resolve to "not configured" and the build still succeeds.
+# That is deliberate — CI must not depend on production credentials.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push supersedes an in-flight run on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` respects the lockfile exactly, which is what makes CI a real signal
+      # rather than a different install than the developer had.
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Ratchet, not a gate: the repo carries reviewed React-Compiler advisories.
+      # New errors fail; existing ones do not. See scripts/lint-ratchet.mjs.
+      - name: Lint (ratchet)
+        run: npm run lint:ratchet
+
+      - name: Unit tests
+        run: npm test
+
+      # Catches the class of failure the unit tests structurally cannot: a broken
+      # import, a bad server component, a Lightning CSS rule silently dropped.
+      - name: Build
+        run: npm run build

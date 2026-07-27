@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node scripts/test.mjs",
+    "lint:ratchet": "node scripts/lint-ratchet.mjs",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint:ratchet && npm test && next build"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

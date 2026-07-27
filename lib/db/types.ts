@@ -304,7 +304,13 @@ export interface AnalyticsEvent {
     | "lesson_start"
     | "lesson_complete"
     | "lesson_abandon"
-    | "session_complete";
+    | "session_complete"
+    /**
+     * An uncaught client error or rejected promise. Logged like any other event so
+     * production failures are visible in the coach cockpit instead of only in a
+     * console nobody is watching.
+     */
+    | "client_error";
   at: number;
   day: string; // "YYYY-MM-DD" local, for daily rollups
   props?: Record<string, string | number | boolean>;

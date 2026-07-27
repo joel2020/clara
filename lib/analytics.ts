@@ -56,3 +56,42 @@ async function mirror(ev: AnalyticsEvent): Promise<void> {
     props: ev.props ?? {},
   });
 }
+
+/**
+ * Report an uncaught client error.
+ *
+ * Every bug found in this app so far was found by reading source, not by being
+ * told — which means anything not read stayed broken. This routes failures into the
+ * events table so they surface in the coach cockpit.
+ *
+ * Props carry ids and numbers only, so the message is truncated and the stack is
+ * reduced to its first frame: enough to locate the fault, not enough to leak what a
+ * student typed or said.
+ */
+export function reportError(source: string, err: unknown): void {
+  const message = err instanceof Error ? err.message : String(err);
+  const firstFrame =
+    err instanceof Error && err.stack
+      ? (err.stack.split("\n")[1] ?? "").trim().slice(0, 120)
+      : "";
+  track("client_error", {
+    source,
+    message: message.slice(0, 200),
+    frame: firstFrame,
+    path: typeof window === "undefined" ? "" : window.location.pathname,
+  });
+}
+
+let installed = false;
+
+/**
+ * Install global handlers once. Deliberately passive: it never swallows an error or
+ * changes behaviour, it only records. An error reporter that alters the failure it
+ * is reporting is worse than none.
+ */
+export function installErrorReporting(): void {
+  if (installed || typeof window === "undefined") return;
+  installed = true;
+  window.addEventListener("error", (e) => reportError("window.error", e.error ?? e.message));
+  window.addEventListener("unhandledrejection", (e) => reportError("unhandledrejection", e.reason));
+}

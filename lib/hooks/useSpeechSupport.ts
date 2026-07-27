@@ -8,10 +8,15 @@ import { loadVoices } from "@/lib/speech/synthesis";
 // Returns null until the first client render so SSR markup stays stable.
 
 export function useSpeechSupport(): SpeechSupport | null {
-  const [support, setSupport] = useState<SpeechSupport | null>(null);
+  // Probed via a lazy initialiser rather than an effect: capability detection is a
+  // one-time read, not a subscription, and setting state in an effect for it caused
+  // an avoidable extra render. Guarded so SSR still returns null.
+  const [support] = useState<SpeechSupport | null>(() =>
+    typeof window === "undefined" ? null : detectSpeechSupport(),
+  );
 
+  // Voices load asynchronously in the browser, so warming them IS a side effect.
   useEffect(() => {
-    setSupport(detectSpeechSupport());
     loadVoices();
   }, []);
 

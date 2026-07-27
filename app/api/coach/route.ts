@@ -27,11 +27,22 @@ export async function GET(request: Request): Promise<Response> {
   if (!url || !key) return Response.json({ error: "not_configured" }, { status: 503 });
 
   const sb = createClient(url, key, { auth: { persistSession: false } });
-  const [profilesRes, statsRes] = await Promise.all([
+  // Client errors from the last 7 days, newest first. Included here because the
+  // coach screen is the only place anyone actually looks — an error log nobody opens
+  // is the same as no error log.
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const [profilesRes, statsRes, errorsRes] = await Promise.all([
     sb.from("profiles").select("id,name,coach_language"),
     sb
       .from("player_stats")
       .select("profile_id,xp,stars,current_streak,longest_streak,total_attempts,total_passes,last_active_day,updated_at"),
+    sb
+      .from("events")
+      .select("at,props")
+      .eq("type", "client_error")
+      .gte("at", weekAgo)
+      .order("at", { ascending: false })
+      .limit(25),
   ]);
 
   const stats = new Map((statsRes.data ?? []).map((s) => [s.profile_id, s]));
@@ -56,5 +67,16 @@ export async function GET(request: Request): Promise<Response> {
     })
     .sort((a, b) => (b.lastActiveDay ?? "").localeCompare(a.lastActiveDay ?? ""));
 
-  return Response.json({ students, cloudAnalytics: Boolean(serviceKey) });
+  const errors = (errorsRes.data ?? []).map((e) => {
+    const props = (e.props ?? {}) as Record<string, string>;
+    return {
+      at: Number(e.at),
+      source: props.source ?? "",
+      message: props.message ?? "",
+      path: props.path ?? "",
+      frame: props.frame ?? "",
+    };
+  });
+
+  return Response.json({ students, errors, cloudAnalytics: Boolean(serviceKey) });
 }

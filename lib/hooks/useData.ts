@@ -12,7 +12,10 @@ import type { Attempt, CategoryStat, ConvItem, DailyQuestState, ItemProgress } f
 // when moving to Supabase, these get reimplemented with realtime/polling, but
 // the components calling them don't change.
 
-function clientQuery<T>(fn: () => Promise<T>, deps: unknown[] = []): T | undefined {
+// Named as a hook because it calls one. It was `clientQuery`, which tripped
+// rules-of-hooks: a function that calls useLiveQuery must follow hook rules, and the
+// linter can only enforce that if the name says so.
+function useClientQuery<T>(fn: () => Promise<T>, deps: unknown[] = []): T | undefined {
   return useLiveQuery(() => {
     if (typeof window === "undefined" || !db) return undefined as unknown as Promise<T>;
     return fn();
@@ -20,7 +23,7 @@ function clientQuery<T>(fn: () => Promise<T>, deps: unknown[] = []): T | undefin
 }
 
 export function useAllProgress(): ItemProgress[] | undefined {
-  return clientQuery(() => db.progress.toArray());
+  return useClientQuery(() => db.progress.toArray());
 }
 
 export function useProgressMap(): Map<string, ItemProgress> | undefined {
@@ -31,7 +34,7 @@ export function useProgressMap(): Map<string, ItemProgress> | undefined {
 
 export function useCategoryStats(): CategoryStat[] | undefined {
   // Recompute whenever attempts or progress change.
-  return clientQuery(async () => {
+  return useClientQuery(async () => {
     await db.attempts.count();
     await db.progress.count();
     return repo.getCategoryStats();
@@ -39,26 +42,26 @@ export function useCategoryStats(): CategoryStat[] | undefined {
 }
 
 export function useRecentAttempts(limit = 25): Attempt[] | undefined {
-  return clientQuery(() => db.attempts.orderBy("at").reverse().limit(limit).toArray(), [limit]);
+  return useClientQuery(() => db.attempts.orderBy("at").reverse().limit(limit).toArray(), [limit]);
 }
 
 export function useAllAttempts(): Attempt[] | undefined {
-  return clientQuery(() => db.attempts.orderBy("at").toArray());
+  return useClientQuery(() => db.attempts.orderBy("at").toArray());
 }
 
 export function useConvItems(): ConvItem[] | undefined {
-  return clientQuery(() => db.convItems.toArray());
+  return useClientQuery(() => db.convItems.toArray());
 }
 
 export function useTodayQuests(): DailyQuestState | undefined {
-  return clientQuery(async () => {
+  return useClientQuery(async () => {
     const day = dayKey();
     return (await db.quests.get(day)) ?? emptyQuests(day);
   });
 }
 
 export function useItemAttempts(itemId: string, limit = 10): Attempt[] | undefined {
-  return clientQuery(
+  return useClientQuery(
     () => db.attempts.where("itemId").equals(itemId).reverse().sortBy("at").then((r) => r.slice(0, limit)),
     [itemId, limit],
   );

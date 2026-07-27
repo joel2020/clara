@@ -25,16 +25,17 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const required = syncEnabled();
-  const [ready, setReady] = useState(!required);
+  // Ready immediately when auth is not required OR when Supabase is not configured
+  // at all — both are knowable synchronously from env, so deciding them here avoids
+  // a setState inside the effect (and one wasted render on every load).
+  const [ready, setReady] = useState(() => !required || supabase() === null);
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
     if (!required) return;
     const sb = supabase();
-    if (!sb) {
-      setReady(true);
-      return;
-    }
+    // The unconfigured case already resolved `ready` in the initialiser above.
+    if (!sb) return;
     let active = true;
     sb.auth.getSession().then(({ data }) => {
       if (!active) return;

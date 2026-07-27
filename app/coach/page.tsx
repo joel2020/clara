@@ -10,6 +10,15 @@ import { authHeaders } from "@/lib/auth-client";
 // The coach cockpit — Joel's view of every student at a glance. Admin-only.
 // One screen: who practiced today, streaks, accuracy, and who's gone quiet.
 
+/** An uncaught client error from the last 7 days, newest first. */
+interface ClientError {
+  at: number;
+  source: string;
+  message: string;
+  path: string;
+  frame: string;
+}
+
 interface Student {
   id: string;
   name: string;
@@ -32,6 +41,7 @@ function daysAgo(day: string | null): number | null {
 export default function CoachPage() {
   const { user, ready, required } = useAuth();
   const [students, setStudents] = useState<Student[] | null>(null);
+  const [errors, setErrors] = useState<ClientError[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const admin = !required || isAdmin(user?.email);
@@ -45,8 +55,9 @@ export default function CoachPage() {
           setError(res.status === 403 ? "forbidden" : "error");
           return;
         }
-        const data = (await res.json()) as { students: Student[] };
+        const data = (await res.json()) as { students: Student[]; errors?: ClientError[] };
         setStudents(data.students);
+        setErrors(data.errors ?? []);
       } catch {
         setError("error");
       }
@@ -124,6 +135,33 @@ export default function CoachPage() {
           );
         })}
       </div>
+
+      {/* Production errors. Deliberately last: it should be empty, and when it is not
+          it is the most important thing on the page. */}
+      {errors.length > 0 && (
+        <section className="mt-10">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-warn-foreground">
+            Errores esta semana ({errors.length})
+          </p>
+          <div className="mt-3 grid gap-2">
+            {errors.map((e, i) => (
+              <div key={`${e.at}-${i}`} className="rounded-2xl border border-warn/40 bg-card px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-medium">{e.message || "(sin mensaje)"}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {new Date(e.at).toLocaleString("es-CO")}
+                  </span>
+                </div>
+                <p className="mt-1 font-mono text-xs text-muted-foreground">
+                  {e.path}
+                  {e.source ? ` · ${e.source}` : ""}
+                  {e.frame ? ` · ${e.frame}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
