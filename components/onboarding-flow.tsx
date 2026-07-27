@@ -14,6 +14,7 @@ import {
   levelIndex, levelDown, type AnswerRecord, type PlacementResult,
 } from "@/lib/placement";
 import { GOALS, type Goal, type DailyMinutes, firstWeekPlan, levelBlurbEs, type OnboardingProfile } from "@/lib/onboarding";
+import type { LearningPath } from "@/lib/paths";
 import { PLACEMENT_BANK, pickQuestion, type PlacementQ } from "@/lib/content/placement-questions";
 import { authHeaders } from "@/lib/auth-client";
 
@@ -63,9 +64,23 @@ async function playJoelVoice(text: string, audioRef: React.MutableRefObject<HTML
 // personalized first week. Feels like a challenge, not an exam. Self-gates: only
 // shows for a signed-in learner who hasn't been placed yet.
 
-type Step = "name" | "place" | "goal" | "minutes" | "self" | "test" | "result";
+type Step = "name" | "place" | "path" | "goal" | "minutes" | "self" | "test" | "result";
 const SKILL_ROTATION: Skill[] = ["listening", "vocabulary", "grammar", "reading"];
-const TOTAL_STEPS = 6; // name..self + test (result isn't counted on the bar)
+const TOTAL_STEPS = 7; // name..self + test (result isn't counted on the bar)
+
+// The two destinations. Asked in her words — no "CEFR", no "BPO".
+const PATH_OPTIONS: { id: LearningPath; es: string; blurb: string }[] = [
+  {
+    id: "job",
+    es: "Para trabajar",
+    blurb: "Quiero un puesto en soporte o servicio al cliente con una empresa de Estados Unidos.",
+  },
+  {
+    id: "general",
+    es: "Para hablar con confianza",
+    blurb: "Quiero conversar sin bloquearme: viajes, amigos, la familia, el día a día.",
+  },
+];
 
 const SELF_OPTIONS: { id: SelfLevel; es: string }[] = [
   { id: "zero", es: "Empiezo de cero" },
@@ -89,6 +104,7 @@ export function OnboardingFlow() {
   const [name, setName] = useState("");
   const [country, setCountry] = useState("Colombia");
   const [city, setCity] = useState("Medellín");
+  const [path, setPath] = useState<LearningPath | null>(null);
   const [goal, setGoal] = useState<Goal | null>(null);
   const [minutes, setMinutes] = useState<DailyMinutes>(20);
   const [self, setSelf] = useState<SelfLevel | null>(null);
@@ -113,7 +129,7 @@ export function OnboardingFlow() {
   // straight to their app (they can retake placement from /profile).
   if (player.xp > 0 || player.totalAttempts > 0) return null;
 
-  const stepIndex = (["name", "place", "goal", "minutes", "self", "test"] as Step[]).indexOf(step) + 1;
+  const stepIndex = (["name", "place", "path", "goal", "minutes", "self", "test"] as Step[]).indexOf(step) + 1;
 
   const go = (s: Step) => {
     sfx.tap();
@@ -185,6 +201,7 @@ export function OnboardingFlow() {
       selfLevel: self ?? "basics",
       level,
       subscores: result.subscores,
+      path: path ?? "general",
       completedAt: Date.now(),
     };
     sfx.finish?.();
@@ -207,6 +224,7 @@ export function OnboardingFlow() {
       dailyMinutes: minutes,
       selfLevel: self,
       level,
+      path: path ?? "general",
       completedAt: Date.now(),
     };
     sfx.finish?.();
@@ -256,14 +274,41 @@ export function OnboardingFlow() {
               <Field label="País" value={country} onChange={setCountry} />
               <Field label="Ciudad" value={city} onChange={setCity} />
             </div>
-            <Primary onClick={() => go("goal")}>Seguir</Primary>
+            <Primary onClick={() => go("path")}>Seguir</Primary>
+          </Card>
+        )}
+
+        {step === "path" && (
+          <Card>
+            <Eyebrow>Tu camino</Eyebrow>
+            <H>¿Para qué quieres tu inglés?</H>
+            <div className="mt-6 grid gap-3">
+              {PATH_OPTIONS.map((p) => (
+                <Choice
+                  key={p.id}
+                  active={path === p.id}
+                  title={p.es}
+                  blurb={p.blurb}
+                  onClick={() => {
+                    setPath(p.id);
+                    sfx.tap();
+                  }}
+                />
+              ))}
+            </div>
+            <Primary disabled={!path} onClick={() => go("goal")}>
+              Seguir
+            </Primary>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Puedes cambiarlo después. Tu progreso no se pierde.
+            </p>
           </Card>
         )}
 
         {step === "goal" && (
           <Card>
             <Eyebrow>Tu meta</Eyebrow>
-            <H>¿Para qué quieres el inglés?</H>
+            <H>¿De qué quieres hablar?</H>
             <div className="mt-6 grid grid-cols-2 gap-3">
               {GOALS.map((g) => (
                 <Choice key={g.id} active={goal === g.id} title={g.es} onClick={() => { setGoal(g.id); sfx.tap(); }} />
@@ -482,19 +527,33 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
     </label>
   );
 }
-function Choice({ active, title, onClick, wide }: { active: boolean; title: string; onClick: () => void; wide?: boolean }) {
+function Choice({
+  active,
+  title,
+  onClick,
+  wide,
+  blurb,
+}: {
+  active: boolean;
+  title: string;
+  onClick: () => void;
+  wide?: boolean;
+  /** Optional explanation under the title — used by the path choice. */
+  blurb?: string;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-2xl border p-4 text-center transition-all active:scale-[0.99]",
-        wide && "text-left",
+        "rounded-2xl border p-4 transition-all active:scale-[0.99]",
+        wide || blurb ? "text-left" : "text-center",
         active ? "border-primary bg-primary/[0.06]" : "border-hairline bg-card hover:border-foreground/30",
       )}
     >
       <span className={cn("font-display text-lg", active && "text-primary")}>{title}</span>
+      {blurb && <span className="mt-1 block text-sm leading-snug text-muted-foreground">{blurb}</span>}
     </button>
   );
 }

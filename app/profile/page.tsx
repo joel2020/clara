@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { levelForXp } from "@/lib/gamification";
 import { GOALS } from "@/lib/onboarding";
 import { levelBlurbEs } from "@/lib/onboarding";
+import { pathOf } from "@/lib/paths";
+import { cn } from "@/lib/utils";
 
 // The learner's profile: who they are, their English level, and their momentum.
 // Reads the onboarding record + live player stats. A "retake placement" button
@@ -54,6 +56,59 @@ export default function ProfilePage() {
           <p className="mt-3 text-sm text-muted-foreground">
             {lang === "es" ? "Meta" : "Goal"}: <span className="text-foreground">{goalEs}</span> ·{" "}
             {lang === "es" ? "Ritmo" : "Pace"}: <span className="text-foreground">{ob.dailyMinutes} min/día</span>
+          </p>
+        </section>
+      )}
+
+      {/* learning path — changeable, and switching never touches her progress */}
+      {ob && (
+        <section className="mt-4 rounded-3xl border border-hairline bg-card p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {lang === "es" ? "Tu camino" : "Your path"}
+          </p>
+          <div className="mt-3 grid gap-3">
+            {(
+              [
+                {
+                  id: "job" as const,
+                  title: lang === "es" ? "Para trabajar" : "To work",
+                  blurb:
+                    lang === "es"
+                      ? "Inglés para soporte y servicio al cliente. Meta: nivel B2 comprobado."
+                      : "English for support and customer service. Target: B2, evidenced.",
+                },
+                {
+                  id: "general" as const,
+                  title: lang === "es" ? "Para hablar con confianza" : "To speak with confidence",
+                  blurb:
+                    lang === "es"
+                      ? "Conversar sin bloquearte. Meta: una charla de 10 minutos sin trabarte."
+                      : "Converse without freezing. Target: a 10-minute chat without stalling.",
+                },
+              ] as const
+            ).map((p) => {
+              const active = pathOf(ob) === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => void update({ onboarding: { ...ob, path: p.id } })}
+                  className={cn(
+                    "rounded-2xl border p-4 text-left transition-all active:scale-[0.99]",
+                    active ? "border-primary bg-primary/[0.06]" : "border-hairline hover:border-foreground/30",
+                  )}
+                >
+                  <span className={cn("font-display text-lg", active && "text-primary")}>{p.title}</span>
+                  <span className="mt-1 block text-sm leading-snug text-muted-foreground">{p.blurb}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {lang === "es"
+              ? "Cambiar de camino no borra nada: tus estrellas, tu racha y tus frases se quedan."
+              : "Switching paths erases nothing: your stars, streak and phrases stay."}
           </p>
         </section>
       )}
