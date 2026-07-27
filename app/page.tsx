@@ -6,6 +6,7 @@ import {
   Zap,
   CalendarDays,
   MessageCircle,
+  PhoneCall,
   Store,
   PlayCircle,
   Volume2,
@@ -31,6 +32,8 @@ import { SceneVideo } from "@/components/scene-video";
 import { InstallNudge } from "@/components/install-nudge";
 import { PetSprite } from "@/components/pet-sprite";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { pathOf } from "@/lib/paths";
+import { ReadinessCard } from "@/components/readiness-card";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { getCosmetic, chestAvailable } from "@/lib/cosmetics";
 import { timeGreetingKey } from "@/lib/greeting";
@@ -44,6 +47,7 @@ export default function HomePage() {
   const { settings } = useSettings();
   const player = usePlayer();
   const lang = settings.coachLanguage;
+  const path = pathOf(settings.onboarding);
   const name = settings.studentName;
 
   // Time-aware greeting, resolved on the client so the prerendered page and her
@@ -154,7 +158,13 @@ export default function HomePage() {
         <span className="text-primary-foreground/60 transition-transform group-hover:translate-x-0.5">→</span>
       </Link>
 
+      {/* The destination: one number, its trend, and the single blocker. This is
+          the spine of the app — everything below is how she moves it. */}
       <div className="mt-5">
+        <ReadinessCard />
+      </div>
+
+      <div className="mt-4">
         <PlayerBar />
       </div>
 
@@ -167,19 +177,28 @@ export default function HomePage() {
       </div>
 
       {/* The one high-value secondary action: talk to Joel — the thing that
-          actually builds conversation. Everything else waits behind "explore". */}
+          actually builds conversation. On the job path it is framed as a call,
+          because that is the moment she is training for. */}
       <Link
         href="/talk"
         onClick={() => track("mode_open", { mode: "talk" })}
         className="group mt-4 flex items-center gap-4 rounded-3xl border border-primary/30 bg-primary/[0.06] px-6 py-5 transition-all card-lift hover:border-primary/60"
       >
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
-          <MessageCircle className="size-6" />
+          {path === "job" ? <PhoneCall className="size-6" /> : <MessageCircle className="size-6" />}
         </span>
         <div className="flex-1">
-          <p className="font-display text-lg font-semibold tracking-[-0.01em]">{t("navTalk", lang)}</p>
+          <p className="font-display text-lg font-semibold tracking-[-0.01em]">
+            {path === "job" ? (lang === "es" ? "Llamada" : "Call") : t("navTalk", lang)}
+          </p>
           <p className="text-sm text-muted-foreground">
-            {lang === "es" ? "Practica una conversación real con Joel." : "Practice a real conversation with Joel."}
+            {path === "job"
+              ? lang === "es"
+                ? "Atiende a un cliente en inglés, con Joel."
+                : "Handle a customer in English, with Joel."
+              : lang === "es"
+                ? "Practica una conversación real con Joel."
+                : "Practice a real conversation with Joel."}
           </p>
         </div>
         <span className="text-muted-foreground transition-transform group-hover:translate-x-0.5">→</span>
