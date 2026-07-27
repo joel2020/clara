@@ -7,6 +7,7 @@
 
 import type OpenAI from "openai";
 import { getScenario } from "@/lib/content/scenarios";
+import { getCallScenario } from "@/lib/content/call-scenarios";
 import { guardApi } from "@/lib/api-guard";
 import { requireUser } from "@/lib/auth-server";
 import { getChatModel } from "@/lib/ai/chat-client";
@@ -21,6 +22,14 @@ interface Turn {
 
 interface ChatRequest {
   scenarioId?: string;
+  /**
+   * "call" flips Joel from tutor to CUSTOMER for the call simulator: natural
+   * speed, a real problem, mild impatience, and no coaching — a customer does not
+   * correct your grammar, and pretending otherwise would teach the wrong reflexes.
+   */
+  mode?: "tutor" | "call";
+  /** Scenario id from lib/content/call-scenarios.ts when mode is "call". */
+  callScenarioId?: string;
   studentName?: string | null;
   coachLanguage?: "es" | "en";
   history?: Turn[];
@@ -93,6 +102,38 @@ const GOAL_CONTEXT: Record<string, string> = {
   fluency: "Her goal is general fluency — keep a natural mix of everyday topics.",
 };
 
+/**
+ * The customer persona for the call simulator.
+ *
+ * Deliberately different in kind from the tutor prompt: a customer has a goal, not
+ * a lesson plan. The hard rules exist because the whole value of this feature is
+ * that it does NOT behave like a language app — if the "customer" slows down,
+ * simplifies, or praises her English, the practice is worthless.
+ */
+function callSystemPrompt(persona: string, difficulty: string, name: string, coachLang: "es" | "en"): string {
+  const coach = coachLang === "es" ? "Spanish" : "English";
+  return `You are a CUSTOMER calling a customer-support line. ${name} is the support agent who answered. Stay in character as the customer for the entire call.
+
+WHO YOU ARE: ${persona}
+
+HOW YOU SPEAK:
+- Natural, everyday American English at NORMAL speed. Do not slow down, do not simplify, do not speak like a teacher.
+- You are ${difficulty === "angry" ? "genuinely angry at first, and you interrupt" : difficulty === "annoyed" ? "annoyed and tired of repeating yourself" : "polite but busy"}.
+- Real speech: contractions, "yeah", "look", "honestly", occasional false starts.
+- 1-3 sentences per turn. You are on the phone, not writing.
+
+HARD RULES:
+- NEVER correct her English, never comment on her English, never praise it. You are a customer; you do not care.
+- Never break character, never mention that you are an AI or that this is practice.
+- Do not solve your own problem or coach her. If she does not ask for a detail, do not volunteer it.
+- If she asks you to verify something, give it — read digits one at a time, the way people actually do on the phone.
+- If she acknowledges your frustration and takes ownership, soften. If she reads a script at you or tells you to calm down, get more frustrated.
+- If she says something you would not understand as a native, say so naturally ("Sorry, what?") rather than explaining her mistake.
+- When your problem is genuinely resolved and she has closed the call, end warmly and briefly.
+
+FIELDS: "reply" is your next line as the customer. "reply_es" is a natural ${coach} translation so she can follow. "correction" MUST be null — customers do not correct. "suggestions" are 2-3 short phrases the AGENT could say next, as scaffolding for her. "practice" MUST be null.`;
+}
+
 function systemPrompt(
   scenarioRole: string,
   scenarioSetting: string,
@@ -152,8 +193,10 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Bad request." }, { status: 400 });
   }
 
-  const scenario = getScenario(body.scenarioId ?? "");
-  if (!scenario) {
+  const isCall = body.mode === "call";
+  const callScenario = isCall ? getCallScenario(body.callScenarioId ?? "") : undefined;
+  const scenario = isCall ? undefined : getScenario(body.scenarioId ?? "");
+  if (isCall ? !callScenario : !scenario) {
     return Response.json({ error: "Unknown scenario." }, { status: 400 });
   }
 
@@ -172,8 +215,13 @@ export async function POST(request: Request): Promise<Response> {
   // Build the message list: system prompt, then the scenario opener as Joel's
   // first turn (the client rendered it locally), then the running conversation.
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt(scenario.role, scenario.setting, name, coachLang, focusWords, level, goal) },
-    { role: "assistant", content: scenario.opener.en },
+    {
+      role: "system",
+      content: callScenario
+        ? callSystemPrompt(callScenario.persona, callScenario.difficulty, name, coachLang)
+        : systemPrompt(scenario!.role, scenario!.setting, name, coachLang, focusWords, level, goal),
+    },
+    { role: "assistant", content: callScenario ? callScenario.opener : scenario!.opener.en },
     ...history.map(
       (turn): OpenAI.Chat.Completions.ChatCompletionMessageParam => ({
         role: turn.role === "user" ? "user" : "assistant",
@@ -218,11 +266,13 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({
       reply: (parsed.reply ?? "").trim(),
       reply_es: (parsed.reply_es ?? "").trim(),
-      correction,
+      // Enforced server-side rather than trusted to the prompt: on a call there is
+      // no correction and no homework, because a customer does not teach.
+      correction: isCall ? null : correction,
       suggestions: Array.isArray(parsed.suggestions)
         ? parsed.suggestions.slice(0, 3).map((s) => String(s).trim()).filter(Boolean)
         : [],
-      practice,
+      practice: isCall ? null : practice,
     });
   } catch {
     return Response.json({ error: "Couldn't reach the conversation partner." }, { status: 502 });

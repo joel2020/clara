@@ -180,8 +180,8 @@ export default function HomePage() {
           actually builds conversation. On the job path it is framed as a call,
           because that is the moment she is training for. */}
       <Link
-        href="/talk"
-        onClick={() => track("mode_open", { mode: "talk" })}
+        href={path === "job" ? "/call" : "/talk"}
+        onClick={() => track("mode_open", { mode: path === "job" ? "call" : "talk" })}
         className="group mt-4 flex items-center gap-4 rounded-3xl border border-primary/30 bg-primary/[0.06] px-6 py-5 transition-all card-lift hover:border-primary/60"
       >
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
