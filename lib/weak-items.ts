@@ -1,5 +1,5 @@
 import type { ItemProgress } from "@/lib/db/types";
-import { ITEM_BY_ID } from "@/lib/content/lessons";
+import { ITEM_BY_ID, trackOfItem } from "@/lib/content/lessons";
 import { isMastered } from "@/lib/srs";
 
 // The items she's struggling with most — used to personalize the AI
@@ -13,9 +13,24 @@ export interface WeakItem {
   meaning?: string;
 }
 
-export function weakestItems(progress: ItemProgress[], limit = 5): WeakItem[] {
+export interface WeakItemOptions {
+  /**
+   * Only consider items from this curriculum track.
+   *
+   * The AI conversation partner MUST pass "conversation". Sounds-track items are
+   * isolated minimal-pair drill words ("vase", "base", "boat") and tongue-twister
+   * sentences — mouth-shape targets, not things anyone says. Handing them to the
+   * chat model made it bend the scene to fit them (it once asked a student if she
+   * had "a vase for her books"). Conversation-track items are real phrases with a
+   * Spanish gloss, so weaving them in reads naturally.
+   */
+  track?: "sounds" | "conversation";
+}
+
+export function weakestItems(progress: ItemProgress[], limit = 5, opts: WeakItemOptions = {}): WeakItem[] {
   return progress
     .filter((p) => p.attempts > 0 && !isMastered(p) && ITEM_BY_ID.has(p.itemId))
+    .filter((p) => !opts.track || trackOfItem(p.itemId) === opts.track)
     .sort((a, b) => weakness(a) - weakness(b))
     .slice(0, limit)
     .map((p) => {

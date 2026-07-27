@@ -56,6 +56,10 @@ type Phase = "idle" | "recording" | "thinking";
 export default function TalkPage() {
   const { settings, ready } = useSettings();
   const lang = settings.coachLanguage;
+  // Read off settings once so they can be plain deps of send() below.
+  const studentName = settings.studentName;
+  const level = settings.onboarding?.level;
+  const goal = settings.onboarding?.goal;
 
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -83,9 +87,12 @@ export default function TalkPage() {
   }, []);
 
   // Her weakest items — Joel quietly works them into the conversation.
+  // Conversation track ONLY: sounds-track items are isolated pronunciation
+  // targets ("vase", "base", "boat"), and asking Joel to work those into a scene
+  // produced nonsense turns. Those belong in the sound drills, not here.
   useEffect(() => {
     void repo.getAllProgress().then((all) => {
-      setFocusWords(weakestItems(all, 5).map((w) => w.text));
+      setFocusWords(weakestItems(all, 5, { track: "conversation" }).map((w) => w.text));
     });
   }, []);
 
@@ -166,12 +173,12 @@ export default function TalkPage() {
           headers: { "Content-Type": "application/json", ...(await authHeaders()) },
           body: JSON.stringify({
             scenarioId: scenario.id,
-            studentName: settings.studentName,
+            studentName,
             coachLanguage: lang,
             history,
             focusWords,
-            level: settings.onboarding?.level,
-            goal: settings.onboarding?.goal,
+            level,
+            goal,
           }),
         });
         if (res.status === 503) {
@@ -219,7 +226,10 @@ export default function TalkPage() {
       }
       void herLine;
     },
-    [scenario, settings.studentName, lang, speak],
+    // focusWords / level / goal load asynchronously after mount, so they must be
+    // deps — otherwise this callback keeps the empty values it closed over and
+    // Joel never sees her level, goal, or practice phrases.
+    [scenario, studentName, level, goal, focusWords, lang, speak],
   );
 
   const addHerLine = useCallback(

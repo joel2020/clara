@@ -706,6 +706,16 @@ export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]));
 export const ALL_ITEMS: PracticeItem[] = LESSONS.flatMap((l) => l.items);
 export const ITEM_BY_ID = new Map(ALL_ITEMS.map((i) => [i.id, i]));
 
+/** The lesson an item belongs to — the only reliable way to read its track. */
+export const LESSON_BY_ITEM_ID = new Map(LESSONS.flatMap((l) => l.items.map((i) => [i.id, l] as const)));
+
+/** An item's curriculum track. Lessons default to "sounds" when unset. */
+export function trackOfItem(itemId: string): "sounds" | "conversation" | undefined {
+  const lesson = LESSON_BY_ITEM_ID.get(itemId);
+  if (!lesson) return undefined;
+  return lesson.track ?? "sounds";
+}
+
 /** The minimal-pair partner of an item, if it has one. */
 export function partnerOf(item: PracticeItem, pool: PracticeItem[] = ALL_ITEMS): PracticeItem | undefined {
   if (!item.pairId) return undefined;

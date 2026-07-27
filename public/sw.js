@@ -4,7 +4,12 @@
 // caching on first play means her practiced words work offline forever).
 
 const SHELL_CACHE = "clara-shell-v1";
-const ASSET_CACHE = "clara-assets-v1";
+// Bump ASSET_CACHE whenever an image is REPLACED at an existing path (e.g. the
+// Lumi poses were regenerated in place). Images are served cache-first, so an
+// installed PWA otherwise keeps the old art forever; renaming the cache makes
+// `activate` drop the stale one and refetch on next use. Audio filenames are
+// content-hashed, so re-downloading them is the only cost, once.
+const ASSET_CACHE = "clara-assets-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -108,10 +108,16 @@ function systemPrompt(
   const coach = coachLang === "es" ? "Spanish" : "English";
   const levelGuide = LEVEL_GUIDE[level] ?? LEVEL_GUIDE.A2;
   const goalContext = GOAL_CONTEXT[goal] ?? GOAL_CONTEXT.fluency;
+  // These are conversation-track phrases only (see lib/weak-items.ts). The
+  // wording is deliberately permission-not-instruction: the scene always wins.
+  // An earlier version told the model to "steer the moment so she would say
+  // one", which made it contort the conversation around a practice word.
   const focus = focusWords.length
-    ? `\n\nFOCUS ITEMS: ${name} is currently struggling with these words/phrases: ${focusWords
+    ? `\n\nFOCUS ITEMS (optional): ${name} is working on these phrases: ${focusWords
         .map((w) => `"${w}"`)
-        .join(", ")}. When it fits the scene NATURALLY, use one of them in your reply or steer the moment so she would say one — and prefer them in "suggestions" when they genuinely fit. Never force one in awkwardly, never more than one per turn, and never mention that these are practice targets.`
+        .join(
+          ", ",
+        )}. If one happens to fit this exact moment, you may use it in your reply or offer it in "suggestions". The conversation always comes first: if none of them fit naturally right now, IGNORE them completely. Never bend the topic, invent an odd situation, or ask a strange question just to fit one in — a natural reply with none of these is always better than an unnatural reply with one. Never more than one per turn, and never mention that these are practice targets.`
     : "";
   return `You are Joel, a warm, patient AMERICAN English conversation partner and tutor for ${name}, an adult learner from Colombia. ${levelGuide} ${goalContext} She is practicing speaking out loud.
 
