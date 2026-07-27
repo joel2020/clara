@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { AnalyticsEvent, Attempt, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings } from "./types";
+import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings } from "./types";
 
 /**
  * Local-first storage via IndexedDB. This is the ONLY file that knows we use
@@ -18,6 +18,7 @@ export class ClaraDB extends Dexie {
   recordings!: Table<PhraseRecording, string>;
   events!: Table<AnalyticsEvent, number>;
   examAttempts!: Table<ExamAttempt, number>;
+  callScores!: Table<CallScore, number>;
 
   constructor() {
     super("clara");
@@ -55,6 +56,11 @@ export class ClaraDB extends Dexie {
     // rule has something to check.
     this.version(6).stores({
       examAttempts: "++id, day, at, level",
+    });
+    // v7 adds completed call-simulator runs, so job-path practice is measurable
+    // and can be counted on her report.
+    this.version(7).stores({
+      callScores: "++id, at, scenarioId",
     });
   }
 }

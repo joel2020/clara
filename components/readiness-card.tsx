@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAllAttempts, useAllProgress } from "@/lib/hooks/useData";
@@ -9,6 +9,7 @@ import { pathOf } from "@/lib/paths";
 import { examEligibility } from "@/lib/exams";
 import { levelLessonPool } from "@/lib/onboarding";
 import { LESSON_BY_ID } from "@/lib/content/lessons";
+import { repo } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import type { Attempt } from "@/lib/db/types";
 
@@ -57,6 +58,14 @@ export function ReadinessCard() {
   const lang = settings.coachLanguage;
   const ob = settings.onboarding;
 
+  // Whether she has ever PASSED a sitting — without this the provisional flag can
+  // never clear, so the band would read "Provisional" forever and the report would
+  // stay unreachable.
+  const [examPassed, setExamPassed] = useState(false);
+  useEffect(() => {
+    void repo.getExamAttempts().then((rows) => setExamPassed(rows.some((r) => r.passed)));
+  }, []);
+
   const readiness = useMemo(() => {
     if (!attempts || !progress) return null;
     return computeReadiness({
@@ -64,8 +73,9 @@ export function ReadinessCard() {
       progress,
       band: ob?.level ?? "A1",
       path: pathOf(ob),
+      examPassed,
     });
-  }, [attempts, progress, ob]);
+  }, [attempts, progress, ob, examPassed]);
 
   const points = useMemo(() => {
     if (!attempts?.length) return [];
@@ -199,6 +209,18 @@ export function ReadinessCard() {
             ? `Para subir a B2, lo único bajo la meta es tu ${blockerLabel.toLowerCase()}.`
             : `To reach B2, the only thing below target is your ${blockerLabel.toLowerCase()}.`}
         </p>
+      )}
+
+      {/* Once she has passed a sitting the band is earned, so the report exists.
+          Job path only: a recruiter document is not what the confidence path is for. */}
+      {!readiness.provisional && path === "job" && (
+        <Link
+          href="/report"
+          className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-hairline px-4 py-3 text-sm transition-colors hover:border-primary/50"
+        >
+          <span>{lang === "es" ? "Tu reporte para reclutadores" : "Your recruiter report"}</span>
+          <span className="text-muted-foreground">&rarr;</span>
+        </Link>
       )}
 
       {/* The stage gate. Passing the exam is the only way the band changes, so it

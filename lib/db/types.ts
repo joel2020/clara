@@ -90,6 +90,19 @@ export interface Attempt {
 }
 
 /**
+ * One completed call in the call simulator, kept so progress on the job path is
+ * measurable and can appear on her report. Append-only, like exam sittings.
+ */
+export interface CallScore {
+  id?: number; // auto-increment (Dexie)
+  scenarioId: string;
+  at: number; // epoch ms
+  score: number;
+  /** The four QA checks, keyed by QaKey from lib/content/call-scenarios.ts. */
+  checks: Record<string, boolean>;
+}
+
+/**
  * One sitting of a stage exam — the gate between CEFR bands.
  *
  * Stored per attempt (never overwritten) so a band is backed by a record: `day`

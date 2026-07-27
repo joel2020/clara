@@ -12,6 +12,7 @@ import { CALL_SCENARIOS, QA_CHECKS, type CallScenario, type QaKey } from "@/lib/
 import { createRecognition } from "@/lib/speech/recognition";
 import { authHeaders } from "@/lib/auth-client";
 import { recordQuestEvent } from "@/lib/quests";
+import { repo } from "@/lib/db";
 
 // The call simulator — the job path's hard mode.
 //
@@ -164,7 +165,16 @@ export default function CallPage() {
         }),
       });
       if (!res.ok) throw new Error(String(res.status));
-      setScore((await res.json()) as CallScore);
+      const scored = (await res.json()) as CallScore;
+      setScore(scored);
+      // Persisted so job-path practice is measurable and can be counted on her
+      // report — otherwise a finished call leaves no trace.
+      void repo.saveCallScore({
+        scenarioId: scenario.id,
+        at: Date.now(),
+        score: scored.score,
+        checks: Object.fromEntries(scored.checks.map((c) => [c.key, c.passed])),
+      });
       void recordQuestEvent("talk");
       sfx.finish?.();
     } catch {

@@ -1,5 +1,6 @@
 import type {
   Attempt,
+  CallScore,
   CategoryStat,
   ConvItem,
   DailyQuestState,
@@ -52,6 +53,9 @@ export interface DataRepository {
   // --- Daily quests ---
   /** Stage-exam sittings, newest first. Append-only: a band must stay auditable. */
   getExamAttempts(): Promise<ExamAttempt[]>;
+  /** Completed call-simulator runs, newest first. Append-only. */
+  getCallScores(): Promise<CallScore[]>;
+  saveCallScore(score: Omit<CallScore, "id">): Promise<void>;
   saveExamAttempt(attempt: Omit<ExamAttempt, "id">): Promise<void>;
 
   getQuests(day: string): Promise<DailyQuestState | undefined>;

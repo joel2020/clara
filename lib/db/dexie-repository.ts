@@ -2,6 +2,7 @@ import { db } from "./dexie";
 import { DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository";
 import type {
   Attempt,
+  CallScore,
   CategoryStat,
   ConvItem,
   DailyQuestState,
@@ -114,6 +115,15 @@ export class DexieRepository implements DataRepository {
     await db.examAttempts.add(attempt as ExamAttempt);
   }
 
+  async getCallScores(): Promise<CallScore[]> {
+    const rows = await db.callScores.toArray();
+    return rows.sort((a, b) => b.at - a.at);
+  }
+
+  async saveCallScore(score: Omit<CallScore, "id">): Promise<void> {
+    await db.callScores.add(score as CallScore);
+  }
+
   async getQuests(day: string): Promise<DailyQuestState | undefined> {
     return db.quests.get(day);
   }
@@ -198,6 +208,7 @@ export class DexieRepository implements DataRepository {
       // the one-attempt-per-day rule and still claims a band from a sitting that,
       // as far as this profile is concerned, never happened.
       db.examAttempts.clear(),
+      db.callScores.clear(),
       // events was omitted here before — analytics for a wiped profile is
       // meaningless and reset is meant to clear the device.
       db.events.clear(),
