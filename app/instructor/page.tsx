@@ -5,12 +5,34 @@ import { GraduationCap, Lock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { isAdmin } from "@/lib/allowlist";
 import { CustomLessonBuilder } from "@/components/instructor/custom-lesson-builder";
 import { RecentAttempts } from "@/components/instructor/recent-attempts";
 import { VoiceSettings } from "@/components/instructor/voice-settings";
 
 export default function InstructorPage() {
   const { settings, update } = useSettings();
+  const { required, user } = useAuth();
+
+  // Admin-only when a real auth backend exists (the DB policy enforces the same
+  // list server-side); local dev without auth keeps the simple toggle.
+  if (required && !isAdmin(user?.email)) {
+    return (
+      <div className="mx-auto max-w-md px-5 py-24 text-center">
+        <Lock className="mx-auto mb-5 size-8 text-muted-foreground" />
+        <h1 className="font-display text-3xl font-medium tracking-[-0.02em]">Solo para tu profe</h1>
+        <p className="mx-auto mt-3 max-w-xs text-muted-foreground">
+          Las herramientas de instructor son solo para la cuenta del profesor.
+        </p>
+        <div className="mt-4">
+          <Link href="/" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            Volver a las lecciones
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!settings.instructorMode) {
     return (

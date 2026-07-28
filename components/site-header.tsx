@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Volume2, VolumeX, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { isAdmin } from "@/lib/allowlist";
 import { Switch } from "@/components/ui/switch";
 import { t } from "@/lib/i18n";
 
@@ -16,7 +18,11 @@ const NAV = [
 export function SiteHeader() {
   const pathname = usePathname();
   const { settings, update } = useSettings();
+  const { required, user } = useAuth();
   const lang = settings.coachLanguage;
+  // Teaching tools are for the teacher: with a real auth backend, only admin
+  // accounts see the toggle. Local dev (no auth) keeps it for convenience.
+  const teacher = !required || isAdmin(user?.email);
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-background/70 backdrop-blur-xl">
@@ -72,14 +78,16 @@ export function SiteHeader() {
             <Settings2 className="size-[18px]" />
           </Link>
 
-          <div className="hidden items-center gap-2 border-l border-hairline pl-5 md:flex">
-            <span className="text-xs font-medium text-muted-foreground">Instructor</span>
-            <Switch
-              checked={settings.instructorMode}
-              onCheckedChange={(v) => update({ instructorMode: v })}
-              aria-label="Toggle instructor mode"
-            />
-          </div>
+          {teacher && (
+            <div className="hidden items-center gap-2 border-l border-hairline pl-5 md:flex">
+              <span className="text-xs font-medium text-muted-foreground">Instructor</span>
+              <Switch
+                checked={settings.instructorMode}
+                onCheckedChange={(v) => update({ instructorMode: v })}
+                aria-label="Toggle instructor mode"
+              />
+            </div>
+          )}
         </nav>
       </div>
     </header>
