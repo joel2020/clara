@@ -58,7 +58,15 @@ export async function GET(request: Request): Promise<Response> {
   // deployment without the secret must refuse to send, not become a public
   // send-to-every-student endpoint because of a missing env var.
   const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!secret) {
+    // Refuse, but say so loudly. Failing closed is right; failing closed and
+    // SILENTLY would mean daily reminders simply stop one day with nothing in
+    // any log to explain it — the kind of quiet death this app has been bitten
+    // by before.
+    console.error("[api/push/send] CRON_SECRET is not set — refusing to send. Reminders are OFF until it is configured.");
+    return Response.json({ error: "cron_secret_not_configured" }, { status: 503 });
+  }
+  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -72,7 +80,17 @@ export async function GET(request: Request): Promise<Response> {
   // deliveries throttled, so its absence is a config error like the keys'.
   const subject = process.env.VAPID_SUBJECT;
   if (!url || !anon || !pub || !priv || !subject) {
-    return Response.json({ error: "not_configured" }, { status: 503 });
+    // Name the missing pieces (never their values) — "not_configured" alone
+    // tells whoever is debugging this at 6pm nothing about which var is absent.
+    const missing = [
+      !url && "NEXT_PUBLIC_SUPABASE_URL",
+      !anon && "SUPABASE_SERVICE_ROLE_KEY/ANON_KEY",
+      !pub && "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+      !priv && "VAPID_PRIVATE_KEY",
+      !subject && "VAPID_SUBJECT",
+    ].filter(Boolean);
+    console.error(`[api/push/send] missing env: ${missing.join(", ")} — reminders not sent.`);
+    return Response.json({ error: "not_configured", missing }, { status: 503 });
   }
 
   webpush.setVapidDetails(subject, pub, priv);
