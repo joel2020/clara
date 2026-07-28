@@ -1,10 +1,16 @@
--- Clara — Supabase schema. Mirrors the local-first Dexie domain (lib/db/types.ts),
--- keyed by a text profile id (the passwordless "sync code" a student shares
--- across devices). The app stays local-first; this is the cloud sync + the
--- instructor's cross-device window into each student.
+-- Clara — Supabase schema (HISTORICAL v1 bring-up).
 --
--- RLS is enabled with permissive policies for the no-auth v1 (the app uses the
--- public "publishable" key). Tighten these once real auth exists.
+-- ⚠️  DO NOT run this file against the live database. It creates the ORIGINAL
+--     permissive `public_all` policies (USING(true) / WITH CHECK(true)) from the
+--     no-auth v1, which later migrations REPLACED with strict per-user RLS. It is
+--     kept only as the historical first step of the migration chain.
+--
+--     To rebuild the database from scratch, use `current-schema.sql` — it is the
+--     single authoritative snapshot of the live schema and RLS.
+--
+-- Mirrors the local-first Dexie domain (lib/db/types.ts), keyed by a text profile
+-- id. The app stays local-first; this is the cloud sync + the instructor's
+-- cross-device window into each student.
 
 create extension if not exists "pgcrypto";
 

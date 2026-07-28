@@ -1,6 +1,9 @@
 -- Push notification subscriptions (one row per device/browser).
--- Run once in the Supabase SQL editor (clara project). Same permissive-RLS
--- posture as the rest of the no-auth v1 schema.
+--
+-- ⚠️  HISTORICAL. The permissive policy below was REPLACED: the live table now
+--     denies ALL client roles (`no_client_access`, USING(false)) and is written
+--     only by the server push routes with the service-role key. See
+--     current-schema.sql for the authoritative state. Do not replay this file.
 
 create table if not exists public.push_subscriptions (
   endpoint text primary key,
