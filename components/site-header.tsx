@@ -10,9 +10,13 @@ import { useAccess } from "@/lib/hooks/useAccess";
 import { Switch } from "@/components/ui/switch";
 import { t } from "@/lib/i18n";
 
+// Desktop nav mirrors the tab bar's four spaces — one IA on every device.
+// Links appear at lg+ (below that the bottom tab bar owns navigation).
 const NAV = [
-  { href: "/lessons", key: "navLessons" as const },
-  { href: "/dashboard", key: "navSounds" as const },
+  { href: "/", key: "navToday" as const },
+  { href: "/map", key: "navCamino" as const },
+  { href: "/talk", key: "navTalk" as const },
+  { href: "/profile", key: "navYo" as const },
 ];
 
 export function SiteHeader() {
@@ -37,17 +41,18 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        {/* On the phone the bottom tab bar owns navigation, so the header stays
-            minimal: logo + sound. Desktop keeps the full nav + instructor. */}
-        <nav className="ml-auto flex items-center gap-6">
+        {/* On phones and tablets the bottom tab bar owns navigation, so the
+            header stays minimal: logo + sound + settings. */}
+        <nav className="ml-auto flex items-center gap-5">
           {NAV.map((item) => {
             const active = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative hidden text-sm font-medium transition-colors md:inline",
+                  "relative hidden text-sm font-medium transition-colors lg:inline",
                   active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -63,7 +68,7 @@ export function SiteHeader() {
             type="button"
             onClick={() => update({ soundEnabled: !settings.soundEnabled })}
             aria-label={settings.soundEnabled ? "Mute sounds" : "Unmute sounds"}
-            className="-m-1.5 grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+            className="-m-1 grid size-11 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
           >
             {settings.soundEnabled ? <Volume2 className="size-[18px]" /> : <VolumeX className="size-[18px]" />}
           </button>
@@ -72,7 +77,7 @@ export function SiteHeader() {
             href="/settings"
             aria-label={t("settingsTitle", lang)}
             className={cn(
-              "-m-1.5 grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground",
+              "-m-1 grid size-11 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground",
               pathname === "/settings" && "text-foreground",
             )}
           >
@@ -80,7 +85,7 @@ export function SiteHeader() {
           </Link>
 
           {teacher && (
-            <div className="hidden items-center gap-2 border-l border-hairline pl-5 md:flex">
+            <div className="hidden items-center gap-2 border-l border-hairline pl-5 lg:flex">
               <span className="text-xs font-medium text-muted-foreground">Instructor</span>
               <Switch
                 checked={settings.instructorMode}

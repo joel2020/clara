@@ -163,6 +163,9 @@ const STRINGS = {
   navTalk: { es: "Hablar", en: "Talk" },
   navListenTab: { es: "Oído", en: "Ears" },
   navMap: { es: "Mapa", en: "Map" },
+  // Four-space navigation (redesign): Hoy · Camino · Hablar · Yo
+  navCamino: { es: "Camino", en: "Path" },
+  navYo: { es: "Yo", en: "Me" },
 
   // Shadowing / listening game
   shadowCard: { es: "Escucha y repite", en: "Listen & echo" },

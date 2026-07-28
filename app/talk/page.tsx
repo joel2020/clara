@@ -14,6 +14,7 @@ import { repo } from "@/lib/db";
 import { recordQuestEvent } from "@/lib/quests";
 import { weakestItems } from "@/lib/weak-items";
 import { JoelAvatar } from "@/components/joel-avatar";
+import { ScenarioGlyph } from "@/components/system/scenario-glyph";
 import { Splash } from "@/components/splash";
 import { authHeaders } from "@/lib/auth-client";
 import { SceneVideo } from "@/components/scene-video";
@@ -356,7 +357,8 @@ export default function TalkPage() {
               onClick={() => start(s)}
               className="group flex items-center gap-4 rounded-2xl border border-hairline bg-card px-5 py-4 text-left transition-colors hover:border-primary/40 active:scale-[0.99]"
             >
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-2xl">{s.emoji}</span>
+              <ScenarioGlyph id={s.id} emoji={s.emoji} className="size-11 rounded-xl" />
+
               <div className="flex-1">
                 <p className="font-display text-lg font-medium tracking-[-0.01em]">{s.title[lang]}</p>
                 <p className="text-sm text-muted-foreground">{s.blurb[lang]}</p>
@@ -387,7 +389,7 @@ export default function TalkPage() {
           {t("talkChange", lang)}
         </button>
         <p className="flex items-center gap-2 text-sm font-medium">
-          <span className="text-lg">{scenario.emoji}</span>
+          <ScenarioGlyph id={scenario.id} emoji={scenario.emoji} className="size-7 rounded-lg" iconClassName="size-4" />
           {scenario.title[lang]}
         </p>
       </header>
