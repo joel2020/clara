@@ -841,6 +841,34 @@ html { scroll-behavior: smooth; }
   padding-right: max(1.25rem, env(safe-area-inset-right));
 }
 
+/* Mic listening pulse: a soft expanding ring; hidden under reduced motion
+   (the solid recording color still communicates state). */
+@keyframes mic-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--destructive) 35%, transparent); }
+  70% { box-shadow: 0 0 0 14px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.mic-pulse { animation: mic-pulse 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mic-pulse { animation: none; }
+}
+
+/* Loading skeleton: a quiet shimmer over muted wash; static under reduced motion. */
+.skeleton {
+  background:
+    linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.65) 50%, transparent 70%),
+    var(--muted);
+  background-size: 220% 100%, 100% 100%;
+  animation: skeleton-slide 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-slide {
+  from { background-position: 130% 0, 0 0; }
+  to { background-position: -90% 0, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; background: var(--muted); }
+}
+
 /* ── The one celebration: a tricolor stamp, earned, once ─────────────────
    Replaces the arcade layer's sprays and chest-shakes as surfaces migrate. */
 @keyframes stamp-in {
