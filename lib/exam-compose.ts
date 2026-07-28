@@ -130,6 +130,11 @@ export function retellKeywords(level: string): string[] {
 }
 
 /**
+ * NO LONGER USED FOR EXAMS. The exam grades retells with the CEFR-aware model
+ * (/api/grade) and VOIDS the sitting when the grader is unavailable — keyword
+ * coverage accepts word salad ("mother sunday seven" scores 100), which is
+ * fine as a practice signal but must never decide a band (audit P1).
+ *
  * Score a retell by keyword coverage — measurable, and honest about what it
  * checks: did the content survive, not whether the grammar was elegant.
  */

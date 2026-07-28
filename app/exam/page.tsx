@@ -15,7 +15,8 @@ import { dayKey } from "@/lib/gamification";
 import { LESSON_BY_ID } from "@/lib/content/lessons";
 import { levelLessonPool } from "@/lib/onboarding";
 import { examEligibility, scoreExam, canAttemptToday, SECTIONS, PASS_SCORE, type SectionKey } from "@/lib/exams";
-import { composeExam, retellKeywords, scoreRetell, type ExamSection } from "@/lib/exam-compose";
+import { composeExam, type ExamSection } from "@/lib/exam-compose";
+import { GRADER_RETRIES, foldGradePaths, interpretGraderResponse, type GradePath } from "@/lib/exam-grading";
 import { createRecognition } from "@/lib/speech/recognition";
 import { scoreAttempt } from "@/lib/speech/scoring";
 import { audioUrl } from "@/lib/speech/audio-key";
@@ -33,7 +34,7 @@ import { levelUp } from "@/lib/placement";
 // Nothing here writes SRS progress. If exam answers counted as practice, a sitting
 // would raise the very mastery percentage that unlocks the next sitting.
 
-type Phase = "intro" | "running" | "grading" | "done";
+type Phase = "intro" | "running" | "grading" | "done" | "voided";
 
 const SECTION_COPY: Record<SectionKey, { title: string; how: string }> = {
   readAloud: { title: "Lee en voz alta", how: "Lee la frase con tu mejor pronunciación." },
@@ -98,8 +99,36 @@ export default function ExamPage() {
   // setTimeout: a closure created this render would otherwise read a stale copy
   // and grade the sitting on incomplete data.
   const scoresRef = useRef<Record<string, number[]>>({});
-  const record = (key: string, score: number) => {
+  // Which grading machinery produced each score — stored with the sitting so a
+  // disputed band is auditable (audit P1).
+  const pathsRef = useRef<Record<string, GradePath[]>>({});
+  const record = (key: string, score: number, path: GradePath) => {
     scoresRef.current = { ...scoresRef.current, [key]: [...(scoresRef.current[key] ?? []), score] };
+    pathsRef.current = { ...pathsRef.current, [key]: [...(pathsRef.current[key] ?? []), path] };
+  };
+
+  /**
+   * Ask the CEFR-aware grader, retrying once. Returns null when the grader is
+   * genuinely unavailable — the caller VOIDS the sitting instead of recording
+   * a zero or falling back to a gameable heuristic (audit P1: provider
+   * failure must never silently change what a passing grade means).
+   */
+  const gradeOpen = async (kind: "retell" | "openResponse", prompt: string, transcript: string) => {
+    for (let attempt = 0; attempt <= GRADER_RETRIES; attempt++) {
+      try {
+        const res = await fetch("/api/grade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+          body: JSON.stringify({ kind, prompt, transcript, level }),
+        });
+        const body = await res.json().catch(() => null);
+        const grade = interpretGraderResponse(res.status, body);
+        if (grade.kind === "scored") return grade;
+      } catch {
+        /* network — retry, then void */
+      }
+    }
+    return null;
   };
 
   /** Grade, persist, and promote only on a pass. Driven by the event path, not an
@@ -125,6 +154,7 @@ export default function ExamPage() {
       passed: outcome.passed,
       sections: Object.fromEntries(outcome.sections.map((s) => [s.key, s.score])),
       weakest: outcome.weakest,
+      gradePaths: foldGradePaths(pathsRef.current),
     });
     if (outcome.passed && settings.onboarding) {
       await update({ onboarding: { ...settings.onboarding, level: levelUp(level) } });
@@ -193,41 +223,47 @@ export default function ExamPage() {
       const rec = createRecognition(target ? { target } : {});
       const res = await rec.result;
       let score = 0;
-      if (section.key === "retell") {
-        score = scoreRetell(res.transcript, retellKeywords(level));
-      } else if (section.key === "openResponse") {
-        // Grade against the one question she actually saw, not the joined pair.
-        const question = (section.prompt ?? "").split(" | ")[itemIdx] ?? section.prompt;
-        const graded = await fetch("/api/grade", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-          body: JSON.stringify({ kind: "openResponse", prompt: question, transcript: res.transcript, level }),
-        })
-          .then((r) => (r.ok ? r.json() : { score: 0, fix: null }))
-          .catch(() => ({ score: 0, fix: null }));
-        score = Number(graded.score) || 0;
+      if (section.key === "retell" || section.key === "openResponse") {
+        // Unscripted speech is graded by the CEFR-aware model or not at all —
+        // the old keyword-bag retell scored word salad at 100 (audit P1). For
+        // openResponse, grade the one question she actually saw.
+        const prompt =
+          section.key === "retell"
+            ? (section.prompt ?? "")
+            : ((section.prompt ?? "").split(" | ")[itemIdx] ?? section.prompt ?? "");
+        const graded = await gradeOpen(section.key, prompt, res.transcript);
+        if (!graded) {
+          setListening(false);
+          setPhase("voided");
+          return;
+        }
         if (graded.fix) setNote(graded.fix);
-        record(section.key, score);
+        record(section.key, graded.score, "llm");
         setListening(false);
         // `note` state hasn't rendered yet here, so decide the delay from the
         // grader's reply directly — otherwise the fix flashes for 500ms.
         window.setTimeout(advance, graded.fix ? 1800 : 500);
         return;
       } else if (target) {
-        score = scoreAttempt({
+        const scored = scoreAttempt({
           target,
           transcript: res.transcript,
           alternatives: res.alternatives,
           kind: "phrase",
           assessment: res.assessment,
-        }).score;
+        });
+        score = scored.score;
+        record(section.key, score, res.assessment ? "azure" : "transcript");
+        setListening(false);
+        window.setTimeout(advance, 500);
+        return;
       }
-      record(section.key, score);
+      record(section.key, score, "mechanical");
       setListening(false);
       window.setTimeout(advance, 500);
     } catch {
       // A failed capture scores zero: an exam cannot be dodged by a silent mic.
-      record(section.key, 0);
+      record(section.key, 0, "mechanical");
       setNote("No se escuchó nada. Esa parte quedó en cero.");
       setListening(false);
       window.setTimeout(advance, 1400);
@@ -240,7 +276,7 @@ export default function ExamPage() {
     const want = item.text.replace(/[.,!?]/g, "").trim().toLowerCase().split(/\s+/);
     const got = placed.map((w) => w.toLowerCase());
     const correct = want.length === got.length && want.every((w, i) => w === got[i]);
-    record("build", correct ? 100 : 0);
+    record("build", correct ? 100 : 0, "mechanical");
     setNote(correct ? null : item.text);
     window.setTimeout(advance, correct ? 400 : 1600);
   };
@@ -249,7 +285,7 @@ export default function ExamPage() {
   const answerShort = (chosen: string) => {
     if (!item) return;
     const correct = chosen === (item.meaning ?? item.text);
-    record("shortAnswer", correct ? 100 : 0);
+    record("shortAnswer", correct ? 100 : 0, "mechanical");
     setNote(correct ? null : (item.meaning ?? item.text));
     window.setTimeout(advance, correct ? 400 : 1400);
   };
@@ -333,6 +369,42 @@ export default function ExamPage() {
   }
 
   // ── Grading ──────────────────────────────────────────────────────────────
+  if (phase === "voided") {
+    return shell(
+      <div className={cn(card, "text-center")}>
+        <Lumi frame="bust" mood="think" />
+        <h2 className="mt-4 font-display text-xl font-semibold">No pudimos calificar tu examen</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          El servicio que califica tus respuestas habladas no respondió. Este intento{" "}
+          <strong>no cuenta</strong> — no gastaste tu examen de hoy y nada quedó registrado.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          The grading service didn&apos;t respond. This sitting doesn&apos;t count — nothing was
+          recorded and you can try again.
+        </p>
+        <div className="mt-5 flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              scoresRef.current = {};
+              pathsRef.current = {};
+              setSectionIdx(0);
+              setItemIdx(0);
+              setNote(null);
+              setPhase("intro");
+            }}
+            className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+          >
+            Intentar de nuevo · Try again
+          </button>
+          <Link href="/" className="text-sm text-muted-foreground underline-offset-2 hover:underline">
+            Volver al inicio · Back home
+          </Link>
+        </div>
+      </div>,
+    );
+  }
+
   if (phase === "grading") {
     return shell(
       <div className={cn(card, "text-center")}>

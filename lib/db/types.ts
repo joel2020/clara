@@ -147,6 +147,12 @@ export interface ExamAttempt {
   sections: Record<string, number>;
   /** The weakest section, so a fail stays actionable after the fact. */
   weakest: string | null;
+  /**
+   * Which grading machinery produced each section's score ("llm", "azure",
+   * "transcript", "mechanical") — the audit trail for a disputed band.
+   * Local-only; not mirrored to the cloud schema.
+   */
+  gradePaths?: Record<string, string>;
 }
 
 /**
