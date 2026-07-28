@@ -5,6 +5,8 @@
 // browser context can do right now, and the settings UI explains the
 // install-first story when needed.
 
+import { authHeaders } from "@/lib/auth-client";
+
 export type PushState = "unsupported" | "not_configured" | "default" | "granted" | "denied";
 
 export function pushSupported(): boolean {
@@ -48,8 +50,10 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return out;
 }
 
-/** Ask permission, subscribe, and register with the server. Throws on failure. */
-export async function enablePush(profileId: string | null, lang: "es" | "en"): Promise<void> {
+/** Ask permission, subscribe, and register with the server. Throws on failure.
+ *  The server binds the subscription to the signed-in account, so no profile id
+ *  travels in the body. */
+export async function enablePush(lang: "es" | "en"): Promise<void> {
   const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!key) throw new Error("no_key");
   const permission = await Notification.requestPermission();
@@ -63,8 +67,8 @@ export async function enablePush(profileId: string | null, lang: "es" | "en"): P
     }));
   const res = await fetch("/api/push", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ subscription: subscription.toJSON(), profileId, lang }),
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+    body: JSON.stringify({ subscription: subscription.toJSON(), lang }),
   });
   if (!res.ok) throw new Error("server");
 }
@@ -77,7 +81,7 @@ export async function disablePush(): Promise<void> {
   await sub.unsubscribe().catch(() => {});
   await fetch("/api/push", {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({ endpoint }),
   }).catch(() => {});
 }

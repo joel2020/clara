@@ -63,7 +63,7 @@ export default function SettingsPage() {
         await disablePush();
         setPushUi("off");
       } else {
-        await enablePush(settings.profileId, lang);
+        await enablePush(lang);
         setPushUi("on");
       }
     } catch (e) {
