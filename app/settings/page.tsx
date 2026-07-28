@@ -6,6 +6,7 @@ import { ArrowLeft, Copy, Check, Trash2, Bell, BellOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { repo } from "@/lib/db";
 import { lastSyncFailure } from "@/lib/sync/supabase-sync";
+import { flushOutbox, pendingOutboxCount } from "@/lib/sync/outbox";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { isAdmin } from "@/lib/allowlist";
@@ -28,6 +29,11 @@ export default function SettingsPage() {
   // diagnostic snapshot, not a live indicator, and a spinner for background sync
   // would worry her over nothing.
   const [syncFailure] = useState(lastSyncFailure);
+  // Rows whose cloud mirror is still pending (offline practice, provider
+  // hiccup). Calm and truthful: local data is safe either way; this only says
+  // the cloud copy hasn't caught up, and offers a retry.
+  const [pendingSync, setPendingSync] = useState(0);
+  const [flushingSync, setFlushingSync] = useState(false);
 
   const { settings, update, ready } = useSettings();
   const { required: authOn, user, signOut } = useAuth();
@@ -51,10 +57,18 @@ export default function SettingsPage() {
       if (state === "denied") setPushUi("denied");
       else setPushUi((await isSubscribed()) ? "on" : "off");
     })();
+    void pendingOutboxCount().then((n) => { if (active) setPendingSync(n); });
     return () => {
       active = false;
     };
   }, []);
+
+  const retrySync = async () => {
+    setFlushingSync(true);
+    const res = await flushOutbox();
+    setPendingSync(res.remaining);
+    setFlushingSync(false);
+  };
 
   const togglePush = async () => {
     sfx.tap();
@@ -106,6 +120,29 @@ export default function SettingsPage() {
       <h1 className="mt-5 font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{t("settingsTitle", lang)}</h1>
 
       <div className="mt-8 space-y-6">
+        {pendingSync > 0 && (
+          <section className="rounded-2xl border border-hairline bg-card px-5 py-4">
+            <p className="text-sm font-medium">
+              {lang === "en"
+                ? `${pendingSync} practice ${pendingSync === 1 ? "record" : "records"} saved on this device, waiting to sync`
+                : `${pendingSync} ${pendingSync === 1 ? "registro guardado" : "registros guardados"} en este dispositivo, esperando sincronizar`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {lang === "en"
+                ? "Your progress is safe here; the cloud copy will catch up when the connection allows."
+                : "Tu progreso está seguro aquí; la copia en la nube se pondrá al día cuando la conexión lo permita."}
+            </p>
+            <button
+              type="button"
+              onClick={() => void retrySync()}
+              disabled={flushingSync}
+              className="mt-3 rounded-full border border-hairline px-4 py-2 text-xs font-medium transition-colors hover:border-foreground/30 disabled:opacity-50"
+            >
+              {flushingSync ? (lang === "en" ? "Syncing…" : "Sincronizando…") : lang === "en" ? "Try now" : "Intentar ahora"}
+            </button>
+          </section>
+        )}
+
         {/* Name */}
         <section>
           <label htmlFor="s-name" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">

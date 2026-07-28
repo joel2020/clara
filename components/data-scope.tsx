@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { bindLocalDb } from "@/lib/db/dexie";
+import { initOutbox, flushOutbox } from "@/lib/sync/outbox";
 import { Splash } from "@/components/splash";
 
 // Binds local storage to the signed-in account BEFORE anything can read it,
@@ -22,7 +23,12 @@ export function DataScope({ children }: { children: ReactNode }) {
     if (required && !ready) return;
     let cancelled = false;
     void bindLocalDb(target).then(() => {
-      if (!cancelled) setScope(target ?? "local");
+      if (cancelled) return;
+      setScope(target ?? "local");
+      // The account's database is open: arm the durable-sync outbox and give
+      // any rows stranded by an earlier failure a replay attempt.
+      initOutbox();
+      void flushOutbox();
     });
     return () => {
       cancelled = true;

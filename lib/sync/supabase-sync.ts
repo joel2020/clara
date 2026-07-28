@@ -61,6 +61,77 @@ function bg(p: PromiseLike<unknown> | undefined, label: string): void {
     });
 }
 
+// ── Durable pushes (outbox) ──────────────────────────────────────────────────
+//
+// Upsert-style state (progress, player, settings) self-heals on the next write,
+// but one-shot history rows (attempts, exam sittings, call runs, talk sessions)
+// used to exist only locally forever if their single insert failed — an offline
+// session or a transient 5xx silently orphaned completed work (audit P1). The
+// outbox (lib/sync/outbox.ts) registers itself here; any failed durable push
+// hands it the payload for retry. Kept as a registration to avoid an import
+// cycle, and so this module stays inert in tests and on the server.
+
+export type DurableKind = "attempt" | "exam" | "call" | "talk";
+
+let outboxSink: ((kind: DurableKind, profileId: string, payload: unknown) => void) | null = null;
+
+/** Called once by the outbox module; replaces any previous sink. */
+export function setOutboxSink(fn: typeof outboxSink): void {
+  outboxSink = fn;
+}
+
+/** Like bg(), but a failure also queues the payload for durable retry. */
+function bgDurable(p: PromiseLike<unknown> | undefined, label: string, kind: DurableKind, profileId: string, payload: unknown): void {
+  void Promise.resolve(p)
+    .then((res) => {
+      const error = (res as { error?: { message?: string; code?: string } } | null | undefined)?.error;
+      if (!error) return;
+      lastFailure = { label, code: error.code, message: error.message, at: Date.now() };
+      console.warn(`[clara sync] ${label} failed${error.code ? ` (${error.code})` : ""}: ${error.message ?? "unknown"} — queued for retry`);
+      outboxSink?.(kind, profileId, payload);
+    })
+    .catch((e: unknown) => {
+      const message = e instanceof Error ? e.message : String(e);
+      lastFailure = { label, message, at: Date.now() };
+      console.warn(`[clara sync] ${label} threw: ${message} — queued for retry`);
+      outboxSink?.(kind, profileId, payload);
+    });
+}
+
+/**
+ * Deliver one queued row, idempotently. Exam/call/talk land on their natural
+ * unique keys; `attempts` has no unique constraint, so replay checks for the
+ * (profile_id, at) pair before inserting — a duplicate practice rep in the
+ * mirror would double-count history. Returns true when the cloud definitely
+ * has the row (delivered now or already there); false = try again later.
+ */
+export async function deliverQueued(kind: DurableKind, profileId: string, payload: unknown): Promise<boolean> {
+  const sb = supabase();
+  if (!ok() || !sb) return false;
+  try {
+    if (kind === "attempt") {
+      const a = payload as Attempt;
+      const { data, error: selErr } = await sb.from("attempts").select("at").eq("profile_id", profileId).eq("at", a.at).limit(1);
+      if (selErr) return false;
+      if (data && data.length > 0) return true; // already mirrored
+      const { error } = await sb.from("attempts").insert(attemptRow(profileId, a));
+      return !error;
+    }
+    if (kind === "exam") {
+      const { error } = await sb.from("exam_attempts").upsert(examRow(profileId, payload as ExamAttempt), { onConflict: "profile_id,day", ignoreDuplicates: true });
+      return !error;
+    }
+    if (kind === "call") {
+      const { error } = await sb.from("call_scores").upsert(callRow(profileId, payload as CallScore), { onConflict: "profile_id,at", ignoreDuplicates: true });
+      return !error;
+    }
+    const { error } = await sb.from("talk_sessions").upsert(talkRow(profileId, payload as TalkSession), { onConflict: "profile_id,at", ignoreDuplicates: true });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 // ── Profiles ─────────────────────────────────────────────────────────────────
 
 export async function ensureProfile(profile: Profile): Promise<void> {
@@ -98,24 +169,27 @@ export async function listProfiles(): Promise<Profile[]> {
 
 // ── Push (Dexie → cloud), fire-and-forget ────────────────────────────────────
 
+function attemptRow(profileId: string, a: Attempt) {
+  return {
+    profile_id: profileId,
+    item_id: a.itemId,
+    lesson_id: a.lessonId,
+    category_id: a.categoryId,
+    phoneme: a.phoneme,
+    target: a.target,
+    heard: a.heard,
+    score: a.score,
+    passed: a.passed,
+    heard_partner: a.heardPartner ?? false,
+    fluency: a.fluency ?? null,
+    at: a.at,
+  };
+}
+
 export function pushAttempt(profileId: string, a: Attempt): void {
   const sb = supabase();
   if (!ok() || !sb) return;
-  bg(
-    sb.from("attempts").insert({
-      profile_id: profileId,
-      item_id: a.itemId,
-      lesson_id: a.lessonId,
-      category_id: a.categoryId,
-      phoneme: a.phoneme,
-      target: a.target,
-      heard: a.heard,
-      score: a.score,
-      passed: a.passed,
-      heard_partner: a.heardPartner ?? false,
-      fluency: a.fluency ?? null,
-      at: a.at,
-    }), "attempts");
+  bgDurable(sb.from("attempts").insert(attemptRow(profileId, a)), "attempts", "attempt", profileId, a);
 }
 
 export function pushProgress(profileId: string, p: ItemProgress): void {
@@ -396,39 +470,43 @@ function mapPlayer(pd: Row | null | undefined): PlayerStats | null {
  * replayed write from a second device cannot duplicate a record. `ignoreDuplicates`
  * keeps the first write authoritative — the sitting she actually sat.
  */
+function examRow(profileId: string, e: ExamAttempt) {
+  return {
+    profile_id: profileId,
+    day: e.day,
+    at: e.at,
+    level: e.level,
+    score: e.score,
+    passed: e.passed,
+    sections: e.sections,
+    weakest: e.weakest,
+  };
+}
+
 export function pushExamAttempt(profileId: string, e: ExamAttempt): void {
   const sb = supabase();
   if (!ok() || !sb) return;
-  bg(
-    sb.from("exam_attempts").upsert(
-      {
-        profile_id: profileId,
-        day: e.day,
-        at: e.at,
-        level: e.level,
-        score: e.score,
-        passed: e.passed,
-        sections: e.sections,
-        weakest: e.weakest,
-      },
-      { onConflict: "profile_id,day", ignoreDuplicates: true },
-    ), "exam_attempts");
+  bgDurable(
+    sb.from("exam_attempts").upsert(examRow(profileId, e), { onConflict: "profile_id,day", ignoreDuplicates: true }),
+    "exam_attempts", "exam", profileId, e);
+}
+
+function callRow(profileId: string, c: CallScore) {
+  return {
+    profile_id: profileId,
+    scenario_id: c.scenarioId,
+    at: c.at,
+    score: c.score,
+    checks: c.checks,
+  };
 }
 
 export function pushCallScore(profileId: string, c: CallScore): void {
   const sb = supabase();
   if (!ok() || !sb) return;
-  bg(
-    sb.from("call_scores").upsert(
-      {
-        profile_id: profileId,
-        scenario_id: c.scenarioId,
-        at: c.at,
-        score: c.score,
-        checks: c.checks,
-      },
-      { onConflict: "profile_id,at", ignoreDuplicates: true },
-    ), "call_scores");
+  bgDurable(
+    sb.from("call_scores").upsert(callRow(profileId, c), { onConflict: "profile_id,at", ignoreDuplicates: true }),
+    "call_scores", "call", profileId, c);
 }
 
 /** Everything needed to restore her earned band and job-path history on a new device. */
@@ -460,22 +538,24 @@ export async function pullExamsAndCalls(
   };
 }
 
+function talkRow(profileId: string, t: TalkSession) {
+  return {
+    profile_id: profileId,
+    scenario_id: t.scenarioId,
+    at: t.at,
+    duration_ms: t.durationMs,
+    student_turns: t.studentTurns,
+    avg_pause_ms: t.avgPauseMs,
+    completed: t.completed,
+  };
+}
+
 export function pushTalkSession(profileId: string, t: TalkSession): void {
   const sb = supabase();
   if (!ok() || !sb) return;
-  bg(
-    sb.from("talk_sessions").upsert(
-      {
-        profile_id: profileId,
-        scenario_id: t.scenarioId,
-        at: t.at,
-        duration_ms: t.durationMs,
-        student_turns: t.studentTurns,
-        avg_pause_ms: t.avgPauseMs,
-        completed: t.completed,
-      },
-      { onConflict: "profile_id,at", ignoreDuplicates: true },
-    ), "talk_sessions");
+  bgDurable(
+    sb.from("talk_sessions").upsert(talkRow(profileId, t), { onConflict: "profile_id,at", ignoreDuplicates: true }),
+    "talk_sessions", "talk", profileId, t);
 }
 
 export async function pullTalkSessions(profileId: string): Promise<TalkSession[] | null> {

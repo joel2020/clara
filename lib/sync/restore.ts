@@ -68,6 +68,15 @@ async function seedEarnedHistory(profileId: string): Promise<void> {
   });
 }
 
+/**
+ * Is the bound local database effectively new? Used to decide between the full
+ * restore (attempts included) and the cheap launch hydrate.
+ */
+export async function isFreshLocalData(): Promise<boolean> {
+  const [attempts, progress] = await Promise.all([db.attempts.count(), db.progress.count()]);
+  return attempts === 0 && progress === 0;
+}
+
 export async function restoreProfile(profileId: string): Promise<RestoreSummary | null> {
   const id = profileId.trim().toLowerCase();
   if (!id) return null;

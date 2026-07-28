@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useSettings } from "@/lib/hooks/useSettings";
-import { hydrateFromCloud } from "@/lib/sync/restore";
+import { hydrateFromCloud, restoreProfile, isFreshLocalData } from "@/lib/sync/restore";
 import { ensureProfile } from "@/lib/sync/supabase-sync";
 
 // Ties the signed-in account to the data layer. The auth user id becomes the
@@ -27,6 +27,14 @@ export function ProfileBinder() {
       // (this also seeds player/progress into Dexie) and APPLY its settings —
       // including the restored name and onboarding/placement — so a returning
       // learner on a fresh device/origin isn't treated as brand new.
+      //
+      // On a genuinely fresh device (empty account database) the hydrate path
+      // deliberately skips attempt history, which silently under-counted
+      // insights and weak-sound rankings after a device change (audit P1). A
+      // fresh database therefore does the FULL restore — attempts included —
+      // before the cheap hydrate applies settings on top.
+      const fresh = await isFreshLocalData().catch(() => false);
+      if (fresh) await restoreProfile(user.id).catch(() => null);
       const cloud = await hydrateFromCloud(user.id).catch(() => null);
       const patch = cloud?.settingsPatch ?? {};
       const name =

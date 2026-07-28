@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession } from "./types";
+import type { OutboxRow } from "./types";
 
 /**
  * Local-first storage via IndexedDB. This is the ONLY file that knows we use
@@ -28,6 +29,7 @@ export class ClaraDB extends Dexie {
   examAttempts!: Table<ExamAttempt, number>;
   callScores!: Table<CallScore, number>;
   talkSessions!: Table<TalkSession, number>;
+  outbox!: Table<OutboxRow, number>;
 
   constructor(name = "clara") {
     super(name);
@@ -75,6 +77,12 @@ export class ClaraDB extends Dexie {
     // measured from real sessions instead of asserted.
     this.version(8).stores({
       talkSessions: "++id, at",
+    });
+    // v9 adds the sync outbox: one-shot history rows (attempts, exam sittings,
+    // call runs, talk sessions) whose cloud insert failed, kept until a replay
+    // succeeds so a transient failure can never orphan completed work.
+    this.version(9).stores({
+      outbox: "++id, kind, at",
     });
   }
 }
@@ -136,6 +144,7 @@ export function boundAccountId(): string | null {
 const LEGACY_TABLES = [
   "attempts", "progress", "customLessons", "settings", "player", "convItems",
   "quests", "recordings", "events", "examAttempts", "callScores", "talkSessions",
+  "outbox",
 ] as const;
 
 /** An account database with no settings row and no history is considered new. */
@@ -165,7 +174,7 @@ async function claimLegacyInto(target: ClaraDB, accountId: string): Promise<void
     for (const name of LEGACY_TABLES) {
       const rows = await legacy.table(name).toArray();
       if (!rows.length) continue;
-      if (name === "attempts" || name === "events" || name === "examAttempts" || name === "callScores" || name === "talkSessions") {
+      if (name === "attempts" || name === "events" || name === "examAttempts" || name === "callScores" || name === "talkSessions" || name === "outbox") {
         // Auto-increment keys: strip ids so the target assigns fresh ones.
         await target.table(name).bulkAdd(rows.map((r) => { const { id: _id, ...rest } = r as { id?: number }; return rest; }));
       } else {

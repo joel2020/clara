@@ -315,3 +315,21 @@ export interface AnalyticsEvent {
   day: string; // "YYYY-MM-DD" local, for daily rollups
   props?: Record<string, string | number | boolean>;
 }
+
+/**
+ * A one-shot history row whose cloud mirror insert failed, held for durable
+ * retry (lib/sync/outbox.ts). `payload` is the domain object exactly as the
+ * original push saw it; `profileId` pins attribution so a replay after an
+ * account switch can never write under the wrong user (RLS enforces it too).
+ */
+export interface OutboxRow {
+  id?: number;
+  kind: "attempt" | "exam" | "call" | "talk";
+  profileId: string;
+  payload: unknown;
+  /** When the original write happened (ms). */
+  at: number;
+  /** Replay attempts so far — observability, not a give-up threshold. */
+  tries: number;
+  lastError?: string;
+}
