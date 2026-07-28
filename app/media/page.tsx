@@ -12,6 +12,7 @@ import { sfx } from "@/lib/sfx";
 import { juice } from "@/components/juice";
 import { Splash } from "@/components/splash";
 import { mediaByKind, youtubeEmbed, youtubeThumb, type MediaItem } from "@/lib/content/media";
+import { authHeaders } from "@/lib/auth-client";
 
 // Real American media, safely: official YouTube embeds (trailers + music
 // videos) with a word-hunt listening game layered on top, and today's news
@@ -31,7 +32,8 @@ export default function MediaPage() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/news")
+    authHeaders()
+      .then((headers) => fetch("/api/news", { headers }))
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d: { items: NewsItem[] }) => active && setNews(d.items ?? []))
       .catch(() => active && setNews(null));
