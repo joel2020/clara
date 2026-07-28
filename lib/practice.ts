@@ -8,7 +8,7 @@ import { partnerOf } from "@/lib/content/lessons";
 import { applyAttempt, type AttemptRewards } from "@/lib/gamification";
 import { recordQuestEvent } from "@/lib/quests";
 import { recentPassRate, adaptiveEase } from "@/lib/adaptive";
-import { pushAttempt, pushProgress, pushPlayer } from "@/lib/sync/supabase-sync";
+import { pushAttempt, pushProgress } from "@/lib/sync/supabase-sync";
 
 // One place that knows how an attempt becomes saved state: score it, append to
 // history, advance the item's spaced-repetition box, and award XP / streak /
@@ -94,11 +94,13 @@ export async function recordPracticeAttempt(args: {
   await repo.savePlayerStats(stats);
 
   // Mirror to the cloud for cross-device sync + the instructor's view.
-  // No-ops when Supabase isn't configured or no profile is set.
+  // No-ops when Supabase isn't configured or no profile is set. Player stats are
+  // NOT pushed here: repo.savePlayerStats already mirrors them, so every write
+  // path (shop, chest, rounds) shares one push — a second one here just
+  // duplicated the upsert per attempt.
   if (settings.profileId) {
     pushAttempt(settings.profileId, attempt);
     pushProgress(settings.profileId, nextProgress);
-    pushPlayer(settings.profileId, stats);
   }
 
   // Learning-loop quests: a previously-seen item counts as review; a new one as learning.

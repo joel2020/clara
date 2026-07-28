@@ -221,6 +221,28 @@ export function pushCustomLesson(lesson: Lesson): void {
   bg(sb.from("custom_lessons").upsert({ id: lesson.id, data: lesson, order: lesson.order, updated_at: Date.now() }), "custom_lessons");
 }
 
+/** Mirror a deliberate delete, or the lesson resurrects on the next pull. */
+export function deleteCustomLessonCloud(id: string): void {
+  const sb = supabase();
+  if (!ok() || !sb) return;
+  bg(sb.from("custom_lessons").delete().eq("id", id), "custom_lessons_delete");
+}
+
+/**
+ * Instructor-authored lessons are shared content: authored on the teacher's
+ * device, they must arrive on every student device. This is the read half that
+ * pushCustomLesson always needed.
+ */
+export async function pullCustomLessons(): Promise<Lesson[] | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { data } = await sb.from("custom_lessons").select("id,data,order");
+  if (!data) return null;
+  return data
+    .map((r) => r.data as Lesson)
+    .filter((l): l is Lesson => Boolean(l && l.id && Array.isArray(l.items)));
+}
+
 // ── Pull (cloud → Dexie shapes) for a second device ──────────────────────────
 
 export interface PulledData {
@@ -266,6 +288,29 @@ export async function pullSettings(profileId: string): Promise<PulledSettings | 
   };
 }
 
+/**
+ * The launch-time refresh payload: player stats + per-item progress only.
+ *
+ * Deliberately NOT attempts: hydrate runs on every app open, attempts are
+ * append-only and grow with every rep, and the hydrate path never used them —
+ * so pulling the full history was pure egress that got slower forever. The
+ * cold-cache restore (below) is the one place the history is needed.
+ */
+export async function pullPlayerAndProgress(
+  profileId: string,
+): Promise<Pick<PulledData, "progress" | "player"> | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const [progressRes, playerRes] = await Promise.all([
+    sb.from("progress").select("*").eq("profile_id", profileId),
+    sb.from("player_stats").select("*").eq("profile_id", profileId).maybeSingle(),
+  ]);
+  return {
+    progress: mapProgress(progressRes.data ?? []),
+    player: mapPlayer(playerRes.data),
+  };
+}
+
 export async function pullProfileData(profileId: string): Promise<PulledData | null> {
   const sb = supabase();
   if (!sb) return null;
@@ -289,7 +334,18 @@ export async function pullProfileData(profileId: string): Promise<PulledData | n
     fluency: r.fluency ?? undefined,
   }));
 
-  const progress: ItemProgress[] = (progressRes.data ?? []).map((r) => ({
+  return { attempts, progress: mapProgress(progressRes.data ?? []), player: mapPlayer(playerRes.data) };
+}
+
+// Row → domain mappers shared by the launch-time and cold-cache pulls, so the
+// two paths cannot drift apart column by column. Rows come from the untyped
+// supabase client, hence the loose parameter types.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Row = Record<string, any>;
+
+function mapProgress(rows: Row[]): ItemProgress[] {
+  return rows.map((r) => ({
     itemId: r.item_id,
     lessonId: r.lesson_id,
     categoryId: r.category_id,
@@ -302,36 +358,34 @@ export async function pullProfileData(profileId: string): Promise<PulledData | n
     lastScore: r.last_score,
     updatedAt: r.updated_at,
   }));
+}
 
-  const pd = playerRes.data;
-  const player: PlayerStats | null = pd
-    ? {
-        id: "player",
-        xp: pd.xp,
-        currentStreak: pd.current_streak,
-        longestStreak: pd.longest_streak,
-        lastActiveDay: pd.last_active_day,
-        todayKey: pd.today_key,
-        todayXp: pd.today_xp,
-        totalAttempts: pd.total_attempts,
-        totalPasses: pd.total_passes,
-        bestCombo: pd.best_combo,
-        achievements: pd.achievements ?? [],
-        stars: pd.stars ?? 0,
-        ownedCosmetics: pd.owned_cosmetics ?? [],
-        equippedBg: pd.equipped_bg ?? "bg-default",
-        equippedAccessory: pd.equipped_accessory ?? "acc-none",
-        equippedEffect: pd.equipped_effect ?? "fx-none",
-        equippedPet: pd.equipped_pet ?? "pet-none",
-        equippedOutfit: pd.equipped_outfit ?? "outfit-default",
-        lastChestDay: pd.last_chest_day ?? null,
-        streakFreezes: pd.streak_freezes ?? 0,
-        freezeUsedDay: pd.freeze_used_day ?? null,
-        updatedAt: pd.updated_at,
-      }
-    : null;
-
-  return { attempts, progress, player };
+function mapPlayer(pd: Row | null | undefined): PlayerStats | null {
+  if (!pd) return null;
+  return {
+    id: "player",
+    xp: pd.xp,
+    currentStreak: pd.current_streak,
+    longestStreak: pd.longest_streak,
+    lastActiveDay: pd.last_active_day,
+    todayKey: pd.today_key,
+    todayXp: pd.today_xp,
+    totalAttempts: pd.total_attempts,
+    totalPasses: pd.total_passes,
+    bestCombo: pd.best_combo,
+    achievements: pd.achievements ?? [],
+    stars: pd.stars ?? 0,
+    ownedCosmetics: pd.owned_cosmetics ?? [],
+    equippedBg: pd.equipped_bg ?? "bg-default",
+    equippedAccessory: pd.equipped_accessory ?? "acc-none",
+    equippedEffect: pd.equipped_effect ?? "fx-none",
+    equippedPet: pd.equipped_pet ?? "pet-none",
+    equippedOutfit: pd.equipped_outfit ?? "outfit-default",
+    lastChestDay: pd.last_chest_day ?? null,
+    streakFreezes: pd.streak_freezes ?? 0,
+    freezeUsedDay: pd.freeze_used_day ?? null,
+    updatedAt: pd.updated_at,
+  };
 }
 
 /**

@@ -33,14 +33,28 @@ export class DexieRepository implements DataRepository {
     limit?: number;
     since?: number;
   } = {}): Promise<Attempt[]> {
-    const coll = db.attempts.orderBy("at").reverse();
-    const rows = await coll.toArray();
-    let filtered = rows;
-    if (opts.itemId) filtered = filtered.filter((a) => a.itemId === opts.itemId);
-    if (opts.categoryId) filtered = filtered.filter((a) => a.categoryId === opts.categoryId);
-    if (opts.since) filtered = filtered.filter((a) => a.at >= opts.since!);
-    if (opts.limit) filtered = filtered.slice(0, opts.limit);
-    return filtered;
+    // Use the indexes declared in dexie.ts — attempts grow with every rep, and
+    // this runs on every practice attempt (the adaptive-ease window), so a
+    // full-table scan here got slower for as long as a student kept practicing.
+    //
+    // The itemId/categoryId indexes narrow to one item/category (small sets), so
+    // those are fetched whole, then sorted newest-first and sliced. Only the
+    // unfiltered `at`-ordered path — the common `{limit}` call — can safely take
+    // the limit at the index, since that index already IS the sort order.
+    if (opts.itemId || opts.categoryId) {
+      let rows = opts.itemId
+        ? await db.attempts.where("itemId").equals(opts.itemId).toArray()
+        : await db.attempts.where("categoryId").equals(opts.categoryId!).toArray();
+      if (opts.itemId && opts.categoryId) rows = rows.filter((a) => a.categoryId === opts.categoryId);
+      if (opts.since) rows = rows.filter((a) => a.at >= opts.since!);
+      rows.sort((a, b) => b.at - a.at);
+      return opts.limit ? rows.slice(0, opts.limit) : rows;
+    }
+
+    const coll = opts.since
+      ? db.attempts.where("at").aboveOrEqual(opts.since).reverse()
+      : db.attempts.orderBy("at").reverse();
+    return (opts.limit ? coll.limit(opts.limit) : coll).toArray();
   }
 
   async getProgress(itemId: string): Promise<ItemProgress | undefined> {
@@ -68,6 +82,8 @@ export class DexieRepository implements DataRepository {
 
   async deleteCustomLesson(id: string): Promise<void> {
     await db.customLessons.delete(id);
+    // Mirror the delete, or the next cloud pull resurrects the lesson.
+    void this.mirror((_profileId, sync) => sync.deleteCustomLessonCloud(id));
   }
 
   async getSettings(): Promise<Settings> {

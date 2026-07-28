@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/dexie";
 import type { Settings } from "@/lib/db/types";
-import { getProfile, pullProfileData, pullSettings, pullExamsAndCalls, pullTalkSessions, pullConvItemsAndQuests, type Profile } from "./supabase-sync";
+import { getProfile, pullProfileData, pullPlayerAndProgress, pullSettings, pullExamsAndCalls, pullTalkSessions, pullConvItemsAndQuests, pullCustomLessons, type Profile } from "./supabase-sync";
 
 // "Logging in" on a new device: the sync code is the account. Pull everything
 // the cloud has for that profile and seed the local Dexie stores with it, so
@@ -22,11 +22,19 @@ export interface RestoreSummary {
  * because an earned band must reappear on a new device without any extra step.
  */
 async function seedEarnedHistory(profileId: string): Promise<void> {
-  const [remote, talks, extras] = await Promise.all([
+  const [remote, talks, extras, customLessons] = await Promise.all([
     pullExamsAndCalls(profileId),
     pullTalkSessions(profileId),
     pullConvItemsAndQuests(profileId),
+    pullCustomLessons(),
   ]);
+  // Instructor lessons are shared content: cloud copy wins (upsert), but local
+  // lessons not yet pushed are never deleted here — a pull must not eat work.
+  if (customLessons?.length) {
+    await db.transaction("rw", [db.customLessons], async () => {
+      for (const lesson of customLessons) await db.customLessons.put(lesson);
+    });
+  }
   // Mined conversation phrases are assigned homework, so a fresh device must get
   // them back or she silently loses work. Quests come along so today's progress
   // does not reset when she switches device mid-day.
@@ -70,7 +78,14 @@ export async function restoreProfile(profileId: string): Promise<RestoreSummary 
   await seedEarnedHistory(id).catch(() => {});
 
   await db.transaction("rw", [db.attempts, db.progress, db.player], async () => {
-    if (data.attempts.length) await db.attempts.bulkAdd(data.attempts);
+    if (data.attempts.length) {
+      // `attempts` has an auto-increment key, so bulkAdd always appends — if the
+      // local cache already holds some (e.g. name was lost but attempts weren't),
+      // a naive add doubles the history. Insert only timestamps not already local.
+      const existing = new Set((await db.attempts.toArray()).map((a) => a.at));
+      const fresh = data.attempts.filter((a) => !existing.has(a.at));
+      if (fresh.length) await db.attempts.bulkAdd(fresh);
+    }
     if (data.progress.length) await db.progress.bulkPut(data.progress);
     if (data.player) await db.player.put(data.player);
   });
@@ -103,7 +118,9 @@ export async function restoreProfile(profileId: string): Promise<RestoreSummary 
 export async function hydrateFromCloud(profileId: string): Promise<{ settingsPatch: Partial<Settings> } | null> {
   const id = profileId.trim().toLowerCase();
   if (!id) return null;
-  const [data, cloudSettings] = await Promise.all([pullProfileData(id), pullSettings(id)]);
+  // Player + progress only: attempts are append-only, already mirrored, and
+  // unused here — pulling the whole history on every open scaled cost with age.
+  const [data, cloudSettings] = await Promise.all([pullPlayerAndProgress(id), pullSettings(id)]);
   if (!data) return null; // sync disabled — nothing to do
   await seedEarnedHistory(id).catch(() => {});
 
