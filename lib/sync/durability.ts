@@ -11,6 +11,8 @@
 //   3. If local ever comes up empty but we remember a code, silently restore
 //      from the cloud instead of starting over.
 
+import { boundAccountId } from "@/lib/db/dexie";
+
 const SYNC_CODE_KEY = "clara.syncCode";
 
 /** Ask the browser not to evict our storage. Best-effort; harmless if denied. */
@@ -36,7 +38,14 @@ export function rememberSyncCode(code: string | null | undefined): void {
 
 export function recalledSyncCode(): string | null {
   try {
-    return localStorage.getItem(SYNC_CODE_KEY);
+    const code = localStorage.getItem(SYNC_CODE_KEY);
+    // The remembered code is a device-wide value from the passwordless era.
+    // Under account-scoped storage it may belong to whoever used this device
+    // last — never let it restore a different account's profile into the
+    // currently bound database (audit: cross-account bleed).
+    const bound = boundAccountId();
+    if (bound && code && code.trim().toLowerCase() !== bound) return null;
+    return code;
   } catch {
     return null;
   }

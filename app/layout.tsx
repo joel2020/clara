@@ -4,6 +4,7 @@ import "./globals.css";
 import { SettingsProvider } from "@/lib/hooks/useSettings";
 import { AuthProvider } from "@/lib/hooks/useAuth";
 import { AuthGate } from "@/components/auth-gate";
+import { DataScope } from "@/components/data-scope";
 import { ProfileBinder } from "@/components/profile-binder";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/site-header";
@@ -72,21 +73,26 @@ export default function RootLayout({
        useSettings) for English-coaching users. */
     <html lang="es" className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <SettingsProvider>
-          <AuthProvider>
-            <PwaRegister />
-            <AuthGate>
-              <ProfileBinder />
-              <OnboardingFlow />
-              <SiteHeader />
-              <main className="flex-1">{children}</main>
-              <MobileNav />
-              <JuiceLayer />
-              <CinematicLayer />
-            </AuthGate>
-            <Toaster position="top-center" richColors />
-          </AuthProvider>
-        </SettingsProvider>
+        <AuthProvider>
+          <PwaRegister />
+          <AuthGate>
+            {/* DataScope binds IndexedDB to the signed-in account before any
+                provider or page can read it, and re-mounts everything below on
+                account switch — SettingsProvider must live inside it. */}
+            <DataScope>
+              <SettingsProvider>
+                <ProfileBinder />
+                <OnboardingFlow />
+                <SiteHeader />
+                <main className="flex-1">{children}</main>
+                <MobileNav />
+                <JuiceLayer />
+                <CinematicLayer />
+              </SettingsProvider>
+            </DataScope>
+          </AuthGate>
+          <Toaster position="top-center" richColors />
+        </AuthProvider>
       </body>
     </html>
   );
