@@ -1,8 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { LoginScreen } from "@/components/login-screen";
+import { ResetPasswordScreen } from "@/components/reset-password-screen";
 import { Lumi } from "@/components/lumi";
 import { isAllowed } from "@/lib/allowlist";
 
@@ -13,6 +15,12 @@ import { isAllowed } from "@/lib/allowlist";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { ready, required, session, user, signOut } = useAuth();
+  const pathname = usePathname();
+
+  // The password-reset link lands here. Intercept it before the session check so
+  // it works without being signed in, and before the app chrome, onboarding, and
+  // profile-binding mount — the reset screen owns the whole viewport.
+  if (pathname === "/reset") return <ResetPasswordScreen />;
 
   if (required && !ready) {
     return (

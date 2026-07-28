@@ -18,6 +18,10 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   resendConfirmation: (email: string) => Promise<{ error: string | null }>;
+  /** Send a password-reset email; the link lands on /reset. */
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+  /** Set a new password for the recovery session opened by the emailed link. */
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -72,6 +76,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const resetPassword = async (email: string) => {
+    const sb = supabase();
+    if (!sb) return { error: "auth_unavailable" };
+    // The emailed link returns here with a recovery token in the URL; AuthGate
+    // intercepts /reset and shows the set-new-password screen.
+    const redirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/reset` : undefined;
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    return { error: error?.message ?? null };
+  };
+
+  const updatePassword = async (password: string) => {
+    const sb = supabase();
+    if (!sb) return { error: "auth_unavailable" };
+    const { error } = await sb.auth.updateUser({ password });
+    return { error: error?.message ?? null };
+  };
+
   const signOut = async () => {
     const sb = supabase();
     if (sb) await sb.auth.signOut();
@@ -79,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ready, required, session, user: session?.user ?? null, signIn, signUp, resendConfirmation, signOut }}>
+    <AuthContext.Provider value={{ ready, required, session, user: session?.user ?? null, signIn, signUp, resendConfirmation, resetPassword, updatePassword, signOut }}>
       {children}
     </AuthContext.Provider>
   );

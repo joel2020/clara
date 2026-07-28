@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 // Email + password because magic links break out of the installed iOS PWA.
 
 export function LoginScreen() {
-  const { signIn, signUp, resendConfirmation } = useAuth();
+  const { signIn, signUp, resendConfirmation, resetPassword } = useAuth();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,6 +97,33 @@ export function LoginScreen() {
             className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-primary"
             placeholder="••••••••"
           />
+
+          {mode === "in" && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (busy) return;
+                setError(null);
+                setNotice(null);
+                setNeedsConfirm(false);
+                if (!email.trim()) {
+                  setError("Escribe tu correo primero · Enter your email first.");
+                  return;
+                }
+                setBusy(true);
+                const { error } = await resetPassword(email);
+                setBusy(false);
+                if (error) setError(friendlyError(error));
+                else
+                  setNotice(
+                    "Te enviamos un correo para restablecer tu contraseña. Revisa tu bandeja · Password-reset email sent — check your inbox.",
+                  );
+              }}
+              className="mt-3 block text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              ¿Olvidaste tu contraseña? · Forgot your password?
+            </button>
+          )}
 
           {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}
           {notice && <p className="mt-3 text-sm font-medium text-primary">{notice}</p>}
