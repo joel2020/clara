@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { LoginScreen } from "@/components/login-screen";
 import { ResetPasswordScreen } from "@/components/reset-password-screen";
+import { OAuthCallbackScreen } from "@/components/oauth-callback-screen";
 import { Lumi } from "@/components/lumi";
 import { isAllowed } from "@/lib/allowlist";
 
@@ -21,6 +22,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   // it works without being signed in, and before the app chrome, onboarding, and
   // profile-binding mount — the reset screen owns the whole viewport.
   if (pathname === "/reset") return <ResetPasswordScreen />;
+
+  // Google sends the user back here with a token to exchange; same reasoning —
+  // it must run before the session check, since there is no session yet.
+  if (pathname === "/auth/callback") return <OAuthCallbackScreen />;
 
   if (required && !ready) {
     return (

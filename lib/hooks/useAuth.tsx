@@ -17,6 +17,8 @@ interface AuthContextValue {
   user: User | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  /** Start the Google OAuth redirect; returns to /auth/callback. */
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   resendConfirmation: (email: string) => Promise<{ error: string | null }>;
   /** Send a password-reset email; the link lands on /reset. */
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -69,6 +71,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  /**
+   * Google sign-in.
+   *
+   * Kept alongside email+password rather than replacing it: an OAuth round trip
+   * can bounce out of the installed iOS PWA into Safari (the same reason magic
+   * links were rejected), and password sign-in is the reliable fallback there.
+   * The allowlist still decides who actually gets in — a Google account that
+   * isn't allow-listed lands on the "no access" screen like any other.
+   */
+  const signInWithGoogle = async () => {
+    const sb = supabase();
+    if (!sb) return { error: "auth_unavailable" };
+    const redirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        // Always show the chooser: these are shared/family devices, and silently
+        // reusing whichever Google account is already signed in is confusing.
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    return { error: error?.message ?? null };
+  };
+
   const resendConfirmation = async (email: string) => {
     const sb = supabase();
     if (!sb) return { error: "auth_unavailable" };
@@ -101,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ready, required, session, user: session?.user ?? null, signIn, signUp, resendConfirmation, resetPassword, updatePassword, signOut }}>
+    <AuthContext.Provider value={{ ready, required, session, user: session?.user ?? null, signIn, signUp, signInWithGoogle, resendConfirmation, resetPassword, updatePassword, signOut }}>
       {children}
     </AuthContext.Provider>
   );
