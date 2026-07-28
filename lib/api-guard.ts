@@ -51,7 +51,10 @@ export function guardApi(request: Request): Response | null {
   if (!origin) return deny(403, "forbidden");
   try {
     const oHost = new URL(origin).host;
-    if (oHost !== host && !oHost.startsWith("localhost")) return deny(403, "forbidden");
+    // Exact hostname match only: a prefix test would accept "localhost.evil.com".
+    const oName = oHost.split(":")[0];
+    const local = oName === "localhost" || oName === "127.0.0.1";
+    if (oHost !== host && !local) return deny(403, "forbidden");
   } catch {
     return deny(403, "forbidden");
   }

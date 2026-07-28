@@ -36,7 +36,18 @@ export async function getAuthedUser(request: Request): Promise<User | null> {
  * spend money on OpenAI/ElevenLabs/Azure. Returns null to proceed.
  */
 export async function requireUser(request: Request): Promise<Response | null> {
-  if (!authRequired()) return null;
+  if (!authRequired()) {
+    // No auth backend configured. In dev that means "auth disabled" on purpose;
+    // in production it means a broken deploy (missing env vars) — fail CLOSED
+    // rather than silently turning every paid route public.
+    if (process.env.NODE_ENV === "production") {
+      return new Response(JSON.stringify({ error: "auth_not_configured" }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    return null;
+  }
   const user = await getAuthedUser(request);
   if (!user) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
