@@ -83,19 +83,26 @@ export function LearnIntro({ lesson, onStart }: { lesson: Lesson; onStart: () =>
 
   return (
     <div className="animate-fade-up">
-      {/* Progress dots */}
-      <div className="flex items-center justify-center gap-2" aria-label={`${idx + 1} ${t("introCardOf", lang)} ${cards.length}`}>
+      {/* Progress dots. The visible dot stays small; the tappable area doesn't —
+          each button pads out to a finger-sized target. */}
+      <div className="flex items-center justify-center" role="tablist" aria-label={t("introIdea", lang)}>
         {cards.map((_, i) => (
           <button
             key={i}
             type="button"
             onClick={() => go(i)}
-            aria-label={`${i + 1}`}
-            className={cn(
-              "h-2 rounded-full transition-all",
-              i === idx ? "w-6 bg-primary" : "w-2 bg-muted-foreground/25 hover:bg-muted-foreground/40",
-            )}
-          />
+            role="tab"
+            aria-selected={i === idx}
+            aria-label={`${t("introIdea", lang)} ${i + 1} ${t("introCardOf", lang)} ${cards.length}`}
+            className="group grid min-h-9 min-w-9 place-items-center"
+          >
+            <span
+              className={cn(
+                "h-2 rounded-full transition-all",
+                i === idx ? "w-6 bg-primary" : "w-2 bg-muted-foreground/25 group-hover:bg-muted-foreground/40",
+              )}
+            />
+          </button>
         ))}
       </div>
 

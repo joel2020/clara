@@ -88,8 +88,15 @@ export default function RootLayout({
               <SettingsProvider>
                 <ProfileBinder />
                 <OnboardingFlow />
+                {/* Keyboard/screen-reader users skip the chrome in one Tab. */}
+                <a
+                  href="#contenido"
+                  className="sr-only z-50 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+                >
+                  Saltar al contenido
+                </a>
                 <SiteHeader />
-                <main className="flex-1">{children}</main>
+                <main id="contenido" className="flex-1">{children}</main>
                 <MobileNav />
                 <JuiceLayer />
                 <CinematicLayer />
