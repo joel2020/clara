@@ -57,7 +57,9 @@ export const viewport: Viewport = {
   themeColor: "#123a93",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1, // stop iOS zooming/jumping when she taps the mic
+  // No maximumScale lock: it fails WCAG 1.4.4 on Android and modern iOS ignores
+  // it anyway. Mic-tap zoom jumps are prevented by `touch-action: manipulation`
+  // on controls (globals.css) instead of by disabling pinch zoom for everyone.
   viewportFit: "cover",
 };
 

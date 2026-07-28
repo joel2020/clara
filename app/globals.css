@@ -98,7 +98,21 @@
   --border: oklch(0.92 0.002 270);
   --hairline: oklch(0.9 0.002 270);
   --input: oklch(0.9 0.002 270);
-  --ring: oklch(0.46 0.072 192);
+  /* Focus ring matches the one accent — a teal ring on a blue-accent app was a
+     shadcn-template leftover. */
+  --ring: oklch(0.42 0.13 262);
+
+  /* Honesty architecture: estimated numbers are ghosts, earned numbers are ink. */
+  --estimated: color-mix(in oklch, var(--muted-foreground) 70%, transparent);
+  --earned: var(--foreground);
+  /* The only sanctioned tinted card wash. */
+  --surface-wash: color-mix(in oklch, var(--primary) 4%, var(--card));
+
+  /* Motion tokens — three durations, one easing, everywhere. */
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-gentle: 420ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   --chart-1: oklch(0.46 0.072 192);
   --chart-2: oklch(0.55 0.082 168);
@@ -156,6 +170,11 @@
   ::selection {
     background: color-mix(in oklch, var(--primary) 18%, transparent);
   }
+  /* Buttons and controls opt out of double-tap zoom so the mic never jumps the
+     page — the accessible replacement for the old maximumScale lock. */
+  button, a, input, textarea, select, [role="button"] {
+    touch-action: manipulation;
+  }
   h1, h2, h3 {
     @apply font-display;
     letter-spacing: -0.02em;
@@ -172,10 +191,11 @@
   h1, h2, h3, .font-display {
     font-optical-sizing: none;
   }
-  /* Refined focus ring — visible but never chunky. */
+  /* Refined focus ring — visible but never chunky. Defined once, here. */
   :focus-visible {
     outline: 2px solid color-mix(in oklch, var(--primary) 55%, transparent);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
@@ -411,18 +431,9 @@
 }
 .page-enter { animation: page-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* One consistent, keyboard-friendly focus ring across the app. */
-:focus-visible {
-  outline: 2px solid color-mix(in oklch, var(--co-blue) 70%, transparent);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Warm tricolor text selection. */
-::selection {
-  background: color-mix(in oklch, var(--co-yellow) 55%, transparent);
-  color: var(--foreground);
-}
+/* Focus and selection are defined once, in @layer base above — the duplicate
+   co-blue/co-yellow definitions that used to live here made the ring and
+   selection depend on cascade order. */
 
 html { scroll-behavior: smooth; }
 
@@ -765,6 +776,81 @@ html { scroll-behavior: smooth; }
   position: absolute;
   pointer-events: none;
   animation: sparkle-fly 0.9s ease-out forwards;
+}
+
+/* ── Type roles ───────────────────────────────────────────────────────────
+   The named text styles of the design system (docs/redesign/CLARA-DESIGN-SYSTEM.md
+   §1.2). Screens use these instead of ad-hoc sizes; every role has a job. */
+.type-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.75rem, 7vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-optical-sizing: none;
+}
+.type-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.375rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-optical-sizing: none;
+}
+.type-heading {
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+}
+.type-body {
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.type-support {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.type-label {
+  font-weight: 600;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted-foreground);
+}
+.type-data {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.type-data-big {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2.125rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-optical-sizing: none;
+}
+
+/* Safe-area helpers for immersive (headerless) screens and landscape phones. */
+.safe-top { padding-top: max(env(safe-area-inset-top), 12px); }
+.page-gutter {
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+}
+
+/* ── The one celebration: a tricolor stamp, earned, once ─────────────────
+   Replaces the arcade layer's sprays and chest-shakes as surfaces migrate. */
+@keyframes stamp-in {
+  0% { opacity: 0; transform: scale(1.35) rotate(-6deg); }
+  60% { opacity: 1; transform: scale(0.96) rotate(1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.stamp-in { animation: stamp-in var(--dur-gentle) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .stamp-in { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
