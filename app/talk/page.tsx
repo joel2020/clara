@@ -8,6 +8,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { SCENARIOS, type Scenario } from "@/lib/content/scenarios";
+import { personalize, personalizeList } from "@/lib/personalize";
 import { createRecognition, type RecognitionHandle } from "@/lib/speech/recognition";
 import { repo } from "@/lib/db";
 import { recordQuestEvent } from "@/lib/quests";
@@ -147,14 +148,16 @@ export default function TalkPage() {
       savedSession.current = false;
       scenarioIdRef.current = s.id;
       setScenario(s);
-      setTurns([{ role: "joel", en: s.opener.en, es: s.opener.es }]);
+      const openerEn = personalize(s.opener.en, studentName);
+      const openerEs = personalize(s.opener.es, studentName);
+      setTurns([{ role: "joel", en: openerEn, es: openerEs }]);
       setCorrection(null);
-      setSuggestions(s.starters);
+      setSuggestions(personalizeList(s.starters, studentName));
       setError(null);
       setNotConfigured(false);
-      void speak(s.opener.en);
+      void speak(openerEn);
     },
-    [speak],
+    [speak, studentName],
   );
 
   /**

@@ -94,7 +94,7 @@ export default function CallPage() {
     setScenario(s);
     setTurns([{ role: "customer", text: s.opener }]);
     setSuggestions([
-      "Thank you for calling, my name is " + (studentName || "Mariana"),
+      "Thank you for calling, my name is " + (studentName || "Ana"),
       "I'm really sorry about that",
       "May I have your full name, please?",
     ]);

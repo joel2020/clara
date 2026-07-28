@@ -7,6 +7,7 @@
 
 import type OpenAI from "openai";
 import { getScenario } from "@/lib/content/scenarios";
+import { personalize } from "@/lib/personalize";
 import { getCallScenario } from "@/lib/content/call-scenarios";
 import { guardApi } from "@/lib/api-guard";
 import { requireUser } from "@/lib/auth-server";
@@ -201,7 +202,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const history = Array.isArray(body.history) ? body.history.slice(-16) : [];
-  const name = (body.studentName || "the student").toString().slice(0, 40);
+  const givenName = typeof body.studentName === "string" ? body.studentName.trim().slice(0, 40) : "";
+  const name = givenName || "the student";
   const coachLang: "es" | "en" = body.coachLanguage === "en" ? "en" : "es";
   const focusWords = Array.isArray(body.focusWords)
     ? body.focusWords
@@ -219,9 +221,17 @@ export async function POST(request: Request): Promise<Response> {
       role: "system",
       content: callScenario
         ? callSystemPrompt(callScenario.persona, callScenario.difficulty, name, coachLang)
-        : systemPrompt(scenario!.role, scenario!.setting, name, coachLang, focusWords, level, goal),
+        : systemPrompt(
+            personalize(scenario!.role, givenName, "the student"),
+            personalize(scenario!.setting, givenName, "the student"),
+            name,
+            coachLang,
+            focusWords,
+            level,
+            goal,
+          ),
     },
-    { role: "assistant", content: callScenario ? callScenario.opener : scenario!.opener.en },
+    { role: "assistant", content: callScenario ? callScenario.opener : personalize(scenario!.opener.en, givenName) },
     ...history.map(
       (turn): OpenAI.Chat.Completions.ChatCompletionMessageParam => ({
         role: turn.role === "user" ? "user" : "assistant",

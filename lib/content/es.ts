@@ -548,7 +548,7 @@ export const INTROS_ES: Record<string, LessonIntro> = {
   },
   "conv-phone": {
     summary: "El inglés del teléfono tiene su propio guion — contestar, preguntar quién llama y manejar la mala señal.",
-    whyTricky: "Las frases del teléfono son fijas: 'This is Mariana', no 'I am Mariana', al contestar. Y 'Can you hear me?' es el arreglo universal para la mala línea.",
+    whyTricky: "Las frases del teléfono son fijas: 'This is Ana', no 'I am Ana', al contestar. Y 'Can you hear me?' es el arreglo universal para la mala línea.",
     how: ["Contesta con 'This is...' + tu nombre.", "'Can you hear me?' arregla la mala señal.", "'I'll call you back' te da tiempo."],
     exampleIds: ["conv-phone:1", "conv-phone:4"],
   },

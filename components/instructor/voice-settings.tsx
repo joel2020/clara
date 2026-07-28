@@ -43,7 +43,7 @@ export function VoiceSettings() {
               id="student-name-setting"
               value={settings.studentName ?? ""}
               onChange={(e) => update({ studentName: e.target.value || null })}
-              placeholder="Mariana"
+              placeholder="Nombre de la estudiante"
               className="mt-1.5 h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
             />
           </div>

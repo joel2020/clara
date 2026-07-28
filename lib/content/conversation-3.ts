@@ -43,7 +43,7 @@ export const CONVERSATION_LESSONS_3: Lesson[] = [
       { text: "I totally agree with you.", ipa: "aɪ ˈtoʊtəli əˈɡri wɪθ ju", meaning: "Estoy totalmente de acuerdo contigo.", hint: "'totally' = 'tóurali' con la t suave americana." },
       { text: "I see your point, but…", ipa: "aɪ si jʊr pɔɪnt bʌt", meaning: "Entiendo tu punto, pero…", hint: "Baja el tono en 'but' para suavizar." },
       { text: "It's not a big deal.", ipa: "ɪts nɑt ə bɪɡ dil", meaning: "No es gran cosa.", hint: "'big deal' es una frase fija; dila rápido." },
-      { text: "What do you think about it?", ipa: "wʌt du ju θɪŋk əˈbaʊt ɪt", meaning: "¿Tú qué piensas de eso?", hint: "'think' con la lengua afuera: 'zink' no, 'th'." },
+      { text: "What do you think about it?", ipa: "wʌt du ju θɪŋk əˈbaʊt ɪt", meaning: "¿Tú qué piensas de eso?", hint: "'think': lengua entre los dientes y sopla — nunca t ni s." },
       { text: "Same here, honestly.", ipa: "seɪm hɪr ˈɑnɪstli", meaning: "Igual yo, la verdad.", hint: "'Same here' = 'seim jíir'." },
       { text: "I'd rather not, to be honest.", ipa: "aɪd ˈræðər nɑt tə bi ˈɑnɪst", meaning: "Prefiero que no, la verdad.", hint: "'I'd rather' = 'aid ráder'; muy común." },
       { text: "It makes sense to me.", ipa: "ɪt meɪks sɛns tə mi", meaning: "Tiene sentido para mí.", hint: "'makes sense' junto: 'meiks-sens'." },

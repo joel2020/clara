@@ -155,7 +155,7 @@ export const CONVERSATION_LESSONS_4: Lesson[] = [
       { text: "It's easier said than done.", ipa: "ɪts ˈiziər sɛd ðən dʌn", meaning: "Del dicho al hecho hay mucho trecho.", hint: "Frase fija; decirlo es fácil, hacerlo no." },
       { text: "There's more to it than that.", ipa: "ðɛrz mɔr tu ɪt ðən ðæt", meaning: "Hay más de lo que parece.", hint: "'more to it' = hay más detrás." },
       { text: "It cuts both ways.", ipa: "ɪt kʌts boʊθ weɪz", meaning: "Es un arma de doble filo.", hint: "'cuts both ways' = afecta a ambos lados." },
-      { text: "Hypothetically speaking…", ipa: "ˌhaɪpəˈθɛtɪkli ˈspikɪŋ", meaning: "Hipotéticamente hablando…", hint: "Palabra larga; sepárala: 'jai-po-zé-ti-kli'." },
+      { text: "Hypothetically speaking…", ipa: "ˌhaɪpəˈθɛtɪkli ˈspikɪŋ", meaning: "Hipotéticamente hablando…", hint: "Palabra larga; sepárala: 'hai-po-THE-ti-kli' — th con la lengua entre los dientes." },
       { text: "It boils down to trust.", ipa: "ɪt bɔɪlz daʊn tə trʌst", meaning: "Todo se reduce a la confianza.", hint: "'boils down to' = se reduce a lo esencial." },
       { text: "That's a slippery slope.", ipa: "ðæts ə ˈslɪpəri sloʊp", meaning: "Ese es un camino peligroso.", hint: "'slippery slope' = una cosa lleva a otra peor." },
       { text: "It's the exception, not the rule.", ipa: "ɪts ði ɪkˈsɛpʃən nɑt ðə rul", meaning: "Es la excepción, no la regla.", hint: "Contraste fijo; ritmo parejo." },

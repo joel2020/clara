@@ -93,7 +93,7 @@ export function OnboardingFlow() {
   const { settings, update, ready } = useSettings();
   const player = usePlayer();
   // Give login-time cloud hydration a moment to land before we decide whether
-  // this is a brand-new learner — so an existing user (Mariana) never flashes
+  // this is a brand-new learner — so an existing signed-in user never flashes
   // into onboarding on a fresh device while her progress is still loading.
   const [settled, setSettled] = useState(false);
   useEffect(() => {
@@ -258,7 +258,7 @@ export function OnboardingFlow() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && name.trim() && go("place")}
-              placeholder="Mariana"
+              placeholder="Tu nombre"
               autoFocus
               className="mt-6 w-full border-b border-border bg-transparent pb-2 font-display text-3xl font-medium outline-none placeholder:text-muted-foreground/30 focus:border-primary"
             />
