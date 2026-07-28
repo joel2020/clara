@@ -66,7 +66,11 @@ configured" and the rest of the app keeps working.
 - **Server-side allowlist** (`lib/allowlist.ts`): sign-up is open, but only
   allow-listed emails can enter the app or hit the paid AI routes — a stranger
   who self-registers gets a "no access" screen and every paid route returns 403.
-  **Add a student = add their email to `ALLOWED_EMAILS` and deploy.**
+  The lists live in the **`ALLOWED_EMAILS` / `ADMIN_EMAILS` env vars** (comma-
+  separated, server-only — student emails are personal data and no longer live
+  in code or the client bundle; the UI asks `/api/me` for its own flags).
+  **Add a student = add their email to `ALLOWED_EMAILS` in the Vercel env and
+  redeploy. With the vars unset in production, nobody gets in (fails closed).**
 - **Paid routes are protected** (`lib/api-guard.ts` + `lib/auth-server.ts`):
   same-origin check + per-IP rate limit, then a valid Supabase session, then the
   allowlist. Unauthenticated → 401, non-allowlisted → 403, cross-origin → 403.

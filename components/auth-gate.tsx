@@ -7,7 +7,7 @@ import { LoginScreen } from "@/components/login-screen";
 import { ResetPasswordScreen } from "@/components/reset-password-screen";
 import { OAuthCallbackScreen } from "@/components/oauth-callback-screen";
 import { Lumi } from "@/components/lumi";
-import { isAllowed } from "@/lib/allowlist";
+import { useAccess } from "@/lib/hooks/useAccess";
 
 // Stands in front of the whole app: the login screen until there's a session,
 // then an allowlist check (anyone can register with Supabase, but only approved
@@ -15,7 +15,8 @@ import { isAllowed } from "@/lib/allowlist";
 // app. Bypassed entirely when no auth backend is configured (local dev).
 
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { ready, required, session, user, signOut } = useAuth();
+  const { ready, required, session, signOut } = useAuth();
+  const { allowed } = useAccess();
   const pathname = usePathname();
 
   // The password-reset link lands here. Intercept it before the session check so
@@ -39,7 +40,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (required && !session) return <LoginScreen />;
 
-  if (required && !isAllowed(user?.email)) {
+  // The allowlist lives server-side now; /api/me answers for this session.
+  if (required && session && allowed === null) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center">
+        <div className="h-24 w-20 opacity-90">
+          <Lumi mood="idle" priority />
+        </div>
+      </div>
+    );
+  }
+
+  if (required && allowed === false) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center px-6 text-center">
         <div className="h-28 w-24">

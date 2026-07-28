@@ -6,7 +6,7 @@ import { Volume2, VolumeX, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { isAdmin } from "@/lib/allowlist";
+import { useAccess } from "@/lib/hooks/useAccess";
 import { Switch } from "@/components/ui/switch";
 import { t } from "@/lib/i18n";
 
@@ -22,7 +22,8 @@ export function SiteHeader() {
   const lang = settings.coachLanguage;
   // Teaching tools are for the teacher: with a real auth backend, only admin
   // accounts see the toggle. Local dev (no auth) keeps it for convenience.
-  const teacher = !required || isAdmin(user?.email);
+  const { admin } = useAccess();
+  const teacher = admin;
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-background/70 backdrop-blur-xl">

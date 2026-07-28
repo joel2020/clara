@@ -2,32 +2,46 @@
 //
 // Registration is open at the Supabase level (so accounts can be created from
 // inside the app, with no dashboard trip), but an account is worthless unless
-// its email is on this list: the gate won't open and the paid API routes return
-// 403. So a stranger can sign up and still get nothing — no app, no OpenAI, no
-// ElevenLabs, no Azure.
+// its email is on the allowlist: the gate won't open and the paid API routes
+// return 403. So a stranger can sign up and still get nothing — no app, no
+// OpenAI, no ElevenLabs, no Azure.
 //
-// Emails are not secrets, so this lives in code rather than an env var — knowing
-// an allowed address gets you nowhere without that account's password.
-// To add a student: add their email here and ship.
+// The lists live in SERVER environment variables, not in code: student emails
+// are personal data and used to ship in the repository AND the client bundle
+// (audit P0). Client UI never sees the lists — it asks /api/me. Server-side
+// enforcement (lib/auth-server.ts) is unchanged and fails closed: with the
+// variables unset in production, nobody is allowed.
+//
+//   ALLOWED_EMAILS  comma-separated student+teacher emails
+//   ADMIN_EMAILS    comma-separated teacher emails (coach/instructor tools)
+//
+// To add a student: add their email to ALLOWED_EMAILS in the deployment env
+// and redeploy. Local dev without Supabase env bypasses auth entirely, so
+// these are only consulted when a real auth backend is configured.
 
-export const ALLOWED_EMAILS = [
-  "marianaarango1515@gmail.com", // Mariana
-  "jravalentina04@gmail.com", // Valentina
-  "katiuskamen2za2024@gmail.com", // Katiuska
-  "alivio.studio.ops@gmail.com", // Joel
-  "joelcarias23@gmail.com", // Joel (teacher/admin)
-];
+function parseList(raw: string | undefined): string[] {
+  return (raw ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function allowedEmails(): string[] {
+  return parseList(process.env.ALLOWED_EMAILS);
+}
 
 export function isAllowed(email: string | null | undefined): boolean {
   if (!email) return false;
-  return ALLOWED_EMAILS.includes(email.trim().toLowerCase());
+  return allowedEmails().includes(email.trim().toLowerCase());
 }
 
 // The teacher(s) who can see the whole roster in the coach cockpit. A strict
 // subset of the allowlist — students can use the app but never see each other.
-export const ADMIN_EMAILS = ["alivio.studio.ops@gmail.com", "joelcarias23@gmail.com"];
+export function adminEmails(): string[] {
+  return parseList(process.env.ADMIN_EMAILS);
+}
 
 export function isAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
-  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+  return adminEmails().includes(email.trim().toLowerCase());
 }

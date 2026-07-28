@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { isAdmin } from "@/lib/allowlist";
+import { useAccess } from "@/lib/hooks/useAccess";
 import { CustomLessonBuilder } from "@/components/instructor/custom-lesson-builder";
 import { RecentAttempts } from "@/components/instructor/recent-attempts";
 import { VoiceSettings } from "@/components/instructor/voice-settings";
@@ -14,10 +14,11 @@ import { VoiceSettings } from "@/components/instructor/voice-settings";
 export default function InstructorPage() {
   const { settings, update } = useSettings();
   const { required, user } = useAuth();
+  const { admin } = useAccess();
 
   // Admin-only when a real auth backend exists (the DB policy enforces the same
   // list server-side); local dev without auth keeps the simple toggle.
-  if (required && !isAdmin(user?.email)) {
+  if (required && !admin) {
     return (
       <div className="mx-auto max-w-md px-5 py-24 text-center">
         <Lock className="mx-auto mb-5 size-8 text-muted-foreground" />

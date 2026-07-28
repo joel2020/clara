@@ -8,6 +8,7 @@ import { setSfxEnabled } from "@/lib/sfx";
 import { ensureProfile, pushSettings } from "@/lib/sync/supabase-sync";
 import { restoreProfile, hydrateFromCloud } from "@/lib/sync/restore";
 import { requestPersistentStorage, rememberSyncCode, recalledSyncCode } from "@/lib/sync/durability";
+import { publishVoiceConsent } from "@/lib/speech/consent";
 
 // App-wide settings (instructor toggle, voice, rate) loaded once and shared.
 
@@ -72,6 +73,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       active = false;
     };
   }, []);
+
+  // Mirror the persisted voice consent into the broker (lib/speech/consent.ts)
+  // so the capture chokepoint can check it without touching React. The sheet
+  // persists an accept through update(), which lands back here.
+  useEffect(() => {
+    publishVoiceConsent(settings.voiceConsent ?? null);
+  }, [settings.voiceConsent]);
 
   // Keep the document language in sync with the coach language so a screen
   // reader announces the UI with the right pronunciation (SSR defaults to "es").

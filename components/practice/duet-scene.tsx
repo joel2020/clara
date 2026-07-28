@@ -117,7 +117,7 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
         sfx.wrong();
       }
     } catch (e) {
-      if (e instanceof RecognitionError && e.code === "cancelled") {
+      if (e instanceof RecognitionError && (e.code === "cancelled" || e.code === "consent")) {
         setHerPhase("idle");
         return;
       }

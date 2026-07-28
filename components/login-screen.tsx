@@ -215,6 +215,11 @@ export function LoginScreen() {
             ? "¿Sin cuenta? Crea una · No account? Create one"
             : "¿Ya tienes cuenta? Inicia sesión · Already have one? Sign in"}
         </button>
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          <a href="/privacidad" className="underline-offset-2 hover:underline">
+            Privacidad · Privacy
+          </a>
+        </p>
       </div>
     </div>
   );

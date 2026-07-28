@@ -198,6 +198,12 @@ export interface DailyQuestState {
 }
 
 export interface Settings {
+  /**
+   * Voice-capture consent: the notice version accepted and when. Per account,
+   * per device (this row lives in the account-scoped database). Absent =
+   * never asked; the consent sheet opens before the first capture.
+   */
+  voiceConsent?: { version: number; at: number };
   id: string; // always "app"
   instructorMode: boolean;
   speechRate: number; // default playback rate for SpeechSynthesis

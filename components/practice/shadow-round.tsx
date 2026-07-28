@@ -119,7 +119,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         setPhase("ready");
       }
     } catch (e) {
-      if (e instanceof RecognitionError && e.code === "cancelled") {
+      if (e instanceof RecognitionError && (e.code === "cancelled" || e.code === "consent")) {
         setPhase("ready");
         return;
       }

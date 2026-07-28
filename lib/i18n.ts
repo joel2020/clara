@@ -283,6 +283,7 @@ const STRINGS = {
   recNoSpeech: { es: "No te escuchamos. Habla un poquito más fuerte e intenta otra vez.", en: "We didn't catch that. Speak up a little and try again." },
   recSilent: { es: "No se detectó el micrófono. Revisa el permiso del micrófono y vuelve a intentar.", en: "We couldn't hear the mic. Check microphone access and try again." },
   recNotAllowed: { es: "El micrófono está bloqueado. Actívalo en los ajustes del navegador.", en: "The microphone is blocked. Allow it in your browser settings." },
+  recConsent: { es: "Para practicar con tu voz, acepta el aviso de privacidad (puedes hacerlo tocando el micrófono otra vez). Todo lo demás sigue disponible sin micrófono.", en: "To practice with your voice, accept the privacy notice (tap the mic again to see it). Everything else works without a microphone." },
   recNetwork: { es: "No pudimos calificar eso. Revisa tu conexión e intenta otra vez.", en: "Couldn't score that. Check your connection and try again." },
   recGeneric: { es: "Algo salió mal. Intenta otra vez.", en: "Something went wrong. Try again." },
   lumiReady: { es: "Cuando quieras — ¡tú puedes!", en: "Whenever you're ready — you've got this!" },

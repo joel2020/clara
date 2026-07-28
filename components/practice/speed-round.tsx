@@ -95,7 +95,7 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
       setPhase("flash");
       setTimeout(advance, 850);
     } catch (e) {
-      if (e instanceof RecognitionError && e.code === "cancelled") {
+      if (e instanceof RecognitionError && (e.code === "cancelled" || e.code === "consent")) {
         setPhase("ready");
         return;
       }

@@ -3,8 +3,10 @@ import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { SettingsProvider } from "@/lib/hooks/useSettings";
 import { AuthProvider } from "@/lib/hooks/useAuth";
+import { AccessProvider } from "@/lib/hooks/useAccess";
 import { AuthGate } from "@/components/auth-gate";
 import { DataScope } from "@/components/data-scope";
+import { VoiceConsentSheet } from "@/components/voice-consent-sheet";
 import { ProfileBinder } from "@/components/profile-binder";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/site-header";
@@ -74,6 +76,7 @@ export default function RootLayout({
     <html lang="es" className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
+          <AccessProvider>
           <PwaRegister />
           <AuthGate>
             {/* DataScope binds IndexedDB to the signed-in account before any
@@ -88,10 +91,12 @@ export default function RootLayout({
                 <MobileNav />
                 <JuiceLayer />
                 <CinematicLayer />
+                <VoiceConsentSheet />
               </SettingsProvider>
             </DataScope>
           </AuthGate>
           <Toaster position="top-center" richColors />
+          </AccessProvider>
         </AuthProvider>
       </body>
     </html>

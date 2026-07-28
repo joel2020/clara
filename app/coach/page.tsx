@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Flame, Star, Zap, CircleCheck, CircleAlert } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { isAdmin } from "@/lib/allowlist";
+import { useAccess } from "@/lib/hooks/useAccess";
 import { authHeaders } from "@/lib/auth-client";
 
 // The coach cockpit — Joel's view of every student at a glance. Admin-only.
@@ -44,7 +44,8 @@ export default function CoachPage() {
   const [errors, setErrors] = useState<ClientError[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const admin = !required || isAdmin(user?.email);
+  const { admin: adminFlag } = useAccess();
+  const admin = adminFlag;
 
   useEffect(() => {
     if (!ready || !admin) return;

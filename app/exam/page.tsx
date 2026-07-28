@@ -17,7 +17,7 @@ import { levelLessonPool } from "@/lib/onboarding";
 import { examEligibility, scoreExam, canAttemptToday, SECTIONS, PASS_SCORE, type SectionKey } from "@/lib/exams";
 import { composeExam, type ExamSection } from "@/lib/exam-compose";
 import { GRADER_RETRIES, foldGradePaths, interpretGraderResponse, type GradePath } from "@/lib/exam-grading";
-import { createRecognition } from "@/lib/speech/recognition";
+import { RecognitionError, createRecognition } from "@/lib/speech/recognition";
 import { scoreAttempt } from "@/lib/speech/scoring";
 import { audioUrl } from "@/lib/speech/audio-key";
 import { hasRecordedVoice } from "@/lib/speech/player";
@@ -261,7 +261,14 @@ export default function ExamPage() {
       record(section.key, score, "mechanical");
       setListening(false);
       window.setTimeout(advance, 500);
-    } catch {
+    } catch (e) {
+      // Declining the voice-consent sheet is not a scoring event — no capture
+      // was attempted. Stay on the item so she can tap again (and accept).
+      if (e instanceof RecognitionError && e.code === "consent") {
+        setNote("Para el examen necesitas aceptar el aviso de voz. Toca el micrófono otra vez.");
+        setListening(false);
+        return;
+      }
       // A failed capture scores zero: an exam cannot be dodged by a silent mic.
       record(section.key, 0, "mechanical");
       setNote("No se escuchó nada. Esa parte quedó en cero.");

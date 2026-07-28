@@ -9,7 +9,7 @@ import { lastSyncFailure } from "@/lib/sync/supabase-sync";
 import { flushOutbox, pendingOutboxCount } from "@/lib/sync/outbox";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { isAdmin } from "@/lib/allowlist";
+import { useAccess } from "@/lib/hooks/useAccess";
 import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { Splash } from "@/components/splash";
@@ -37,6 +37,7 @@ export default function SettingsPage() {
 
   const { settings, update, ready } = useSettings();
   const { required: authOn, user, signOut } = useAuth();
+  const { admin } = useAccess();
   const lang = settings.coachLanguage;
   const [copied, setCopied] = useState(false);
   const [armReset, setArmReset] = useState(false);
@@ -230,6 +231,12 @@ export default function SettingsPage() {
         </section>
 
         {/* Sounds */}
+        <section className="text-center text-xs text-muted-foreground">
+          <Link href="/privacidad" className="underline-offset-2 hover:underline">
+            Tu voz y tus datos · Privacy
+          </Link>
+        </section>
+
         <section className="flex items-center justify-between rounded-2xl border border-hairline bg-card px-5 py-4">
           <p className="font-medium">{t("settingsSound", lang)}</p>
           <button
@@ -329,7 +336,7 @@ export default function SettingsPage() {
               <p className="mt-1 truncate text-sm text-foreground/80">{user?.email ?? ""}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {isAdmin(user?.email) && (
+              {admin && (
                 <a
                   href="/coach"
                   className="rounded-full border border-primary/40 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"

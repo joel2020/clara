@@ -4,6 +4,7 @@ import { getSpeechRecognitionCtor, hasMediaRecording } from "./support";
 import { assessEnabled, assessEnabledSync, assessRecording, type Assessment } from "./azure";
 import { startWavRecording, SILENCE_PEAK, type WavHandle } from "./wav-recorder";
 import { authHeaders } from "@/lib/auth-client";
+import { ensureVoiceConsent, hasVoiceConsent } from "./consent";
 
 // Promise-based wrapper around the one-shot SpeechRecognition flow: start
 // listening, capture the best transcript, stop. Surfaces alternatives too, so
@@ -32,7 +33,7 @@ export class RecognitionError extends Error {
 }
 
 /** i18n key for a recognition error, so the message shows in her coach language. */
-export function recognitionErrorKey(e: unknown): "recNoSpeech" | "recSilent" | "recNotAllowed" | "recNetwork" | "recGeneric" {
+export function recognitionErrorKey(e: unknown): "recNoSpeech" | "recSilent" | "recNotAllowed" | "recNetwork" | "recConsent" | "recGeneric" {
   if (!(e instanceof RecognitionError)) return "recGeneric";
   switch (e.code) {
     case "no-speech":
@@ -43,6 +44,8 @@ export function recognitionErrorKey(e: unknown): "recNoSpeech" | "recSilent" | "
       return "recNotAllowed";
     case "network":
       return "recNetwork";
+    case "consent":
+      return "recConsent";
     default:
       return "recGeneric";
   }
@@ -374,6 +377,28 @@ export function recognitionMode(): RecognitionMode {
  * API (desktop Chrome — instant, free) or record-and-transcribe (iOS Safari).
  */
 export function createRecognition(opts: { lang?: string; target?: string } = {}): RecognitionHandle {
+  // Consent before capture (audit P0): the first mic use anywhere opens the
+  // one-time consent sheet; a decline blocks capture only, never the app.
+  // The gate sits here because this is the single entry point for every mic
+  // surface — practice, talk, exams, calls, duets, shadowing, placement.
+  if (!hasVoiceConsent()) {
+    let inner: RecognitionHandle | null = null;
+    let cancelled = false;
+    const result = ensureVoiceConsent().then((okd) => {
+      if (!okd) throw new RecognitionError("consent", "Voice capture was declined.");
+      if (cancelled) throw new RecognitionError("cancelled", "Cancelled.");
+      inner = createRecognition(opts);
+      return inner.result;
+    });
+    return {
+      result,
+      stop: () => inner?.stop(),
+      cancel: () => {
+        cancelled = true;
+        inner?.cancel();
+      },
+    };
+  }
   // Warm the capability probe so the second attempt onward can use Azure.
   void assessEnabled();
   if (opts.target && assessEnabledSync() && hasMediaRecording()) {
