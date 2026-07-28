@@ -133,7 +133,8 @@ export async function POST(request: Request): Promise<Response> {
       completenessScore: Math.round(pa.CompletenessScore ?? best.CompletenessScore ?? 0),
       words,
     });
-  } catch {
+  } catch (e) {
+    console.error("[api/assess]", e instanceof Error ? e.message : e);
     return Response.json({ error: "Couldn't reach the assessment service." }, { status: 502 });
   }
 }

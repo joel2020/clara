@@ -287,13 +287,14 @@ export default function TalkPage() {
         pauses.current.push(Date.now() - readyToSpeakAt.current);
         readyToSpeakAt.current = null;
       }
-      setTurns((prev) => {
-        const next: Turn[] = [...prev, { role: "her", en: clean }];
-        void send(clean, next);
-        return next;
-      });
+      // Build `next` outside the state updater: updaters must stay pure, and a
+      // side effect inside one double-fires under StrictMode's dev re-invoke —
+      // which sent every spoken line to /api/chat twice in dev.
+      const next: Turn[] = [...turns, { role: "her", en: clean }];
+      setTurns(next);
+      void send(clean, next);
     },
-    [send],
+    [turns, send],
   );
 
   const record = useCallback(() => {

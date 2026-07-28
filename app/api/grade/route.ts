@@ -115,7 +115,8 @@ export async function POST(request: Request): Promise<Response> {
     const parsed = JSON.parse(content) as { score: number; fix: string };
     const score = Math.max(0, Math.min(100, Math.round(Number(parsed.score) || 0)));
     return Response.json({ score, fix: (parsed.fix ?? "").trim() });
-  } catch {
+  } catch (e) {
+    console.error("[api/grade]", e instanceof Error ? e.message : e);
     return Response.json({ error: "Couldn't grade that answer." }, { status: 502 });
   }
 }

@@ -70,7 +70,14 @@ export async function POST(request: Request): Promise<Response> {
   const scenario = getCallScenario(body.callScenarioId ?? "");
   if (!scenario) return Response.json({ error: "Unknown scenario." }, { status: 400 });
 
-  const turns = Array.isArray(body.turns) ? body.turns.slice(-40) : [];
+  // Validate shape before touching fields: a malformed turn must be a 400, not
+  // an unhandled TypeError further down.
+  const turns = (Array.isArray(body.turns) ? body.turns : [])
+    .filter(
+      (t): t is Turn =>
+        Boolean(t) && typeof t.text === "string" && (t.role === "agent" || t.role === "customer"),
+    )
+    .slice(-40);
   const agentTurns = turns.filter((t) => t.role === "agent");
   if (agentTurns.length === 0) {
     return Response.json({ error: "empty_call" }, { status: 400 });
@@ -142,7 +149,8 @@ export async function POST(request: Request): Promise<Response> {
       fix: String(p.fix ?? "").trim(),
       score: Math.max(0, Math.min(100, score)),
     });
-  } catch {
+  } catch (e) {
+    console.error("[api/call-score]", e instanceof Error ? e.message : e);
     return Response.json({ error: "Couldn't score that call." }, { status: 502 });
   }
 }

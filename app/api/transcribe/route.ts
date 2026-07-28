@@ -59,7 +59,8 @@ export async function POST(request: Request): Promise<Response> {
       .replace(/\s+/g, " ")
       .trim();
     return Response.json({ transcript });
-  } catch {
+  } catch (e) {
+    console.error("[api/transcribe]", e instanceof Error ? e.message : e);
     return Response.json({ error: "Couldn't reach the transcription service." }, { status: 502 });
   }
 }

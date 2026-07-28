@@ -277,7 +277,10 @@ export async function POST(request: Request): Promise<Response> {
         : [],
       practice: isCall ? null : practice,
     });
-  } catch {
+  } catch (e) {
+    // Surface upstream failures (Azure quota, bad deployment name, timeout) in
+    // the server logs — client error reporting can't see these.
+    console.error("[api/chat]", e instanceof Error ? e.message : e);
     return Response.json({ error: "Couldn't reach the conversation partner." }, { status: 502 });
   }
 }

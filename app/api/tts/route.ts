@@ -60,7 +60,8 @@ export async function POST(request: Request): Promise<Response> {
         "Cache-Control": "no-store",
       },
     });
-  } catch {
+  } catch (e) {
+    console.error("[api/tts]", e instanceof Error ? e.message : e);
     return Response.json({ error: "Couldn't reach the voice service." }, { status: 502 });
   }
 }
