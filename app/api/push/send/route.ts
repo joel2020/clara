@@ -54,9 +54,11 @@ function buildMessage(
 }
 
 export async function GET(request: Request): Promise<Response> {
-  // Vercel Cron sends `authorization: Bearer ${CRON_SECRET}` when configured.
+  // Vercel Cron sends `authorization: Bearer ${CRON_SECRET}`. Fail CLOSED: a
+  // deployment without the secret must refuse to send, not become a public
+  // send-to-every-student endpoint because of a missing env var.
   const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -66,9 +68,14 @@ export async function GET(request: Request): Promise<Response> {
   const anon = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
-  if (!url || !anon || !pub || !priv) return Response.json({ error: "not_configured" }, { status: 503 });
+  // VAPID_SUBJECT is how push services contact the sender; a placeholder can get
+  // deliveries throttled, so its absence is a config error like the keys'.
+  const subject = process.env.VAPID_SUBJECT;
+  if (!url || !anon || !pub || !priv || !subject) {
+    return Response.json({ error: "not_configured" }, { status: 503 });
+  }
 
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:hello@example.com", pub, priv);
+  webpush.setVapidDetails(subject, pub, priv);
   const sb = createClient(url, anon, { auth: { persistSession: false } });
 
   const { data, error } = await sb.from("push_subscriptions").select("endpoint,subscription,lang,profile_id");
