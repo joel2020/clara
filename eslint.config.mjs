@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local git worktrees (.gitignored). Without this, a worktree's own .next
+    // build output gets linted — 500+ errors from generated bundles that CI,
+    // which checks out a clean tree, never sees. That divergence makes the
+    // lint ratchet meaningless locally.
+    ".worktrees/**",
   ]),
 ]);
 

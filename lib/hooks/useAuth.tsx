@@ -31,16 +31,27 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const required = syncEnabled();
-  // Ready immediately when auth is not required OR when Supabase is not configured
-  // at all — both are knowable synchronously from env, so deciding them here avoids
-  // a setState inside the effect (and one wasted render on every load).
-  const [ready, setReady] = useState(() => !required || supabase() === null);
+  // Ready immediately when auth is not required — knowable synchronously from env
+  // (identically on the server and the client), so deciding it here avoids a
+  // setState inside the effect and one wasted render on every load.
+  //
+  // This must NOT consult supabase(): that returns null during SSR by design
+  // (it guards on `typeof window`), so including it made the server compute
+  // ready=true and render the app while the client's first render computed
+  // ready=false and rendered the loading state — a hydration mismatch on every
+  // page load, which React resolves by throwing away the server HTML and
+  // re-rendering the whole tree. It is also redundant: when `required` is true
+  // the same env vars guarantee supabase() is non-null on the client.
+  const [ready, setReady] = useState(() => !required);
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
     if (!required) return;
     const sb = supabase();
-    // The unconfigured case already resolved `ready` in the initialiser above.
+    // Unreachable in practice: `required` is Boolean(url && key), and inside an
+    // effect `window` always exists, so supabase() cannot be null here. Guarded
+    // only for type-narrowing — if it ever were null there would be no auth
+    // backend to wait on, and the gate below would have nothing to resolve.
     if (!sb) return;
     let active = true;
     sb.auth.getSession().then(({ data }) => {

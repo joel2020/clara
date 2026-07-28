@@ -160,6 +160,18 @@
     @apply font-display;
     letter-spacing: -0.02em;
   }
+  /* Fraunces carries an optical-size axis, and the browser default
+     (font-optical-sizing: auto) ties opsz to the font-size. At the sizes this
+     app uses for the practice word (72-96px) that selects the display cut,
+     whose hairline strokes render thin and fragile — letters look distorted,
+     and the one word a learner must read in order to say it aloud is the worst
+     place for that. Pinning it keeps one sturdy letterform at every size.
+     `font-optical-sizing: none` is used rather than font-variation-settings
+     because the latter resets unlisted axes — including wght, which would
+     silently flatten every font-weight in the app. */
+  h1, h2, h3, .font-display {
+    font-optical-sizing: none;
+  }
   /* Refined focus ring — visible but never chunky. */
   :focus-visible {
     outline: 2px solid color-mix(in oklch, var(--primary) 55%, transparent);
@@ -504,20 +516,25 @@ html { scroll-behavior: smooth; }
   100% { transform: scale(1); opacity: 0.5; }
 }
 
-/* ── Lumi as a 3D standee: perspective sway + ground contact shadow ─────── */
+/* ── Lumi's idle sway + ground contact shadow ───────────────────────────── */
+/* Deliberately NOT a 3D standee. Lumi is a flat illustration, so rotating her
+   on Y/X inside a `perspective` warped the artwork into a trapezoid — one side
+   stretched, the other squashed — which on a drawn face reads as her being
+   distorted, and it animated continuously. rotateZ is affine: it rotates
+   without any perspective foreshortening, so it keeps the sway alive while the
+   art stays exactly the shape it was drawn. */
 .lumi-stage {
-  perspective: 700px;
+  /* no perspective: nothing here is a 3D object */
 }
 .lumi-3d {
-  transform-style: preserve-3d;
   transform-origin: 50% 88%;
   will-change: transform;
   animation: lumi-sway 8s ease-in-out infinite;
 }
 @keyframes lumi-sway {
-  0% { transform: translateY(0) rotateY(-3.5deg) rotateX(0.8deg); }
-  50% { transform: translateY(-5px) rotateY(3.5deg) rotateX(-0.6deg); }
-  100% { transform: translateY(0) rotateY(-3.5deg) rotateX(0.8deg); }
+  0% { transform: translateY(0) rotateZ(-0.6deg); }
+  50% { transform: translateY(-5px) rotateZ(0.6deg); }
+  100% { transform: translateY(0) rotateZ(-0.6deg); }
 }
 .lumi-shadow {
   position: absolute;
