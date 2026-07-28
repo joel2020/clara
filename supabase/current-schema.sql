@@ -200,6 +200,12 @@ create table if not exists public.push_subscriptions (
 
 -- ── Row Level Security ───────────────────────────────────────────────────────
 -- User-owned tables: profile_id (or id) must equal the caller's auth uid.
+--
+-- auth.uid() is wrapped in a scalar subquery on purpose. A bare auth.uid() is
+-- treated as row-dependent and re-evaluated for EVERY row; wrapping it lets the
+-- planner hoist it into an InitPlan and run it once per query. Identical
+-- semantics, materially cheaper on the tables that grow without bound (attempts
+-- and events gain a row per practice rep).
 do $$
 declare t text;
 begin
@@ -211,8 +217,8 @@ begin
     execute format('drop policy if exists own_rows on public.%I', t);
     execute format(
       'create policy own_rows on public.%I for all to authenticated
-         using (profile_id = auth.uid()::text)
-         with check (profile_id = auth.uid()::text)', t);
+         using (profile_id = (select auth.uid())::text)
+         with check (profile_id = (select auth.uid())::text)', t);
   end loop;
 end $$;
 
@@ -220,21 +226,34 @@ end $$;
 alter table public.profiles enable row level security;
 drop policy if exists own_rows on public.profiles;
 create policy own_rows on public.profiles for all to authenticated
-  using (id = auth.uid()::text)
-  with check (id = auth.uid()::text);
+  using (id = (select auth.uid())::text)
+  with check (id = (select auth.uid())::text);
 
 -- custom_lessons: everyone signed in may READ; only the teacher accounts WRITE.
 -- (Email list mirrors ADMIN_EMAILS in lib/allowlist.ts.)
+--
+-- The write policies are scoped to INSERT/UPDATE/DELETE rather than FOR ALL: a
+-- FOR ALL policy also matches SELECT, so every read evaluated both it and the
+-- read policy for nothing.
 alter table public.custom_lessons enable row level security;
 drop policy if exists authenticated_only on public.custom_lessons;
 drop policy if exists custom_lessons_read on public.custom_lessons;
 drop policy if exists custom_lessons_write_admin on public.custom_lessons;
+drop policy if exists custom_lessons_insert_admin on public.custom_lessons;
+drop policy if exists custom_lessons_update_admin on public.custom_lessons;
+drop policy if exists custom_lessons_delete_admin on public.custom_lessons;
 create policy custom_lessons_read on public.custom_lessons
   for select to authenticated using (true);
-create policy custom_lessons_write_admin on public.custom_lessons
-  for all to authenticated
-  using ((auth.jwt() ->> 'email') in ('alivio.studio.ops@gmail.com', 'joelcarias23@gmail.com'))
-  with check ((auth.jwt() ->> 'email') in ('alivio.studio.ops@gmail.com', 'joelcarias23@gmail.com'));
+create policy custom_lessons_insert_admin on public.custom_lessons
+  for insert to authenticated
+  with check (((select auth.jwt()) ->> 'email') in ('alivio.studio.ops@gmail.com', 'joelcarias23@gmail.com'));
+create policy custom_lessons_update_admin on public.custom_lessons
+  for update to authenticated
+  using (((select auth.jwt()) ->> 'email') in ('alivio.studio.ops@gmail.com', 'joelcarias23@gmail.com'))
+  with check (((select auth.jwt()) ->> 'email') in ('alivio.studio.ops@gmail.com', 'joelcarias23@gmail.com'));
+create policy custom_lessons_delete_admin on public.custom_lessons
+  for delete to authenticated
+  using (((select auth.jwt()) ->> 'email') in ('alivio.studio.ops@gmail.com', 'joelcarias23@gmail.com'));
 
 -- push_subscriptions: deny ALL client roles. Written only by the server routes
 -- with the service-role key (which bypasses RLS).
