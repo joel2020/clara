@@ -79,10 +79,11 @@ NO KNOWN DISHONEST NUMBERS: fluency now comes from Azure's measured FluencyScore
 with unmeasured attempts EXCLUDED rather than zeroed, and the card says "(estimada)"
 whenever it has to fall back to the pass-rate proxy. Keep that label honest.
 
-TEST SUITE (217 checks, all green): placement 45, exams 28, exam-compose 24,
-report 24, readiness 21, milestone 21, weak-items 16, insights 13, chat-client 11,
-today 8, paths 6. Run the alias-free ones with
-`node lib/<x>.test.mjs`; those importing through "@/" need `npx tsx`.
+TEST SUITE (440 checks, all green across 16 files): placement 45, exams 28,
+exam-compose 24, report 24, gamification 30, srs 22, scoring 24, readiness 21,
+milestone 21, weak-items 16, insights 13, chat-client 11, sync-schema 109,
+sync-coverage 38, today 8, paths 6. Run `npm test` for the lot; alias-free files
+run under `node lib/<x>.test.mjs`, those importing through "@/" or "./x.ts" need `npx tsx`.
 
 KEY CONSTRAINTS (do not violate):
 - Never use emojis in any written output or drafted copy.

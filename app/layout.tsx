@@ -31,8 +31,8 @@ const display = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Clara — English pronunciation course",
-  description: "Warm, interactive pronunciation coaching for Spanish speakers — listen, speak, and level up.",
+  title: "Clara — American English, for real conversations",
+  description: "Warm, gamified American-English coaching for Colombian Spanish speakers — listen, speak, converse, and level up.",
   applicationName: "Clara",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Clara" },

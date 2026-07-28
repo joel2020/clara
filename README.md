@@ -26,8 +26,9 @@ only activates when `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` exist. With those set
 Type/logic tests (Node strips TS types; no test runner needed):
 
 ```bash
-node lib/placement.test.mjs      # placement engine + level path (38 assertions)
-node lib/insights.test.mjs       # analytics rollups (13 assertions)
+npm test                         # the whole suite (440 checks across 16 files)
+node lib/placement.test.mjs      # or run one alias-free file directly
+npx tsx lib/scoring.test.mjs     # files importing through "@/" or "./x.ts" need tsx
 ```
 
 ---
