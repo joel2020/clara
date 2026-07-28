@@ -134,11 +134,16 @@ export default function ExamPage() {
     setPhase("done");
   };
 
+  /** Items in a section: spoken-target sections count items; prompt sections
+   *  count their prompts (openResponse carries two questions joined by " | "). */
+  const sectionTotal = (s: ExamSection): number =>
+    s.items.length || (s.prompt ? s.prompt.split(" | ").length : 1);
+
   const advance = () => {
     setNote(null);
     setPlaced([]);
     const s = exam.sections[sectionIdx];
-    const total = s.key === "retell" || s.key === "openResponse" ? 1 : s.items.length;
+    const total = sectionTotal(s);
     if (itemIdx + 1 < total) {
       setItemIdx(itemIdx + 1);
       return;
@@ -191,15 +196,23 @@ export default function ExamPage() {
       if (section.key === "retell") {
         score = scoreRetell(res.transcript, retellKeywords(level));
       } else if (section.key === "openResponse") {
+        // Grade against the one question she actually saw, not the joined pair.
+        const question = (section.prompt ?? "").split(" | ")[itemIdx] ?? section.prompt;
         const graded = await fetch("/api/grade", {
           method: "POST",
           headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-          body: JSON.stringify({ kind: "openResponse", prompt: section.prompt, transcript: res.transcript, level }),
+          body: JSON.stringify({ kind: "openResponse", prompt: question, transcript: res.transcript, level }),
         })
           .then((r) => (r.ok ? r.json() : { score: 0, fix: null }))
           .catch(() => ({ score: 0, fix: null }));
         score = Number(graded.score) || 0;
         if (graded.fix) setNote(graded.fix);
+        record(section.key, score);
+        setListening(false);
+        // `note` state hasn't rendered yet here, so decide the delay from the
+        // grader's reply directly — otherwise the fix flashes for 500ms.
+        window.setTimeout(advance, graded.fix ? 1800 : 500);
+        return;
       } else if (target) {
         score = scoreAttempt({
           target,
@@ -211,7 +224,7 @@ export default function ExamPage() {
       }
       record(section.key, score);
       setListening(false);
-      window.setTimeout(advance, section.key === "openResponse" && note ? 1800 : 500);
+      window.setTimeout(advance, 500);
     } catch {
       // A failed capture scores zero: an exam cannot be dodged by a silent mic.
       record(section.key, 0);
@@ -369,7 +382,7 @@ export default function ExamPage() {
   // ── Running ──────────────────────────────────────────────────────────────
   if (!section) return <Splash />;
   const copy = SECTION_COPY[section.key];
-  const totalItems = section.key === "retell" || section.key === "openResponse" ? 1 : section.items.length;
+  const totalItems = sectionTotal(section);
   const openPrompt =
     section.key === "openResponse" ? (section.prompt ?? "").split(" | ")[itemIdx] ?? (section.prompt ?? "") : section.prompt;
 
