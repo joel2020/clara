@@ -13,43 +13,64 @@ interface AccessValue {
   /** null while the check is in flight. */
   allowed: boolean | null;
   admin: boolean;
+  /**
+   * True when the check itself failed (network, server down) — NOT a denial.
+   * The gate shows a retryable "couldn't verify" state instead of the hard
+   * no-access screen: only an explicit allowed:false from the server means
+   * this account is actually not on the list.
+   */
+  checkFailed: boolean;
+  /** Re-run a failed check. */
+  retry: () => void;
 }
 
-const AccessContext = createContext<AccessValue>({ allowed: null, admin: false });
+const NOOP = () => {};
+const AccessContext = createContext<AccessValue>({ allowed: null, admin: false, checkFailed: false, retry: NOOP });
 
 export function AccessProvider({ children }: { children: ReactNode }) {
   const { ready, required, session } = useAuth();
   // The fetched answer is keyed to the session token it was fetched for, so a
   // sign-out/switch can never show a stale user's flags (and no state needs to
   // be set synchronously inside the effect).
-  const [fetched, setFetched] = useState<{ key: string; value: AccessValue } | null>(null);
+  const [fetched, setFetched] = useState<{ key: string; allowed: boolean; admin: boolean; failed: boolean } | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!ready || !required || !session) return;
-    const key = session.access_token;
+    const key = `${session.access_token}:${attempt}`;
     let active = true;
     void (async () => {
       try {
         const res = await fetch("/api/me", { headers: await authHeaders() });
         const body = res.ok ? ((await res.json()) as { allowed?: boolean; admin?: boolean }) : null;
         if (!active) return;
-        // A failed check fails CLOSED for UI (the "no access" screen offers
-        // sign-out; the server would reject the calls anyway).
-        setFetched({ key, value: { allowed: body?.allowed === true, admin: body?.admin === true } });
+        if (body) {
+          // The server answered: this is the truth for this account.
+          setFetched({ key, allowed: body.allowed === true, admin: body.admin === true, failed: false });
+        } else {
+          // Reached the server but got no verdict (401 stale token, 5xx, dev
+          // server restarting): a check failure, not a denial.
+          setFetched({ key, allowed: false, admin: false, failed: true });
+        }
       } catch {
-        if (active) setFetched({ key, value: { allowed: false, admin: false } });
+        if (active) setFetched({ key, allowed: false, admin: false, failed: true });
       }
     })();
     return () => {
       active = false;
     };
-  }, [ready, required, session]);
+  }, [ready, required, session, attempt]);
 
+  const retry = () => setAttempt((n) => n + 1);
+
+  const current = session && fetched?.key === `${session.access_token}:${attempt}` ? fetched : null;
   const value: AccessValue = !required
-    ? { allowed: true, admin: true } // local dev without an auth backend: open, matching the gate's bypass
-    : session && fetched?.key === session.access_token
-      ? fetched.value
-      : { allowed: null, admin: false };
+    ? { allowed: true, admin: true, checkFailed: false, retry: NOOP } // local dev without an auth backend: open, matching the gate's bypass
+    : current
+      ? current.failed
+        ? { allowed: null, admin: false, checkFailed: true, retry }
+        : { allowed: current.allowed, admin: current.admin, checkFailed: false, retry }
+      : { allowed: null, admin: false, checkFailed: false, retry };
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
