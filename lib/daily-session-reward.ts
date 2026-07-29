@@ -40,20 +40,23 @@ export function applySessionCompletion(
 
   const at = session.completedAt ?? session.updatedAt;
   const isCurrentDay = session.day === today;
+  const dailyAccounting = isCurrentDay
+    ? {
+        todayKey: today,
+        todayXp:
+          player.todayKey === today
+            ? player.todayXp + DAILY_SESSION_REWARD_XP
+            : DAILY_SESSION_REWARD_XP,
+      }
+    : player.todayKey === today
+      ? {}
+      : { todayKey: today, todayXp: 0 };
   return {
     player: {
       ...player,
       xp: player.xp + DAILY_SESSION_REWARD_XP,
       stars: (player.stars ?? 0) + DAILY_SESSION_REWARD_STARS,
-      ...(isCurrentDay
-        ? {
-            todayKey: today,
-            todayXp:
-              player.todayKey === today
-                ? player.todayXp + DAILY_SESSION_REWARD_XP
-                : DAILY_SESSION_REWARD_XP,
-          }
-        : {}),
+      ...dailyAccounting,
       updatedAt: Math.max(player.updatedAt, at),
     },
     session: {
