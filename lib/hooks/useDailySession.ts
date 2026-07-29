@@ -5,20 +5,19 @@ import { trackDailySession } from "@/lib/analytics";
 import { LESSONS } from "@/lib/content/lessons";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { SUPPORT_UNIT_IDS } from "@/lib/content/conversation-support";
-import {
-  applySessionCompletion,
-  type SessionCompletionResult,
-} from "@/lib/daily-session-reward";
+import type { SessionCompletionResult } from "@/lib/daily-session-reward";
 import {
   composeDailySession,
   type ActivityStatus,
   type DailySession,
 } from "@/lib/daily-session";
 import {
+  claimSessionCompletion,
   checkpointActivity,
   getDailySession,
   saveDailySession,
 } from "@/lib/daily-session-store";
+import { loadOrCreateDailySession } from "@/lib/daily-session-loader";
 import { repo } from "@/lib/db";
 import { dayKey } from "@/lib/gamification";
 import { levelLessonPool } from "@/lib/onboarding";
@@ -73,51 +72,57 @@ export function useDailySession(): DailySessionHook {
     let active = true;
     void (async () => {
       try {
-        const saved = await getDailySession(day);
-        if (saved) {
-          if (!active) return;
-          publish(saved);
-          if (saved.startedAt !== null && saved.completedAt === null) {
-            trackDailySession("resume", saved);
-          }
-          return;
-        }
-
-        const settings = await repo.getSettings();
-        if (!settings.profileId) return;
-        const [progress, attempts, customLessons, quests] = await Promise.all([
-          repo.getAllProgress(),
-          repo.getAttempts({ limit: 50 }),
-          repo.getCustomLessons(),
-          repo.getQuests(day),
-        ]);
-        const now = Date.now();
-        const level: Level = settings.onboarding?.level ?? "A1";
-        const path = pathOf(settings.onboarding);
-        const pathLessonIds =
-          path === "job"
-            ? [...SUPPORT_UNIT_IDS, ...levelLessonPool(level)]
-            : levelLessonPool(level);
-        const composed = composeDailySession({
-          profileId: settings.profileId,
+        const loaded = await loadOrCreateDailySession({
           day,
-          now,
-          level,
-          path,
-          lessons: [...LESSONS, ...customLessons],
-          scenarios: SCENARIOS,
-          progress,
-          attempts: attempts.map((attempt) => ({
-            itemId: attempt.itemId,
-            passed: attempt.passed,
-            at: attempt.at,
-            evidence: "valid" as const,
-          })),
-          pathLessonIds,
-          recentMinutes: estimatedRecentMinutes(quests),
+          load: getDailySession,
+          compose: async () => {
+            const settings = await repo.getSettings();
+            if (!settings.profileId) return null;
+            const [progress, attempts, customLessons, quests] =
+              await Promise.all([
+                repo.getAllProgress(),
+                repo.getAttempts({ limit: 50 }),
+                repo.getCustomLessons(),
+                repo.getQuests(day),
+              ]);
+            const now = Date.now();
+            const level: Level = settings.onboarding?.level ?? "A1";
+            const path = pathOf(settings.onboarding);
+            const pathLessonIds =
+              path === "job"
+                ? [...SUPPORT_UNIT_IDS, ...levelLessonPool(level)]
+                : levelLessonPool(level);
+            return composeDailySession({
+              profileId: settings.profileId,
+              day,
+              now,
+              level,
+              path,
+              lessons: [...LESSONS, ...customLessons],
+              scenarios: SCENARIOS,
+              progress,
+              attempts: attempts.map((attempt) => ({
+                itemId: attempt.itemId,
+                passed: attempt.passed,
+                at: attempt.at,
+                evidence: "valid" as const,
+              })),
+              pathLessonIds,
+              recentMinutes: estimatedRecentMinutes(quests),
+            });
+          },
+          save: saveDailySession,
+          publish: (persisted) => {
+            if (active) publish(persisted);
+          },
         });
-        const persisted = await saveDailySession(composed);
-        if (active) publish(persisted);
+        if (
+          active &&
+          loaded?.startedAt !== null &&
+          loaded?.completedAt === null
+        ) {
+          trackDailySession("resume", loaded);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -182,23 +187,16 @@ export function useDailySession(): DailySessionHook {
   const claimCompletion = useCallback(() => {
     if (claimRef.current) return claimRef.current;
     const claim = (async (): Promise<SessionCompletionResult | null> => {
-      // Read persisted state again: a remount, stale closure, or repeated click
-      // must observe a reward claim written by an earlier caller.
-      const durableSession = await getDailySession(day);
-      if (!durableSession) return null;
-      const player = await repo.getPlayerStats();
-      const result = applySessionCompletion(player, durableSession);
-      if (result.reward.xp === 0 && result.reward.stars === 0) {
-        publish(durableSession);
-        return result;
+      const result = await claimSessionCompletion({
+        day,
+        today: dayKey(),
+      });
+      if (!result) return null;
+      publish(result.session);
+      if (result.reward.xp > 0 || result.reward.stars > 0) {
+        trackDailySession("complete", result.session);
       }
-
-      await repo.savePlayerStats(result.player);
-      const persisted = await saveDailySession(result.session);
-      const completed = { ...result, session: persisted };
-      publish(persisted);
-      trackDailySession("complete", persisted);
-      return completed;
+      return result;
     })();
     claimRef.current = claim;
     const clearClaim = () => {

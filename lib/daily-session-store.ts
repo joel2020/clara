@@ -2,6 +2,8 @@ import type { DailySession } from "./daily-session.ts";
 import { boundAccountId } from "./db/dexie.ts";
 import { repo } from "./db/index.ts";
 import { mergeDailySessions } from "./daily-session-merge.ts";
+import type { SessionCompletionResult } from "./daily-session-reward.ts";
+import type { DailySessionCompletionClaim } from "./db/repository.ts";
 
 export { mergeDailySessions } from "./daily-session-merge.ts";
 
@@ -36,6 +38,16 @@ export async function getDailySession(day: string): Promise<DailySession | undef
 export async function saveDailySession(session: DailySession): Promise<DailySession> {
   assertBoundAccount(session.profileId);
   return repo.saveDailySession(session);
+}
+
+/**
+ * Atomically re-read the claim guard and current player, then persist both
+ * sides of the one-time reward transition in a single IndexedDB transaction.
+ */
+export async function claimSessionCompletion(
+  input: DailySessionCompletionClaim,
+): Promise<SessionCompletionResult | null> {
+  return repo.claimDailySessionCompletion(input);
 }
 
 export interface ActivityCheckpoint {

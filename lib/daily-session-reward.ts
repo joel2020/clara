@@ -26,6 +26,7 @@ const NO_REWARD: DailySessionReward = { xp: 0, stars: 0 };
 export function applySessionCompletion(
   player: PlayerStats,
   session: DailySession,
+  today: string = session.day,
 ): SessionCompletionResult {
   const complete =
     session.activities.length > 0 &&
@@ -38,16 +39,21 @@ export function applySessionCompletion(
   }
 
   const at = session.completedAt ?? session.updatedAt;
+  const isCurrentDay = session.day === today;
   return {
     player: {
       ...player,
       xp: player.xp + DAILY_SESSION_REWARD_XP,
       stars: (player.stars ?? 0) + DAILY_SESSION_REWARD_STARS,
-      todayKey: session.day,
-      todayXp:
-        player.todayKey === session.day
-          ? player.todayXp + DAILY_SESSION_REWARD_XP
-          : DAILY_SESSION_REWARD_XP,
+      ...(isCurrentDay
+        ? {
+            todayKey: today,
+            todayXp:
+              player.todayKey === today
+                ? player.todayXp + DAILY_SESSION_REWARD_XP
+                : DAILY_SESSION_REWARD_XP,
+          }
+        : {}),
       updatedAt: Math.max(player.updatedAt, at),
     },
     session: {

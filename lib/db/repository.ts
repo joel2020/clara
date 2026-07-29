@@ -13,6 +13,13 @@ import type {
   TalkSession,
 } from "./types";
 import type { DailySession } from "../daily-session";
+import type { SessionCompletionResult } from "../daily-session-reward";
+
+export interface DailySessionCompletionClaim {
+  day: string;
+  /** Current local day at claim time; may differ after a midnight rollover. */
+  today: string;
+}
 
 /**
  * The data layer's public contract. Every component and hook talks to this
@@ -69,6 +76,9 @@ export interface DataRepository {
   // --- Resumable daily classroom loop ---
   getDailySession(day: string): Promise<DailySession | undefined>;
   saveDailySession(session: DailySession): Promise<DailySession>;
+  claimDailySessionCompletion(
+    input: DailySessionCompletionClaim,
+  ): Promise<SessionCompletionResult | null>;
 
   // --- Voice journal (on-device only; never synced) ---
   getRecordings(): Promise<PhraseRecording[]>;
