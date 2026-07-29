@@ -329,3 +329,85 @@ Result: exit 0; no whitespace errors.
   behavior are covered with the existing HTTP-level Supabase test harness.
 - The required bare-Node test continues to emit Node's pre-existing
   typeless-package warning when importing TypeScript.
+
+## Fix round 2/5
+
+### Defect and correction
+
+The SQL evidence selector previously compared status ranks even when one side
+of the full join was absent. For an older-only `pending` activity, both computed
+ranks were zero, the `>=` tie selected null `newer_activity`, and serialization
+wrote a null status. That also removed the activity from the
+`currentActivityId` query.
+
+The evidence selector now:
+
+1. chooses `older_activity` when `newer_activity` is null;
+2. chooses `newer_activity` when `older_activity` is null;
+3. compares terminal-status ranks only when both sides exist.
+
+Implementation commit:
+`27210bb27ee61796859408fd1c912c443b244df3`
+
+### Covering test
+
+Schema/logic check:
+`older-only pending activity keeps status pending and can remain current`
+
+The check covers both required clauses: the non-null older activity is selected
+before rank comparison, and serialized `pending`/`active` activities remain
+eligible for the SQL `currentActivityId` selection.
+
+### TDD evidence
+
+Command:
+
+```bash
+node lib/sync/schema.test.mjs
+```
+
+RED result: exit 1; 128 checks passed and
+`older-only pending activity keeps status pending and can remain current`
+failed.
+
+After the SQL correction, the same command exited 0 with 129 checks passed and
+0 failed.
+
+### Verification
+
+Command:
+
+```bash
+node lib/sync/schema.test.mjs && node lib/daily-session-store.test.mjs && node lib/sync/coverage.test.mjs
+```
+
+Result: exit 0.
+
+- Schema/logic: 129 checks passed, 0 failed.
+- Daily-session focused suite: 7 tests passed, 0 failed.
+- Sync coverage: 44 checks passed, 0 failed.
+
+Command:
+
+```bash
+npm run typecheck
+```
+
+Result: exit 0; `tsc --noEmit` reported no errors.
+
+### Migration behavior
+
+- No table, RLS, ownership, or function-signature behavior changed.
+- The existing atomic row lock and monotonic reward/terminal merge remain
+  unchanged.
+- Older-only activities now retain their original JSON status and completion
+  evidence instead of being serialized from a null side.
+- An older-only `pending` or `active` activity therefore remains available to
+  the existing current-activity selection.
+
+### Concerns
+
+- The updated migration remains unapplied to the live Supabase project.
+- As in round 1, no local PostgreSQL runtime was available; this scoped SQL
+  branch is covered by the migration logic assertion and the existing RPC
+  boundary suite.
