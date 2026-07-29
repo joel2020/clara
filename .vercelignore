@@ -1,0 +1,9 @@
+.git
+.claude
+.worktrees
+.next
+node_modules
+docs/redesign/screenshots
+clara-audit
+coverage
+*.tsbuildinfo
