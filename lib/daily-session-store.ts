@@ -1,56 +1,9 @@
-import type { ActivityStatus, DailyActivity, DailySession } from "./daily-session.ts";
+import type { DailySession } from "./daily-session.ts";
 import { boundAccountId } from "./db/dexie.ts";
 import { repo } from "./db/index.ts";
+import { mergeDailySessions } from "./daily-session-merge.ts";
 
-const STATUS_RANK: Record<ActivityStatus, number> = {
-  pending: 0,
-  active: 1,
-  "technical-skip": 2,
-  completed: 3,
-};
-
-function mergeActivity(newer: DailyActivity, older: DailyActivity): DailyActivity {
-  const evidence = STATUS_RANK[newer.status] >= STATUS_RANK[older.status] ? newer : older;
-  const { completedAt: _newerCompletedAt, ...newerWithoutCompletion } = newer;
-  return {
-    ...newerWithoutCompletion,
-    status: evidence.status,
-    ...(evidence.completedAt === undefined ? {} : { completedAt: evidence.completedAt }),
-  };
-}
-
-/**
- * Merge two copies of the same daily session without allowing stale device
- * state to erase learner evidence or a one-time reward claim.
- */
-export function mergeDailySessions(local: DailySession, remote: DailySession): DailySession {
-  if (local.profileId !== remote.profileId || local.day !== remote.day || local.id !== remote.id) {
-    throw new Error("Cannot merge daily sessions from different accounts or days");
-  }
-  const newer = local.updatedAt >= remote.updatedAt ? local : remote;
-  const older = newer === local ? remote : local;
-  const olderById = new Map(older.activities.map((entry) => [entry.id, entry]));
-  const activities = newer.activities.map((entry) => {
-    const other = olderById.get(entry.id);
-    if (!other) return entry;
-    olderById.delete(entry.id);
-    return mergeActivity(entry, other);
-  });
-  activities.push(...olderById.values());
-  const current = activities.find((entry) => entry.status === "pending" || entry.status === "active");
-  return {
-    ...newer,
-    activities,
-    currentActivityId: current?.id ?? null,
-    rewardClaimed: local.rewardClaimed || remote.rewardClaimed,
-    startedAt: [local.startedAt, remote.startedAt]
-      .filter((at): at is number => at !== null)
-      .sort((a, b) => a - b)[0] ?? null,
-    completedAt: local.completedAt ?? remote.completedAt,
-    createdAt: Math.min(local.createdAt, remote.createdAt),
-    updatedAt: Math.max(local.updatedAt, remote.updatedAt),
-  };
-}
+export { mergeDailySessions } from "./daily-session-merge.ts";
 
 function assertBoundAccount(profileId: string): void {
   const bound = boundAccountId();
@@ -82,10 +35,7 @@ export async function getDailySession(day: string): Promise<DailySession | undef
  */
 export async function saveDailySession(session: DailySession): Promise<DailySession> {
   assertBoundAccount(session.profileId);
-  const existing = await repo.getDailySession(session.day);
-  const durable = existing ? mergeDailySessions(existing, session) : session;
-  await repo.saveDailySession(durable);
-  return durable;
+  return repo.saveDailySession(session);
 }
 
 export interface ActivityCheckpoint {

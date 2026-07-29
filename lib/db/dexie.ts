@@ -113,6 +113,16 @@ export function shouldClaimLegacy(legacyProfileId: string | null | undefined, ac
   return !bound || bound === accountId.trim().toLowerCase();
 }
 
+function isClaimableDailySession(value: unknown): value is DailySession {
+  if (!value || typeof value !== "object") return false;
+  const session = value as Partial<DailySession>;
+  return session.version === 1
+    && typeof session.day === "string"
+    && /^\d{4}-\d{2}-\d{2}$/.test(session.day)
+    && Array.isArray(session.activities)
+    && typeof session.rewardClaimed === "boolean";
+}
+
 // Guard against multiple instances during Next.js hot-reload.
 const globalForDb = globalThis as unknown as { __claraDb?: ClaraDB; __claraDbAccount?: string | null };
 
@@ -181,7 +191,33 @@ async function claimLegacyInto(target: ClaraDB, accountId: string): Promise<void
     for (const name of LEGACY_TABLES) {
       const rows = await legacy.table(name).toArray();
       if (!rows.length) continue;
-      if (name === "attempts" || name === "events" || name === "examAttempts" || name === "callScores" || name === "talkSessions" || name === "outbox") {
+      if (name === "dailySessions") {
+        const claimable = rows.filter(isClaimableDailySession).map((session) => ({
+          ...session,
+          id: `daily:${accountId}:${session.day}`,
+          profileId: accountId,
+        }));
+        if (claimable.length) await target.dailySessions.bulkPut(claimable);
+      } else if (name === "outbox") {
+        // A pre-scoping daily retry carries ownership in both the envelope and
+        // payload. Re-attribute both or it can never pass the new account's RLS.
+        const claimable = (rows as OutboxRow[]).flatMap((row) => {
+          const { id: _id, ...withoutId } = row;
+          if (row.kind !== "daily-session") return [withoutId];
+          if (!isClaimableDailySession(row.payload)) return [];
+          const session = row.payload;
+          return [{
+            ...withoutId,
+            profileId: accountId,
+            payload: {
+              ...session,
+              id: `daily:${accountId}:${session.day}`,
+              profileId: accountId,
+            },
+          }];
+        });
+        if (claimable.length) await target.outbox.bulkAdd(claimable);
+      } else if (name === "attempts" || name === "events" || name === "examAttempts" || name === "callScores" || name === "talkSessions") {
         // Auto-increment keys: strip ids so the target assigns fresh ones.
         await target.table(name).bulkAdd(rows.map((r) => { const { id: _id, ...rest } = r as { id?: number }; return rest; }));
       } else {
@@ -191,6 +227,12 @@ async function claimLegacyInto(target: ClaraDB, accountId: string): Promise<void
     // The claimed settings row now describes this account.
     const claimed = await target.settings.get("app");
     if (claimed) await target.settings.put({ ...claimed, profileId: accountId });
+    // Preserve the legacy rows, but pin their ownership after the first claim.
+    // Otherwise an originally-unbound database could be copied into every later
+    // account on the same shared device.
+    if (legacySettings && !legacySettings.profileId) {
+      await legacy.settings.put({ ...legacySettings, profileId: accountId });
+    }
   } finally {
     legacy.close();
   }

@@ -68,7 +68,7 @@ export interface DataRepository {
 
   // --- Resumable daily classroom loop ---
   getDailySession(day: string): Promise<DailySession | undefined>;
-  saveDailySession(session: DailySession): Promise<void>;
+  saveDailySession(session: DailySession): Promise<DailySession>;
 
   // --- Voice journal (on-device only; never synced) ---
   getRecordings(): Promise<PhraseRecording[]>;

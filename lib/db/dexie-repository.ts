@@ -1,6 +1,7 @@
 import { boundAccountId, db } from "./dexie.ts";
 import { DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository.ts";
 import type { DailySession } from "../daily-session";
+import { mergeDailySessions } from "../daily-session-merge.ts";
 import type {
   Attempt,
   CallScore,
@@ -187,17 +188,23 @@ export class DexieRepository implements DataRepository {
     return db.dailySessions.where("day").equals(day).first();
   }
 
-  async saveDailySession(session: DailySession): Promise<void> {
+  async saveDailySession(session: DailySession): Promise<DailySession> {
     const bound = boundAccountId();
     if (bound && session.profileId.trim().toLowerCase() !== bound) {
       throw new Error("Daily session profile does not match the bound account");
     }
-    await db.dailySessions.put(session);
+    const durable = await db.transaction("rw", db.dailySessions, async () => {
+      const existing = await db.dailySessions.where("day").equals(session.day).first();
+      const merged = existing ? mergeDailySessions(existing, session) : session;
+      await db.dailySessions.put(merged);
+      return merged;
+    });
     if (bound) {
       void import("../sync/supabase-sync.ts")
-        .then((sync) => sync.pushDailySession(bound, session))
+        .then((sync) => sync.pushDailySession(bound, durable))
         .catch(() => {});
     }
+    return durable;
   }
 
   async getCategoryStats(recentWindow = RECENT_WINDOW): Promise<CategoryStat[]> {

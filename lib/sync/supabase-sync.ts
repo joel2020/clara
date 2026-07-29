@@ -127,10 +127,9 @@ export async function deliverQueued(kind: DurableKind, profileId: string, payloa
       return !error;
     }
     if (kind === "daily-session") {
-      const { error } = await sb.from("daily_sessions").upsert(
-        dailySessionRow(profileId, payload as DailySession),
-        { onConflict: "profile_id,day" },
-      );
+      const session = payload as DailySession;
+      if (session.profileId !== profileId) return false;
+      const { error } = await sb.rpc("merge_daily_session", dailySessionArgs(session));
       return !error;
     }
     const { error } = await sb.from("talk_sessions").upsert(talkRow(profileId, payload as TalkSession), { onConflict: "profile_id,at", ignoreDuplicates: true });
@@ -618,25 +617,28 @@ export function pushQuests(profileId: string, q: DailyQuestState): void {
     ), "quests");
 }
 
-function dailySessionRow(profileId: string, session: DailySession) {
+function dailySessionArgs(session: DailySession) {
   return {
-    profile_id: profileId,
-    day: session.day,
-    version: session.version,
-    payload: session,
-    updated_at: session.updatedAt,
+    p_day: session.day,
+    p_version: session.version,
+    p_payload: session,
+    p_updated_at: session.updatedAt,
   };
 }
 
-/** Upsert mutable daily state durably; a failed write enters the retry outbox. */
+/**
+ * Atomically merge mutable daily state in Postgres; a failed RPC enters the
+ * retry outbox. Ownership is derived from auth.uid() inside the function.
+ */
 export function pushDailySession(profileId: string, session: DailySession): void {
   const sb = supabase();
   if (!ok() || !sb) return;
+  if (session.profileId !== profileId) {
+    outboxSink?.("daily-session", profileId, session);
+    return;
+  }
   bgDurable(
-    sb.from("daily_sessions").upsert(
-      dailySessionRow(profileId, session),
-      { onConflict: "profile_id,day" },
-    ),
+    sb.rpc("merge_daily_session", dailySessionArgs(session)),
     "daily_sessions",
     "daily-session",
     profileId,
