@@ -13,6 +13,8 @@
 # testing
 /coverage
 /.worktrees/
+# Harness-managed worktrees (EnterWorktree). Only this subdirectory — .claude/agents etc. are tracked.
+/.claude/worktrees/
 
 # next.js
 /.next/
