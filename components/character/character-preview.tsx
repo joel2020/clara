@@ -37,6 +37,7 @@ export function CharacterPreview({
         effectId={effectId}
         petId={petId}
         outfit={outfit}
+        priority
         className="h-56 shadow-sm ring-1 ring-black/5 min-[400px]:h-64 sm:h-72"
       />
     </div>
