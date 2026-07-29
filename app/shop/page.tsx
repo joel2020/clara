@@ -102,6 +102,19 @@ export default function ShopPage() {
 
   const canChest = chestAvailable(player);
   const quote = confirming ? quotePurchase(confirming, player) : null;
+  // Selecting an available item is a non-destructive try-on. The confirmation
+  // dialog and the stage show the same candidate before any stars are spent.
+  const previewCosmetic = confirming;
+  const previewOutfit =
+    previewCosmetic?.type === "outfit" ? previewCosmetic.outfit : undefined;
+  const previewBg =
+    previewCosmetic?.type === "background" ? previewCosmetic.id : player.equippedBg;
+  const previewAccessory =
+    previewCosmetic?.type === "accessory" ? previewCosmetic.id : player.equippedAccessory;
+  const previewEffect =
+    previewCosmetic?.type === "effect" ? previewCosmetic.id : player.equippedEffect;
+  const previewPet =
+    previewCosmetic?.type === "pet" ? previewCosmetic.id : player.equippedPet;
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-28 pt-6 sm:px-6">
@@ -127,10 +140,11 @@ export default function ShopPage() {
           HER Lumi, and every equip updates it instantly. */}
       <div className="mt-6 grid gap-4 sm:grid-cols-[1.15fr_1fr]">
         <CharacterPreview
-          bgId={player.equippedBg}
-          accessoryId={player.equippedAccessory}
-          effectId={player.equippedEffect}
-          petId={player.equippedPet}
+          bgId={previewBg}
+          accessoryId={previewAccessory}
+          effectId={previewEffect}
+          petId={previewPet}
+          outfit={previewOutfit}
           label={t("shopPreviewTitle", lang)}
         />
         <div className="flex flex-col justify-center rounded-3xl border border-hairline bg-card p-6 text-center">

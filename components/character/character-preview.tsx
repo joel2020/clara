@@ -14,6 +14,7 @@ export function CharacterPreview({
   accessoryId,
   effectId,
   petId,
+  outfit,
   label,
   className,
 }: {
@@ -21,6 +22,8 @@ export function CharacterPreview({
   accessoryId: string;
   effectId: string;
   petId?: string;
+  /** Temporary art-base override for trying on an unowned outfit. */
+  outfit?: string;
   /** Visible caption above the stage (e.g. "Así se ve Lumi"). */
   label?: string;
   className?: string;
@@ -33,6 +36,7 @@ export function CharacterPreview({
         accessoryId={accessoryId}
         effectId={effectId}
         petId={petId}
+        outfit={outfit}
         className="h-56 shadow-sm ring-1 ring-black/5 min-[400px]:h-64 sm:h-72"
       />
     </div>

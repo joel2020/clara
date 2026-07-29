@@ -67,6 +67,7 @@ export function LumiScene({
   accessoryId,
   effectId,
   petId,
+  outfit,
   mood = "wave",
   className,
 }: {
@@ -74,6 +75,8 @@ export function LumiScene({
   accessoryId: string;
   effectId: string;
   petId?: string;
+  /** Temporary art-base override used by the store try-on flow. */
+  outfit?: string;
   mood?: LumiMood;
   className?: string;
 }) {
@@ -89,7 +92,7 @@ export function LumiScene({
       )}
       {fx?.effect && <EffectLayer kind={fx.effect} />}
       <div className="absolute inset-x-0 bottom-0 top-3">
-        <Lumi frame="full" mood={mood} />
+        <Lumi frame="full" mood={mood} outfit={outfit} />
       </div>
       {acc?.emoji && (
         <span className="animate-float absolute right-4 top-4 text-3xl drop-shadow-sm" style={{ animationDelay: "0.4s" }}>
