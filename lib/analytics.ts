@@ -3,6 +3,7 @@
 import { db } from "@/lib/db/dexie";
 import { dayKey } from "@/lib/gamification";
 import type { AnalyticsEvent } from "@/lib/db/types";
+import type { DailyActivity, DailySession } from "@/lib/daily-session";
 
 // Lightweight, privacy-respecting analytics. We were building blind — this logs
 // the engagement signals that attempts don't already capture (opens, mode taps,
@@ -35,6 +36,38 @@ export function trackOncePerDay(type: AnalyticsEvent["type"], props?: Props): vo
     /* private mode — fall through and just log it */
   }
   track(type, props);
+}
+
+export type DailySessionAnalyticsAction =
+  | "start"
+  | "resume"
+  | "checkpoint"
+  | "complete";
+
+/**
+ * Track the daily-loop lifecycle with controlled enums, ids, and counts only.
+ * Objective, outcome, learner speech, transcripts, and other free text never
+ * enter the analytics payload.
+ */
+export function trackDailySession(
+  action: DailySessionAnalyticsAction,
+  session: DailySession,
+  activity?: Pick<DailyActivity, "kind" | "status">,
+): void {
+  const terminal = session.activities.filter(
+    (entry) =>
+      entry.status === "completed" || entry.status === "technical-skip",
+  ).length;
+  track(action === "complete" ? "session_complete" : "mode_open", {
+    mode: "daily-session",
+    action,
+    completedActivities: terminal,
+    totalActivities: session.activities.length,
+    rewardClaimed: session.rewardClaimed,
+    ...(activity
+      ? { activityKind: activity.kind, activityStatus: activity.status }
+      : {}),
+  });
 }
 
 // Best-effort cloud mirror. No-ops silently if Supabase isn't configured, the

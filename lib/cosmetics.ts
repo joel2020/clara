@@ -3,6 +3,11 @@ import { dayKey } from "@/lib/gamification";
 import { slotFor } from "@/lib/store";
 import type { PlayerStats } from "@/lib/db/types";
 
+export {
+  DAILY_SESSION_REWARD_STARS,
+  DAILY_SESSION_REWARD_XP,
+} from "@/lib/daily-session-reward";
+
 // The star shop: cosmetics Lumi can wear, bought with the stars earned from
 // clear answers. This is the "spend → collect" half of the game loop. Everything
 // here is cosmetic (backgrounds, props, ambient effects) and rendered in-app, so
