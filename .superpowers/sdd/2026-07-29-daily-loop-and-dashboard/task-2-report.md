@@ -166,4 +166,166 @@ Result: exit 0; no whitespace errors.
 
 - `supabase/daily_sessions.sql` is committed but was not applied to a live Supabase project in this task. Cloud writes will remain queued/fail until that migration is deployed.
 - The required bare-Node test emits Node's existing typeless-package warning when importing TypeScript; the focused and full suites still exit cleanly.
-- The required SQL policy statement is intended as a one-time migration. Re-running it after the policy already exists would require dropping the policy first.
+- Resolved in Fix round 1/5: the migration now drops the existing policy before recreating it, so policy setup is rerunnable.
+
+## Fix round 1/5
+
+### Findings addressed
+
+1. Replaced last-writer-wins cloud table upserts with the authenticated
+   `merge_daily_session` RPC. Both live pushes and outbox replay now cross the
+   same atomic server boundary.
+2. Moved local read/merge/put into one Dexie read-write transaction. Concurrent
+   checkpoint callers can no longer read the same base row and erase one
+   another's activity completion.
+3. Re-keyed and re-attributed valid legacy daily-session rows and daily-session
+   outbox payloads during account claim. Malformed rows are excluded. An
+   originally unbound legacy settings row is pinned to the first successful
+   claiming account so later accounts cannot claim the preserved legacy data.
+
+Fix implementation commit:
+`e77e466130331b9a65d40f47811848d98d16157d`
+
+### Covering tests
+
+- `concurrent checkpoints preserve disjoint activity completions`
+  - Runs two real `checkpointActivity` calls concurrently against
+    fake-indexeddb.
+  - Proves both activity completions and the terminal session pointer survive.
+- `stale disjoint cloud writes merge monotonically through the RPC boundary`
+  - Sends a newer completion and an older disjoint completion/reward claim
+    through the actual Supabase client RPC boundary.
+  - Proves both terminal activities and `rewardClaimed: true` survive and that
+    neither live/replay path calls a direct table upsert.
+- Account-scope checks:
+  - `unbound legacy daily session is re-keyed and attributed to A`
+  - `stale legacy daily-session id is not copied`
+  - `claimed daily-session retry is attributed to A`
+  - `claimed retry payload is re-attributed to A`
+  - `malformed legacy daily sessions are excluded`
+  - `malformed daily-session retries are excluded`
+- Schema/RPC checks cover:
+  - authenticated ownership derived from `auth.uid()`;
+  - `FOR UPDATE` row locking;
+  - full-join reconciliation of disjoint activity IDs;
+  - `completed > technical-skip > active > pending` precedence;
+  - monotonic reward claims;
+  - both client write paths using the RPC;
+  - absence of direct `daily_sessions` upserts.
+
+### TDD evidence
+
+Command:
+
+```bash
+node lib/daily-session-store.test.mjs; npx tsx lib/db/scope.test.mjs
+```
+
+Initial result: both exited 1.
+
+- Concurrent checkpoints lost the `speak` completion.
+- Cloud requests did not target `/rest/v1/rpc/merge_daily_session`.
+- Legacy claim retained the stale daily-session ID/profile in both the stored
+  row and outbox payload.
+
+Command:
+
+```bash
+npx tsx lib/db/scope.test.mjs
+```
+
+Second RED result after valid-row re-attribution: exit 1; the two new malformed
+row checks failed because incompatible sessions and retries were still copied.
+
+### Final focused verification
+
+Command:
+
+```bash
+node lib/daily-session-store.test.mjs && npx tsx lib/db/scope.test.mjs && node lib/sync/schema.test.mjs && node lib/sync/coverage.test.mjs
+```
+
+Result: exit 0.
+
+- Daily-session store: 7 tests passed, 0 failed.
+- Account scope/legacy claim: 30 checks passed, 0 failed.
+- Schema/RPC: 128 checks passed, 0 failed.
+- Sync coverage: 44 checks passed, 0 failed.
+
+Command:
+
+```bash
+npm run typecheck
+```
+
+Result: exit 0; `tsc --noEmit` reported no errors.
+
+Command:
+
+```bash
+npm test
+```
+
+Result: exit 0; 28 test files, 21,400 checks, 0 failing files.
+
+Command:
+
+```bash
+npm run lint:ratchet
+```
+
+Result: exit 0; 0 errors against a baseline of 0.
+
+Command:
+
+```bash
+git diff --check
+```
+
+Result: exit 0; no whitespace errors.
+
+### Migration behavior
+
+- `daily_sessions.sql` now drops/recreates its RLS policy safely on rerun.
+- `merge_daily_session` is `SECURITY INVOKER`, derives `profile_id` only from
+  `auth.uid()`, rejects payload attribution/version mismatches, and grants
+  execution only to `authenticated`.
+- First writes use `INSERT ... ON CONFLICT DO NOTHING`; existing or competing
+  writes then lock `(profile_id, day)` with `SELECT ... FOR UPDATE`.
+- Under that lock, the function keeps newer ordinary content while independently
+  merging each activity's terminal evidence and OR-merging reward claims.
+- An `updated_at` comparison chooses presentation metadata only; it never drops
+  a disjoint completion from the older payload.
+- Local Dexie storage remains v10 and additive. No existing learner evidence is
+  deleted or reset.
+- Legacy session rows are copied under `daily:<account>:<day>` with the claimed
+  account ID. Valid queued retries receive the same re-attribution; malformed
+  daily rows/retries are skipped. Legacy evidence rows remain present in the
+  source database, while its previously-null ownership marker is set after the
+  first successful claim to prevent cross-account duplicate claims.
+- No raw audio is introduced.
+
+### Fix-round self-review
+
+- Confirmed the local transaction returns and mirrors the merged durable row,
+  not the caller's stale input.
+- Confirmed concurrent local commits can arrive at the cloud in either order;
+  both are safe because direct and replay writes use the server merge function.
+- Confirmed the RPC accepts no caller-supplied `profile_id` argument.
+- Confirmed a stale outbox retry cannot regress a newer activity or claimed
+  reward.
+- Confirmed RLS remains enabled and the function runs with invoker privileges.
+- Confirmed malformed legacy daily payloads cannot be re-keyed into syntactically
+  valid account rows.
+
+### Fix-round concerns
+
+- The updated `supabase/daily_sessions.sql` migration has not been applied to the
+  live Supabase project in this task. Until deployed, the client RPC will fail
+  and durable writes will remain queued.
+- No local PostgreSQL/Supabase runtime is present in the worktree, so the
+  PL/pgSQL function was reviewed and schema-checked but not executed against a
+  real database here. The client RPC boundary and monotonic stale/disjoint
+  behavior are covered with the existing HTTP-level Supabase test harness.
+- The required bare-Node test continues to emit Node's pre-existing
+  typeless-package warning when importing TypeScript.
