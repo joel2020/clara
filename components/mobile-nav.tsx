@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t, type StringKey } from "@/lib/i18n";
 
-// The four-space tab bar: Hoy · Camino · Hablar · Yo. One daily-learning entry
-// (Hoy), direct speaking access (Hablar), the ladder (Camino), identity and
-// progress (Yo). Practice drills are no longer destinations here — Hoy deals
+// The five-space tab bar: Hoy · Camino · Hablar · Tienda · Yo. One
+// daily-learning entry (Hoy), direct speaking access (Hablar), the ladder
+// (Camino), earned customization (Tienda), and identity/progress (Yo).
+// Practice drills are no longer destinations here — Hoy deals
 // them out. Shown on hub pages only; immersive flows (/lesson, rounds, the
 // call) stay full-screen. Persists through lg so tablet users keep touch nav —
 // the old md cutoff stranded 768px tablets on a two-link desktop header.
