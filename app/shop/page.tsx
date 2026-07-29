@@ -20,7 +20,7 @@ import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
 import { popConfetti } from "@/lib/fx";
 import { juice } from "@/components/juice";
-import { LumiScene } from "@/components/lumi-scene";
+import { CharacterPreview } from "@/components/character";
 import { SceneArt } from "@/components/scene-art";
 import { SceneVideo } from "@/components/scene-video";
 import { Splash } from "@/components/splash";
@@ -126,16 +126,13 @@ export default function ShopPage() {
       {/* Live preview + daily chest. The preview is the point: she's dressing
           HER Lumi, and every equip updates it instantly. */}
       <div className="mt-6 grid gap-4 sm:grid-cols-[1.15fr_1fr]">
-        <div>
-          <p className="type-label mb-2">{t("shopPreviewTitle", lang)}</p>
-          <LumiScene
-            bgId={player.equippedBg}
-            accessoryId={player.equippedAccessory}
-            effectId={player.equippedEffect}
-            petId={player.equippedPet}
-            className="h-64 shadow-sm ring-1 ring-black/5 sm:h-72"
-          />
-        </div>
+        <CharacterPreview
+          bgId={player.equippedBg}
+          accessoryId={player.equippedAccessory}
+          effectId={player.equippedEffect}
+          petId={player.equippedPet}
+          label={t("shopPreviewTitle", lang)}
+        />
         <div className="flex flex-col justify-center rounded-3xl border border-hairline bg-card p-6 text-center">
           <span
             className="mx-auto grid size-14 place-items-center rounded-full"

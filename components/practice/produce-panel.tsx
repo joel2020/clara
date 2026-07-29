@@ -13,7 +13,7 @@ import { sfx } from "@/lib/sfx";
 import { t, partnerFeedback, type CoachLang } from "@/lib/i18n";
 import { popConfetti } from "@/lib/fx";
 import { juice } from "@/components/juice";
-import { Lumi } from "@/components/lumi";
+import { CharacterIllustration } from "@/components/character";
 import { StarRating, SparkleBurst } from "@/components/star-reward";
 
 type Phase = "idle" | "listening" | "scoring" | "result";
@@ -125,7 +125,7 @@ export function ProducePanel({
           a friendly face, not just a mic button. */}
       {recognitionSupported && (
         <div className="flex items-center gap-2.5" aria-hidden>
-          <Lumi frame="bust" mood={phase === "scoring" ? "think" : phase === "listening" ? "idle" : "point"} className="size-14 shrink-0" />
+          <CharacterIllustration mode="bust" mood={phase === "scoring" ? "think" : phase === "listening" ? "idle" : "point"} className="size-14 shrink-0" />
           <span
             className={cn(
               "rounded-2xl rounded-bl-sm border border-hairline bg-card px-3 py-1.5 text-sm text-foreground/80 shadow-sm",
@@ -210,7 +210,7 @@ function ResultCard({
       {/* Lumi reacts — cheering on a win, warmly encouraging after a miss */}
       <div className="relative mx-auto w-fit">
         {passed && <SparkleBurst />}
-        <Lumi frame="bust" mood={passed ? "cheer" : "encourage"} className="mx-auto size-28" />
+        <CharacterIllustration mode="bust" mood={passed ? "cheer" : "encourage"} className="mx-auto size-28" />
         <span className="animate-pop-in absolute -right-2 -top-1 rounded-2xl rounded-bl-sm bg-card px-3 py-1.5 text-sm font-semibold text-card-foreground shadow-md ring-1 ring-border">
           {spanish}
         </span>

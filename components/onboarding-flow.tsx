@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { sfx } from "@/lib/sfx";
-import { Lumi } from "@/components/lumi";
+import { CharacterIllustration } from "@/components/character";
 import { juice } from "@/components/juice";
 import {
   SKILLS, type Skill, type SelfLevel, type Level,
@@ -441,7 +441,7 @@ function ResultCard({ result, goal, startLower, onToggleLower, onFinish }: {
   };
   return (
     <div className="animate-scale-in text-center">
-      <div className="mx-auto h-28 w-24"><Lumi mood="cheer" priority /></div>
+      <div className="mx-auto h-28 w-24"><CharacterIllustration mood="cheer" priority /></div>
       <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Tu nivel</p>
       <h2 className="mt-1 font-display text-5xl font-semibold tracking-[-0.02em]">{shown}</h2>
       <p className="mt-2 font-display text-xl">{blurb.title}</p>

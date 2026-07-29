@@ -14,7 +14,7 @@ import { isMastered } from "@/lib/srs";
 import { levelProgress, dayKey } from "@/lib/gamification";
 import { CATEGORIES } from "@/lib/content/categories";
 import { t } from "@/lib/i18n";
-import { Lumi } from "@/components/lumi";
+import { CharacterIllustration } from "@/components/character";
 import { Splash } from "@/components/splash";
 
 // "Mi mundo" — a warm, motivating snapshot of everything she's built: level,
@@ -91,7 +91,7 @@ export default function MundoPage() {
 
       {/* Header */}
       <section className="mt-5 flex items-center gap-4 animate-fade-up">
-        <Lumi frame="bust" mood="cheer" className="size-20 shrink-0" priority />
+        <CharacterIllustration mode="bust" mood="cheer" className="size-20 shrink-0" priority />
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("mundoEyebrow", lang)}</p>
           <h1 className="mt-1 font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
