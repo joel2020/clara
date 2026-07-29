@@ -1,5 +1,6 @@
 import { repo } from "@/lib/db";
 import { dayKey } from "@/lib/gamification";
+import { slotFor } from "@/lib/store";
 import type { PlayerStats } from "@/lib/db/types";
 
 // The star shop: cosmetics Lumi can wear, bought with the stars earned from
@@ -46,6 +47,13 @@ export interface Cosmetic {
    *  "/character/outfits/rosa" → rosa.png (idle/wave), rosa-cheer.png, etc.
    *  The shared depth map is reused (every outfit has the same silhouette). */
   outfit?: string;
+  /** Optional level gate (levelForXp). Never applied retroactively: ownership
+   *  always wins over a lock (see lib/store.ts itemState). */
+  unlockLevel?: number;
+  /** Optional seasonal availability window, epoch ms. Owned items survive the
+   *  window closing. */
+  availableFrom?: number;
+  availableUntil?: number;
 }
 
 export const COSMETICS: Cosmetic[] = [
@@ -288,18 +296,8 @@ export function isOwned(player: Pick<PlayerStats, "ownedCosmetics">, id: string)
   return !!c && (c.free === true || (player.ownedCosmetics ?? []).includes(id));
 }
 
-/** The equipped-slot field name for a cosmetic type. */
-function slotFor(type: CosmeticType): "equippedBg" | "equippedAccessory" | "equippedEffect" | "equippedPet" | "equippedOutfit" {
-  return type === "background"
-    ? "equippedBg"
-    : type === "accessory"
-      ? "equippedAccessory"
-      : type === "pet"
-        ? "equippedPet"
-        : type === "outfit"
-          ? "equippedOutfit"
-          : "equippedEffect";
-}
+// The equipped-slot mapping lives in the pure state layer (lib/store.ts) so
+// node tests and this persistence layer share one definition.
 
 /** The art base path for the outfit Lumi is currently wearing (default = her
  *  signature look). Every Lumi render resolves her pose art from this base. */
