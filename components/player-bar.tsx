@@ -21,19 +21,19 @@ export function PlayerBar() {
   const goalPct = settings.dailyGoal > 0 ? Math.min(100, Math.round((player.todayXp / settings.dailyGoal) * 100)) : 0;
 
   return (
-    <div className="flex items-center gap-5 rounded-2xl border border-hairline bg-card px-5 py-4">
+    <div className="flex items-center gap-2 rounded-2xl border border-hairline bg-card px-3 py-4 min-[375px]:gap-5 min-[375px]:px-5">
       {/* Level + XP ring */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 min-[375px]:gap-3">
         <Ring pct={lp.pct} size={48} stroke={4}>
           <span className="font-display text-lg font-medium tabular-nums leading-none">{lp.level}</span>
         </Ring>
-        <div className="leading-tight">
+        <div className="hidden leading-tight min-[360px]:block">
           <p className="text-sm font-semibold">{t("level", lang)} {lp.level}</p>
           <p className="font-mono text-[11px] text-muted-foreground">{lp.toNext} {t("xpToNext", lang)}</p>
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-5">
+      <div className="ml-auto flex items-center gap-3 min-[375px]:gap-5">
         {/* Stars — the game currency */}
         <div className="flex items-center gap-2">
           <span className="star-chip bloom-gold grid size-7 place-items-center rounded-full">

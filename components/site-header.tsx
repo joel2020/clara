@@ -5,12 +5,11 @@ import { usePathname } from "next/navigation";
 import { Volume2, VolumeX, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
-import { useAuth } from "@/lib/hooks/useAuth";
 import { useAccess } from "@/lib/hooks/useAccess";
 import { Switch } from "@/components/ui/switch";
 import { t } from "@/lib/i18n";
 
-// Desktop nav mirrors the tab bar's four spaces — one IA on every device.
+// Desktop nav mirrors the tab bar's five spaces — one IA on every device.
 // Links appear at lg+ (below that the bottom tab bar owns navigation).
 const NAV = [
   { href: "/", key: "navToday" as const },
@@ -23,7 +22,6 @@ const NAV = [
 export function SiteHeader() {
   const pathname = usePathname();
   const { settings, update } = useSettings();
-  const { required, user } = useAuth();
   const lang = settings.coachLanguage;
   // Teaching tools are for the teacher: with a real auth backend, only admin
   // accounts see the toggle. Local dev (no auth) keeps it for convenience.
@@ -35,7 +33,7 @@ export function SiteHeader() {
       {/* Colombia, up top — a quiet tricolor signature. */}
       <div className="flag-bar h-[3px] w-full" aria-hidden />
       <div className="mx-auto flex h-16 max-w-3xl items-center px-5 sm:px-6">
-        <Link href="/" className="flex items-baseline gap-2">
+        <Link href="/" className="flex min-h-11 items-center gap-2">
           <span className="font-display text-xl font-semibold tracking-tight">Clara</span>
           <span className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:inline">
             American English
