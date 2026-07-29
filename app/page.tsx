@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { ReviewCallout } from "@/components/review-callout";
 import { PlayerBar } from "@/components/player-bar";
 import { DailyQuests } from "@/components/daily-quests";
-import { LumiDepth } from "@/components/lumi-depth";
+import { CharacterIllustration } from "@/components/character";
 import { EffectLayer } from "@/components/lumi-scene";
 import { SceneArt } from "@/components/scene-art";
 import { SceneVideo } from "@/components/scene-video";
@@ -136,7 +136,10 @@ export default function HomePage() {
                 {accessory.emoji}
               </span>
             )}
-            <LumiDepth priority />
+            {/* Keep Lumi crisp and single-layered. The former WebGL depth
+                shader displaced different parts of the flat illustration and
+                visibly duplicated her face and body on production devices. */}
+            <CharacterIllustration mode="full" mood="wave" priority className="lumi-3d" />
             <PetSprite petId={player?.equippedPet} className="absolute -left-8 bottom-1 z-10 sm:-left-10" />
           </div>
         </div>
