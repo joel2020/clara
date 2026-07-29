@@ -304,3 +304,74 @@ Result: exit 0.
   existing typeless-package performance warning.
 - The suite harness still reports Node TAP files as `0 checks`; direct focused
   runs report the actual 19 passing tests.
+
+## Fix round 2/5
+
+### Finding addressed
+
+An older session claim now handles both possible player-accounting states:
+
+- When `player.todayKey === today`, preserve the already-current `todayXp`.
+- When the player is still stamped with an older day, roll the daily counters to
+  `{ todayKey: today, todayXp: 0 }`.
+
+In both cases the older session still adds its one-time reward to total XP and
+stars. It does not attribute that reward to today's XP.
+
+Fix implementation commit:
+`ba4a3484380035bd3ff16a7b144193581e44e5ee`
+
+### TDD evidence
+
+Command:
+
+```bash
+node lib/daily-session-reward.test.mjs; node lib/daily-session-completion.test.mjs
+```
+
+RED result: exit 1.
+
+- Pure transition: expected `todayKey` `2026-07-30`, received stale
+  `2026-07-29`.
+- Real repository transaction: expected persisted `todayKey` `2026-07-30`,
+  received stale `2026-07-29`.
+- Each focused file passed its other five cases and failed only the new rollover
+  assertion.
+
+GREEN command:
+
+```bash
+node lib/daily-session-reward.test.mjs && node lib/daily-session-completion.test.mjs
+```
+
+Result: exit 0; 6 pure reward tests and 6 repository completion tests passed.
+
+### Final verification
+
+Command:
+
+```bash
+node lib/daily-session-reward.test.mjs && node lib/daily-session-completion.test.mjs && node lib/daily-session-loader.test.mjs && node lib/daily-session-store.test.mjs && npm run typecheck && npm run lint:ratchet && npm run lint && git diff --check
+```
+
+Result: exit 0.
+
+- Relevant focused coverage: 21 TAP tests passed, 0 failed.
+- TypeScript: `tsc --noEmit` completed with no errors.
+- Lint ratchet: 0 errors against a baseline of 0.
+- Direct ESLint: 0 errors and 19 existing unrelated warnings.
+- Diff check: no whitespace errors.
+
+### Self-review
+
+- Confirmed an older claim never adds its reward to today's XP.
+- Confirmed a player already advanced to today retains the current counter.
+- Confirmed a player not yet advanced to today no longer exposes stale prior-day
+  accounting.
+- Confirmed both the pure domain result and the persisted transaction result are
+  covered with literal day keys and XP values.
+
+### Concerns
+
+- Direct bare-Node TypeScript execution continues to emit the repository's
+  existing typeless-package performance warning.
