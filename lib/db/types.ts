@@ -96,6 +96,15 @@ export interface Attempt {
 }
 
 /**
+ * Ephemeral capture evidence supplied to decision code before an attempt is
+ * persisted. A technical failure is not learner performance and must never be
+ * folded into a weakness signal or written into the historical Attempt record.
+ */
+export type AttemptEvidence = Pick<Attempt, "itemId" | "passed" | "at"> & {
+  evidence: "valid" | "technical-failure";
+};
+
+/**
  * One /talk conversation, recorded so the general path's ten-minute milestone can
  * be measured rather than asserted.
  *
