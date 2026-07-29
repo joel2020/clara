@@ -11,20 +11,13 @@ import { equippedOutfitBase } from "@/lib/cosmetics";
 // crops to her face for reaction moments. Her outfit is swappable in the shop —
 // each outfit is a full pose set under its own art base (see cosmetics.ts).
 
-export type LumiMood = "idle" | "wave" | "cheer" | "think" | "encourage" | "clap" | "point" | "love";
+// Mood names and art resolution live in lib/character.ts (the character
+// system's single source); this legacy component re-exports them so existing
+// call sites keep working while surfaces migrate to components/character/*.
+import { MOOD_SUFFIX, type CharacterMood } from "@/lib/character";
 
-// Per-mood filename suffix appended to the outfit's art base
-// (base "/character/lumi" → "/character/lumi-cheer.png"; idle/wave = the base).
-export const MOOD_SUFFIX: Record<LumiMood, string> = {
-  idle: "",
-  wave: "",
-  cheer: "-cheer",
-  think: "-think",
-  encourage: "-encourage",
-  clap: "-clap",
-  point: "-point",
-  love: "-love",
-};
+export type LumiMood = CharacterMood;
+export { MOOD_SUFFIX };
 
 export function Lumi({
   mood = "idle",
