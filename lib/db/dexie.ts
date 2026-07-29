@@ -1,4 +1,5 @@
 import Dexie, { type Table } from "dexie";
+import type { DailySession } from "../daily-session";
 import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession } from "./types";
 import type { OutboxRow } from "./types";
 
@@ -30,6 +31,7 @@ export class ClaraDB extends Dexie {
   callScores!: Table<CallScore, number>;
   talkSessions!: Table<TalkSession, number>;
   outbox!: Table<OutboxRow, number>;
+  dailySessions!: Table<DailySession, string>;
 
   constructor(name = "clara") {
     super(name);
@@ -83,6 +85,11 @@ export class ClaraDB extends Dexie {
     // succeeds so a transient failure can never orphan completed work.
     this.version(9).stores({
       outbox: "++id, kind, at",
+    });
+    // v10 adds the resumable daily classroom loop. Existing stores and rows are
+    // untouched; one account-scoped row is kept per local day.
+    this.version(10).stores({
+      dailySessions: "id, day, updatedAt, completedAt",
     });
   }
 }
@@ -144,7 +151,7 @@ export function boundAccountId(): string | null {
 const LEGACY_TABLES = [
   "attempts", "progress", "customLessons", "settings", "player", "convItems",
   "quests", "recordings", "events", "examAttempts", "callScores", "talkSessions",
-  "outbox",
+  "outbox", "dailySessions",
 ] as const;
 
 /** An account database with no settings row and no history is considered new. */

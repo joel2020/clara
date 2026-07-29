@@ -345,7 +345,7 @@ export interface AnalyticsEvent {
  */
 export interface OutboxRow {
   id?: number;
-  kind: "attempt" | "exam" | "call" | "talk";
+  kind: "attempt" | "exam" | "call" | "talk" | "daily-session";
   profileId: string;
   payload: unknown;
   /** When the original write happened (ms). */

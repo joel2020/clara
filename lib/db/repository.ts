@@ -12,6 +12,7 @@ import type {
   Settings,
   TalkSession,
 } from "./types";
+import type { DailySession } from "../daily-session";
 
 /**
  * The data layer's public contract. Every component and hook talks to this
@@ -64,6 +65,10 @@ export interface DataRepository {
 
   getQuests(day: string): Promise<DailyQuestState | undefined>;
   saveQuests(state: DailyQuestState): Promise<void>;
+
+  // --- Resumable daily classroom loop ---
+  getDailySession(day: string): Promise<DailySession | undefined>;
+  saveDailySession(session: DailySession): Promise<void>;
 
   // --- Voice journal (on-device only; never synced) ---
   getRecordings(): Promise<PhraseRecording[]>;

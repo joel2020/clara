@@ -1,5 +1,6 @@
-import { db } from "./dexie";
-import { DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository";
+import { boundAccountId, db } from "./dexie.ts";
+import { DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository.ts";
+import type { DailySession } from "../daily-session";
 import type {
   Attempt,
   CallScore,
@@ -182,6 +183,23 @@ export class DexieRepository implements DataRepository {
     void this.mirror((profileId, sync) => sync.pushQuests(profileId, state));
   }
 
+  async getDailySession(day: string): Promise<DailySession | undefined> {
+    return db.dailySessions.where("day").equals(day).first();
+  }
+
+  async saveDailySession(session: DailySession): Promise<void> {
+    const bound = boundAccountId();
+    if (bound && session.profileId.trim().toLowerCase() !== bound) {
+      throw new Error("Daily session profile does not match the bound account");
+    }
+    await db.dailySessions.put(session);
+    if (bound) {
+      void import("../sync/supabase-sync.ts")
+        .then((sync) => sync.pushDailySession(bound, session))
+        .catch(() => {});
+    }
+  }
+
   async getCategoryStats(recentWindow = RECENT_WINDOW): Promise<CategoryStat[]> {
     const [attempts, progress] = await Promise.all([
       db.attempts.toArray(),
@@ -260,6 +278,7 @@ export class DexieRepository implements DataRepository {
       db.examAttempts.clear(),
       db.callScores.clear(),
       db.talkSessions.clear(),
+      db.dailySessions.clear(),
       // events was omitted here before — analytics for a wiped profile is
       // meaningless and reset is meant to clear the device.
       db.events.clear(),

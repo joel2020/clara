@@ -1,7 +1,8 @@
 "use client";
 
-import { supabase, syncEnabled } from "@/lib/db/supabase";
-import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession } from "@/lib/db/types";
+import { supabase, syncEnabled } from "../db/supabase.ts";
+import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession } from "../db/types.ts";
+import type { DailySession } from "../daily-session.ts";
 
 // The cloud-sync layer. The app writes to Dexie first (instant, offline); these
 // helpers mirror each profile's data to Supabase in the background and can pull
@@ -71,7 +72,7 @@ function bg(p: PromiseLike<unknown> | undefined, label: string): void {
 // hands it the payload for retry. Kept as a registration to avoid an import
 // cycle, and so this module stays inert in tests and on the server.
 
-export type DurableKind = "attempt" | "exam" | "call" | "talk";
+export type DurableKind = "attempt" | "exam" | "call" | "talk" | "daily-session";
 
 let outboxSink: ((kind: DurableKind, profileId: string, payload: unknown) => void) | null = null;
 
@@ -123,6 +124,13 @@ export async function deliverQueued(kind: DurableKind, profileId: string, payloa
     }
     if (kind === "call") {
       const { error } = await sb.from("call_scores").upsert(callRow(profileId, payload as CallScore), { onConflict: "profile_id,at", ignoreDuplicates: true });
+      return !error;
+    }
+    if (kind === "daily-session") {
+      const { error } = await sb.from("daily_sessions").upsert(
+        dailySessionRow(profileId, payload as DailySession),
+        { onConflict: "profile_id,day" },
+      );
       return !error;
     }
     const { error } = await sb.from("talk_sessions").upsert(talkRow(profileId, payload as TalkSession), { onConflict: "profile_id,at", ignoreDuplicates: true });
@@ -608,6 +616,48 @@ export function pushQuests(profileId: string, q: DailyQuestState): void {
       { profile_id: profileId, day: q.day, state: q, updated_at: Date.now() },
       { onConflict: "profile_id,day" },
     ), "quests");
+}
+
+function dailySessionRow(profileId: string, session: DailySession) {
+  return {
+    profile_id: profileId,
+    day: session.day,
+    version: session.version,
+    payload: session,
+    updated_at: session.updatedAt,
+  };
+}
+
+/** Upsert mutable daily state durably; a failed write enters the retry outbox. */
+export function pushDailySession(profileId: string, session: DailySession): void {
+  const sb = supabase();
+  if (!ok() || !sb) return;
+  bgDurable(
+    sb.from("daily_sessions").upsert(
+      dailySessionRow(profileId, session),
+      { onConflict: "profile_id,day" },
+    ),
+    "daily_sessions",
+    "daily-session",
+    profileId,
+    session,
+  );
+}
+
+/** Pull exactly one account-owned day; RLS independently enforces attribution. */
+export async function pullDailySession(profileId: string, day: string): Promise<DailySession | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { data } = await sb
+    .from("daily_sessions")
+    .select("profile_id,day,version,payload,updated_at")
+    .eq("profile_id", profileId)
+    .eq("day", day)
+    .maybeSingle();
+  if (!data) return null;
+  const payload = data.payload as DailySession;
+  if (!payload || payload.profileId !== profileId || payload.day !== day || payload.version !== 1) return null;
+  return { ...payload, updatedAt: Math.max(payload.updatedAt, Number(data.updated_at) || 0) };
 }
 
 export async function pullConvItemsAndQuests(

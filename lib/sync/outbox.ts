@@ -1,8 +1,8 @@
 "use client";
 
-import { db, boundAccountId } from "@/lib/db/dexie";
-import type { OutboxRow } from "@/lib/db/types";
-import { deliverQueued, setOutboxSink, type DurableKind } from "./supabase-sync";
+import { db, boundAccountId } from "../db/dexie.ts";
+import type { OutboxRow } from "../db/types.ts";
+import { deliverQueued, setOutboxSink, type DurableKind } from "./supabase-sync.ts";
 
 // Durable retry for one-shot history rows (audit P1: a transient network or
 // provider failure silently discarded a completed attempt's cloud mirror —

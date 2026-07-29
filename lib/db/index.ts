@@ -1,5 +1,5 @@
-import { DexieRepository } from "./dexie-repository";
-import type { DataRepository } from "./repository";
+import { DexieRepository } from "./dexie-repository.ts";
+import type { DataRepository } from "./repository.ts";
 
 /**
  * The single place the app gets its data layer. Today it's local-first Dexie.
@@ -11,4 +11,4 @@ import type { DataRepository } from "./repository";
 export const repo: DataRepository = new DexieRepository();
 
 export type { DataRepository };
-export * from "./types";
+export * from "./types.ts";
