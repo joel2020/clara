@@ -8,6 +8,7 @@ import { ResetPasswordScreen } from "@/components/reset-password-screen";
 import { OAuthCallbackScreen } from "@/components/oauth-callback-screen";
 import { Lumi } from "@/components/lumi";
 import { useAccess } from "@/lib/hooks/useAccess";
+import { PrivacyNotice } from "@/components/privacy-notice";
 
 // Stands in front of the whole app: the login screen until there's a session,
 // then an allowlist check (anyone can register with Supabase, but only approved
@@ -18,6 +19,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const { ready, required, session, signOut } = useAuth();
   const { allowed, checkFailed, retry } = useAccess();
   const pathname = usePathname();
+
+  // The notice is linked from Login and must be readable before authentication.
+  // Render it here, outside DataScope/onboarding, so opening it cannot touch a
+  // previous learner's local database on a shared device.
+  if (pathname === "/privacidad" && required && !session) return <PrivacyNotice />;
 
   // The password-reset link lands here. Intercept it before the session check so
   // it works without being signed in, and before the app chrome, onboarding, and
