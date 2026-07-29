@@ -4,51 +4,26 @@ import { useState } from "react";
 import { Lumi } from "@/components/lumi";
 import { useAuth } from "@/lib/hooks/useAuth";
 
-// The access gate. Clara is public, so this stands in front of the whole app:
-// only a signed-in, allowlisted account gets in (and can call the paid AI
-// routes). Accounts are created right here — no dashboard trip — because the
-// real protection is the server-side allowlist (lib/allowlist.ts), not secrecy
-// about the sign-up form: a stranger can register and still get nowhere.
-// Email + password because magic links break out of the installed iOS PWA.
-// Google sign-in sits above it, shown only when configured (see below).
-
-/** True once the Google provider is configured in Supabase. Read at build time. */
-const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
+// Clara is currently a private-beta product shared by link with family and
+// friends. Any Google account may join; admin capabilities remain a separate,
+// server-enforced policy. Keeping one authentication path removes password
+// resets, confirmation emails, and ambiguity about how to create an account.
 
 export function LoginScreen() {
-  const { signIn, signUp, signInWithGoogle, resendConfirmation, resetPassword } = useAuth();
-  const [mode, setMode] = useState<"in" | "up">("in");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { signInWithGoogle } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [needsConfirm, setNeedsConfirm] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const continueWithGoogle = async () => {
     if (busy) return;
     setBusy(true);
     setError(null);
-    setNotice(null);
-    setNeedsConfirm(false);
-    const { error } = mode === "in" ? await signIn(email, password) : await signUp(email, password);
-    setBusy(false);
+    const { error } = await signInWithGoogle();
+    // On success the browser leaves for Google, so this only runs on failure.
     if (error) {
-      // Surface a self-serve "resend confirmation" path when the account exists
-      // but its email was never confirmed — the most common sign-in failure here.
-      if (error.toLowerCase().includes("not confirmed")) setNeedsConfirm(true);
+      setBusy(false);
       setError(friendlyError(error));
-      return;
     }
-    if (mode === "up") {
-      // With email confirmation on, sign-up creates no session until the link in
-      // the email is clicked. Say so plainly rather than looking like nothing happened.
-      setNotice("Cuenta creada. Revisa tu correo y confirma, luego inicia sesión · Account created. Confirm via the email, then sign in.");
-      setMode("in");
-      setPassword("");
-    }
-    // On sign-in success, AuthProvider's onAuthStateChange swaps this screen for the app.
   };
 
   return (
@@ -69,152 +44,33 @@ export function LoginScreen() {
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-[-0.02em]">Clara</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "in" ? "Inicia sesión para practicar · Sign in to practice" : "Crea tu cuenta · Create your account"}
+            Practica inglés con tu cuenta de Google · Practice English with your Google account
           </p>
         </div>
 
-        <form onSubmit={submit} className="rounded-3xl border border-hairline bg-card p-6 shadow-[0_18px_44px_-24px_rgba(18,58,147,0.25)]">
-          {/* Google first: one tap on desktop and Android. Email + password stays
-              below it as the reliable path on the installed iOS PWA, where an
-              OAuth redirect can bounce out to Safari.
-
-              Env-gated like every other integration in this app: signInWithOAuth
-              navigates away immediately, so if the provider isn't enabled in
-              Supabase the student lands on a raw JSON error with no way back —
-              there is no client-side error to catch. Showing the button only when
-              NEXT_PUBLIC_GOOGLE_AUTH_ENABLED is set makes that dead end
-              impossible. Flip it on once the provider is configured. */}
-          {googleEnabled && (
-          <>
+        <div className="rounded-3xl border border-hairline bg-card p-6 shadow-[0_18px_44px_-24px_rgba(18,58,147,0.25)]">
           <button
             type="button"
             disabled={busy}
-            onClick={async () => {
-              if (busy) return;
-              setBusy(true);
-              setError(null);
-              setNotice(null);
-              const { error } = await signInWithGoogle();
-              // On success the browser leaves for Google, so this only runs on failure.
-              if (error) {
-                setBusy(false);
-                setError(friendlyError(error));
-              }
-            }}
+            onClick={() => void continueWithGoogle()}
             className="flex w-full items-center justify-center gap-2.5 rounded-full border border-hairline bg-background py-3 text-sm font-semibold transition-colors hover:border-foreground/30 disabled:opacity-60"
           >
             <GoogleMark />
-            Continuar con Google · Continue with Google
+            {busy ? "Conectando… · Connecting…" : "Continuar con Google · Continue with Google"}
           </button>
 
-          <div className="my-5 flex items-center gap-3">
-            <span className="h-px flex-1 bg-hairline" />
-            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">o · or</span>
-            <span className="h-px flex-1 bg-hairline" />
-          </div>
-          </>
+          {error && (
+            <p role="alert" className="mt-4 text-center text-sm font-medium text-red-600">
+              {error}
+            </p>
           )}
 
-          <label className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Correo · Email
-          </label>
-          <input
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-primary"
-            placeholder="correo@ejemplo.com"
-          />
+          <p className="mt-5 text-center text-xs leading-relaxed text-muted-foreground">
+            Cualquier persona con el enlace y una cuenta de Google puede entrar. No se requiere pago. ·
+            Anyone with the link and a Google account can join. No payment is required.
+          </p>
+        </div>
 
-          <label className="mt-4 block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Contraseña · Password
-          </label>
-          <input
-            type="password"
-            autoComplete={mode === "in" ? "current-password" : "new-password"}
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-primary"
-            placeholder="••••••••"
-          />
-
-          {mode === "in" && (
-            <button
-              type="button"
-              onClick={async () => {
-                if (busy) return;
-                setError(null);
-                setNotice(null);
-                setNeedsConfirm(false);
-                if (!email.trim()) {
-                  setError("Escribe tu correo primero · Enter your email first.");
-                  return;
-                }
-                setBusy(true);
-                const { error } = await resetPassword(email);
-                setBusy(false);
-                if (error) setError(friendlyError(error));
-                else
-                  setNotice(
-                    "Te enviamos un correo para restablecer tu contraseña. Revisa tu bandeja · Password-reset email sent — check your inbox.",
-                  );
-              }}
-              className="mt-3 block text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              ¿Olvidaste tu contraseña? · Forgot your password?
-            </button>
-          )}
-
-          {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}
-          {notice && <p className="mt-3 text-sm font-medium text-primary">{notice}</p>}
-          {needsConfirm && (
-            <button
-              type="button"
-              onClick={async () => {
-                if (busy) return;
-                setBusy(true);
-                const { error } = await resendConfirmation(email);
-                setBusy(false);
-                setNeedsConfirm(false);
-                if (error) setError(friendlyError(error));
-                else {
-                  setError(null);
-                  setNotice("Correo de confirmación reenviado. Revísalo · Confirmation email resent — check your inbox.");
-                }
-              }}
-              className="mt-2 text-sm font-semibold text-primary underline-offset-4 hover:underline"
-            >
-              Reenviar correo de confirmación · Resend confirmation email
-            </button>
-          )}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="mt-5 w-full rounded-full bg-primary py-3 font-display text-lg font-semibold text-primary-foreground transition-transform active:scale-[0.99] disabled:opacity-60"
-          >
-            {busy ? "…" : mode === "in" ? "Entrar · Sign in" : "Crear cuenta · Create account"}
-          </button>
-        </form>
-
-        <button
-          type="button"
-          onClick={() => {
-            setMode((m) => (m === "in" ? "up" : "in"));
-            setError(null);
-            setNotice(null);
-          }}
-          className="mt-4 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          {mode === "in"
-            ? "¿Sin cuenta? Crea una · No account? Create one"
-            : "¿Ya tienes cuenta? Inicia sesión · Already have one? Sign in"}
-        </button>
         <p className="mt-6 text-center text-xs text-muted-foreground">
           <a href="/privacidad" className="underline-offset-2 hover:underline">
             Privacidad · Privacy
@@ -238,13 +94,12 @@ function GoogleMark() {
 }
 
 function friendlyError(raw: string): string {
-  const m = raw.toLowerCase();
-  if (m.includes("provider is not enabled") || m.includes("unsupported provider")) {
-    return "Google aún no está configurado — entra con tu correo · Google isn't set up yet — use your email.";
+  const message = raw.toLowerCase();
+  if (message.includes("provider is not enabled") || message.includes("unsupported provider")) {
+    return "Google no está disponible en este momento · Google sign-in is temporarily unavailable.";
   }
-  if (m.includes("invalid login") || m.includes("invalid_credentials")) return "Correo o contraseña incorrectos — ¿ya creaste la cuenta? · Wrong email or password — did you create the account yet?";
-  if (m.includes("email not confirmed")) return "Confirma tu correo primero (revisa tu bandeja) · Confirm your email first — check your inbox.";
-  if (m.includes("already registered")) return "Esa cuenta ya existe — inicia sesión · That account already exists — sign in instead.";
-  if (m.includes("network")) return "Sin conexión · No connection.";
+  if (message.includes("network") || message.includes("fetch")) {
+    return "Sin conexión. Intenta de nuevo · No connection. Try again.";
+  }
   return raw;
 }

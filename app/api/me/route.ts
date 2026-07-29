@@ -1,11 +1,7 @@
-// Who am I, as far as the server is concerned. The client's ONLY source for
-// access/admin flags: the email allowlists moved to server env (audit P0 —
-// student emails were shipping in the client bundle), so client UI asks here
-// instead of bundling the lists. Purely informational for UI gating — every
-// protected route and the coach/instructor APIs still enforce the same checks
-// server-side on each request.
+// Who am I, as far as the server is concerned. Every authenticated learner is
+// allowed during the family-and-friends beta; admin remains server-enforced.
 import { authRequired, getAuthedUser } from "@/lib/auth-server";
-import { isAdmin, isAllowed } from "@/lib/allowlist";
+import { isAdmin } from "@/lib/allowlist";
 
 export const runtime = "nodejs";
 
@@ -26,7 +22,7 @@ export async function GET(request: Request): Promise<Response> {
   if (!user) return Response.json({ authed: false, allowed: false, admin: false }, { status: 401 });
   return Response.json({
     authed: true,
-    allowed: isAllowed(user.email),
+    allowed: true,
     admin: isAdmin(user.email),
   });
 }

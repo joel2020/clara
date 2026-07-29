@@ -10,10 +10,9 @@ import { Lumi } from "@/components/lumi";
 import { useAccess } from "@/lib/hooks/useAccess";
 import { PrivacyNotice } from "@/components/privacy-notice";
 
-// Stands in front of the whole app: the login screen until there's a session,
-// then an allowlist check (anyone can register with Supabase, but only approved
-// students get in — the paid routes enforce the same list server-side), then the
-// app. Bypassed entirely when no auth backend is configured (local dev).
+// Stands in front of the whole app until there is a Google-backed Supabase
+// session. During the family-and-friends beta every authenticated learner is
+// admitted; /api/me still supplies the separately enforced admin flag.
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { ready, required, session, signOut } = useAuth();
