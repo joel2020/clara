@@ -163,9 +163,25 @@ const STRINGS = {
   navTalk: { es: "Hablar", en: "Talk" },
   navListenTab: { es: "Oído", en: "Ears" },
   navMap: { es: "Mapa", en: "Map" },
-  // Four-space navigation (redesign): Hoy · Camino · Hablar · Yo
+  // Five-space navigation (redesign): Hoy · Camino · Hablar · Tienda · Yo
   navCamino: { es: "Camino", en: "Path" },
   navYo: { es: "Yo", en: "Me" },
+  navTienda: { es: "Tienda", en: "Store" },
+
+  // Store elevation
+  shopBalanceLabel: { es: "Tus estrellas", en: "Your stars" },
+  shopConfirmTitle: { es: "¿Comprar", en: "Buy" },
+  shopConfirmAfter: { es: "Te quedarían", en: "You'd have" },
+  shopConfirmBuy: { es: "Comprar", en: "Buy" },
+  shopCancel: { es: "Ahora no", en: "Not now" },
+  shopPurchased: { es: "¡Es tuyo! Lumi ya lo lleva puesto.", en: "It's yours! Lumi is wearing it." },
+  shopInsufficient: { es: "Te faltan", en: "You need" },
+  shopInsufficientCta: { es: "Gana estrellas hablando — cada frase clara suma.", en: "Earn stars by speaking — every clear phrase counts." },
+  shopGoPractice: { es: "Ir a practicar", en: "Go practice" },
+  shopRestoreDefault: { es: "Restaurar el clásico", en: "Restore the classic" },
+  shopRemove: { es: "Quitar", en: "Remove" },
+  shopLockedLevel: { es: "Se abre en el nivel", en: "Unlocks at level" },
+  shopPreviewTitle: { es: "Así se ve Lumi", en: "Lumi right now" },
 
   // Shadowing / listening game
   shadowCard: { es: "Escucha y repite", en: "Listen & echo" },

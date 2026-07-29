@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sunrise, Route, MessageCircle, CircleUser } from "lucide-react";
+import { Sunrise, Route, MessageCircle, Store, CircleUser } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t, type StringKey } from "@/lib/i18n";
@@ -32,6 +32,7 @@ const ITEMS: { href: string; label: StringKey; icon: typeof Sunrise }[] = [
   { href: "/", label: "navToday", icon: Sunrise },
   { href: "/map", label: "navCamino", icon: Route },
   { href: "/talk", label: "navTalk", icon: MessageCircle },
+  { href: "/shop", label: "navTienda", icon: Store },
   { href: "/profile", label: "navYo", icon: CircleUser },
 ];
 
@@ -48,7 +49,7 @@ export function MobileNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Principal"
     >
-      <div className="mx-auto grid max-w-3xl grid-cols-4">
+      <div className="mx-auto grid max-w-3xl grid-cols-5">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (

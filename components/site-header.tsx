@@ -16,6 +16,7 @@ const NAV = [
   { href: "/", key: "navToday" as const },
   { href: "/map", key: "navCamino" as const },
   { href: "/talk", key: "navTalk" as const },
+  { href: "/shop", key: "navTienda" as const },
   { href: "/profile", key: "navYo" as const },
 ];
 
