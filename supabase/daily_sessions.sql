@@ -103,7 +103,12 @@ begin
   ),
   evidence as (
     select *,
-      case when newer_rank >= older_rank then newer_activity else older_activity end as terminal_activity
+      case
+        when newer_activity is null then older_activity
+        when older_activity is null then newer_activity
+        when newer_rank >= older_rank then newer_activity
+        else older_activity
+      end as terminal_activity
     from ranked
   )
   select coalesce(
