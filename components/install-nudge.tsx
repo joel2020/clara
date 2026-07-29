@@ -29,11 +29,17 @@ export function InstallNudge() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      if (isIOS() && !isStandalone() && !localStorage.getItem(DISMISS_KEY)) setShow(true);
+      if (isIOS() && !isStandalone() && !localStorage.getItem(DISMISS_KEY)) {
+        timer = setTimeout(() => setShow(true), 0);
+      }
     } catch {
       /* private mode — skip the nudge */
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   if (!show) return null;

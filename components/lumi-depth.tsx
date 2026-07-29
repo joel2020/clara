@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -84,6 +84,15 @@ export function LumiDepth({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [failed, setFailed] = useState(false);
+  const reduceMotion = useSyncExternalStore(
+    (notify) => {
+      const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+      query.addEventListener("change", notify);
+      return () => query.removeEventListener("change", notify);
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
   // Front art follows the equipped outfit; the depth map is shared (same
   // silhouette across outfits). An explicit `color` still overrides.
   const player = usePlayer();
@@ -91,10 +100,7 @@ export function LumiDepth({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setFailed(true);
-      return;
-    }
+    if (reduceMotion) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -199,9 +205,9 @@ export function LumiDepth({
       window.removeEventListener("pointermove", onPointer);
       window.removeEventListener("deviceorientation", onOrient);
     };
-  }, [resolvedColor, depth, amp]);
+  }, [resolvedColor, depth, amp, reduceMotion]);
 
-  if (failed) {
+  if (failed || reduceMotion) {
     return (
       <div className={cn("relative h-full w-full select-none", className)}>
         <Image

@@ -1,20 +1,13 @@
 // Lint ratchet.
 //
-// The repo carries a known set of React-Compiler-era advisories
-// (react-hooks/set-state-in-effect, purity, immutability) in files where fixing them
-// means restructuring working, hard-to-test UI — the WebGL character, the practice
-// panel, the onboarding flow. They have been reviewed and are not live defects.
-//
-// Two bad options were rejected: failing CI on them (so CI is permanently red and
-// everyone learns to ignore it), and not running lint in CI at all (so the count
-// quietly grows forever). This ratchet does the useful thing instead: new errors fail
-// the build, existing ones do not.
+// All prior React-Compiler-era errors have been resolved. Keep the ratchet at
+// zero so any future lint error fails verification immediately.
 //
 // When you fix some, LOWER the baseline in the same commit. It should only ever go
 // down.
 import { execFileSync } from "node:child_process";
 
-const BASELINE = 11;
+const BASELINE = 0;
 
 let out = "";
 try {

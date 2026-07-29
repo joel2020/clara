@@ -9,7 +9,7 @@ Worktree: `/Users/joel/clara/.worktrees/premium-ui`
 | Check | Command | Result |
 |---|---|---|
 | Type check | `npm run typecheck` | PASS — 0 errors |
-| Lint ratchet | `npm run lint:ratchet` | PASS — 11 errors, baseline 11 |
+| Lint ratchet | `npm run lint:ratchet` | PASS — 0 errors, baseline 0 |
 | Unit tests | `npm test` | PASS — 16 files, 440 checks, 0 failing |
 | Production build | `next build` | PASS — 35 routes compiled |
 

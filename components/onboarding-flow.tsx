@@ -101,7 +101,8 @@ export function OnboardingFlow() {
     return () => window.clearTimeout(t);
   }, []);
   const [step, setStep] = useState<Step>("name");
-  const [name, setName] = useState("");
+  const [nameOverride, setNameOverride] = useState<string | null>(null);
+  const name = nameOverride ?? settings.studentName ?? "";
   const [country, setCountry] = useState("Colombia");
   const [city, setCity] = useState("Medellín");
   const [path, setPath] = useState<LearningPath | null>(null);
@@ -118,11 +119,6 @@ export function OnboardingFlow() {
   const rotation = useRef(0);
   const [result, setResult] = useState<PlacementResult | null>(null);
   const [startLower, setStartLower] = useState(false);
-
-  // Prefill the name from the account once settings are ready.
-  useEffect(() => {
-    if (ready && settings.studentName && !name) setName(settings.studentName);
-  }, [ready, settings.studentName, name]);
 
   if (!ready || !settled || settings.onboarding || !player) return null;
   // Only brand-new learners are placed; anyone with existing progress skips
@@ -256,7 +252,7 @@ export function OnboardingFlow() {
             <H>¿Cómo te llamas?</H>
             <input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setNameOverride(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && name.trim() && go("place")}
               placeholder="Tu nombre"
               autoFocus

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   Zap,
   CalendarDays,
@@ -53,10 +53,11 @@ export default function HomePage() {
   // Time-aware greeting, resolved on the client so the prerendered page and her
   // device clock never disagree (avoids a hydration mismatch). Starts null →
   // plain "¡Hola!" for the first paint, then warms up to "Buenas tardes".
-  const [greetKey, setGreetKey] = useState<"morning" | "afternoon" | "evening" | null>(null);
-  useEffect(() => {
-    setGreetKey(timeGreetingKey(new Date().getHours()));
-  }, []);
+  const greetKey = useSyncExternalStore(
+    () => () => {},
+    () => timeGreetingKey(new Date().getHours()),
+    () => null,
+  );
   const greeting = greetKey
     ? t(greetKey === "morning" ? "greetMorning" : greetKey === "afternoon" ? "greetAfternoon" : "greetEvening", lang)
     : "¡Hola!";

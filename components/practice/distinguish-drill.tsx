@@ -48,9 +48,11 @@ export function DistinguishDrill({
   // Pick a speaker and auto-play each new round's word.
   useEffect(() => {
     if (current) {
-      const v = pickDrillVoice();
-      setVoice(v);
-      const t = setTimeout(() => playTarget(v), 250);
+      const t = setTimeout(() => {
+        const v = pickDrillVoice();
+        setVoice(v);
+        playTarget(v);
+      }, 250);
       return () => clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

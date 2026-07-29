@@ -202,9 +202,9 @@ function ResultCard({
 }) {
   const { score: result, rewards } = outcome;
   const passed = result.passed;
-  const spanish = passed
-    ? CELEBRATIONS[Math.floor(Math.random() * CELEBRATIONS.length)]
-    : NUDGES[Math.floor(Math.random() * NUDGES.length)];
+  const messages = passed ? CELEBRATIONS : NUDGES;
+  const messageSeed = [...target].reduce((sum, char) => sum + char.charCodeAt(0), Math.round(result.score));
+  const spanish = messages[Math.abs(messageSeed) % messages.length];
   return (
     <div className="animate-fade-up text-center" role="status" aria-live="polite">
       {/* Lumi reacts — cheering on a win, warmly encouraging after a miss */}

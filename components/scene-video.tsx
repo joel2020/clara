@@ -27,7 +27,8 @@ export function SceneVideo({
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     const saveData =
       (navigator as unknown as { connection?: { saveData?: boolean } }).connection?.saveData ?? false;
-    setPlay(!reduce && !saveData);
+    const timer = setTimeout(() => setPlay(!reduce && !saveData), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const posterSrc = poster ?? `${base}-poster.jpg`;

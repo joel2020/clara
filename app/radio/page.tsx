@@ -229,6 +229,12 @@ export default function RadioPage() {
     }
   };
 
+  const skip = (dir: 1 | -1) => {
+    stopAll();
+    advance(dir);
+    if (playingRef.current) timerRef.current = setTimeout(runStep, 200);
+  };
+
   // Lock-screen / control-center transport (Media Session), like a music app.
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
@@ -256,12 +262,6 @@ export default function RadioPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id]);
-
-  const skip = (dir: 1 | -1) => {
-    stopAll();
-    advance(dir);
-    if (playingRef.current) timerRef.current = setTimeout(runStep, 200);
-  };
 
   if (!ready || progress === undefined) return <Splash />;
 

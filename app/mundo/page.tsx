@@ -75,7 +75,7 @@ export default function MundoPage() {
   const started = wordsKnown > 0 || attempts.length > 0;
 
   // "Tu semana" — the last 7 days at a glance, to make progress feel real.
-  const weekAgo = Date.now() - 7 * 86_400_000;
+  const weekAgo = today.getTime() - 7 * 86_400_000;
   const weekAttempts = attempts.filter((a) => a.at >= weekAgo);
   const weekDays = new Set(weekAttempts.map((a) => dayKey(new Date(a.at)))).size;
   const weekPasses = weekAttempts.filter((a) => a.passed).length;
