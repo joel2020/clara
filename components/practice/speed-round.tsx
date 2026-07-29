@@ -203,7 +203,7 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
         >
           {current.text}
         </h1>
-        <p className="mt-4 font-mono text-sm text-muted-foreground">{current.ipa}</p>
+        <p className="mt-4 font-ipa text-sm text-muted-foreground">{current.ipa}</p>
         {meaningFor(current.text, current.meaning) && (
           <p className="mt-2 text-sm italic text-primary/85">{meaningFor(current.text, current.meaning)}</p>
         )}

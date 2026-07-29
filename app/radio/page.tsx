@@ -285,7 +285,7 @@ export default function RadioPage() {
         {current ? (
           <>
             <p className="mt-5 font-display text-3xl font-medium leading-tight tracking-[-0.02em]">{current.text}</p>
-            <p className="mt-2 font-mono text-sm text-muted-foreground">{current.ipa}</p>
+            <p className="mt-2 font-ipa text-sm text-muted-foreground">{current.ipa}</p>
             {meaning && <p className="mt-2 text-base italic text-primary/90">{meaning}</p>}
             <p className="mt-4 font-mono text-xs tabular-nums text-muted-foreground">
               {idx + 1} {t("radioOf", lang)} {playlist.length}

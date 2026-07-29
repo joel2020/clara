@@ -834,6 +834,18 @@ html { scroll-behavior: smooth; }
   font-optical-sizing: none;
 }
 
+/* IPA transcription text. NEVER Geist/Geist Mono: their latin subsets carry no
+   IPA glyphs, so /ˈdɔːtər/ rendered per-character fallbacks into whatever system
+   font had each symbol — the "distorted letters" seen in production. The system
+   UI font on every platform (SF Pro, Roboto, Segoe UI) has complete IPA
+   coverage, so the whole transcription renders in ONE consistent face.
+   font-feature-settings resets the body's Geist-specific cv/ss sets. */
+.font-ipa {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: normal;
+  letter-spacing: 0.01em;
+}
+
 /* Safe-area helpers for immersive (headerless) screens and landscape phones. */
 .safe-top { padding-top: max(env(safe-area-inset-top), 12px); }
 .page-gutter {

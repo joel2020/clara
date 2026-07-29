@@ -66,7 +66,7 @@ export default function PlayPage() {
               >
                 <div>
                   <p className="font-display text-base font-medium transition-colors group-hover:text-primary">{l.title}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{l.subtitle}</p>
+                  <p className="font-ipa text-xs text-muted-foreground">{l.subtitle}</p>
                 </div>
                 <span className="font-mono text-xs text-muted-foreground">{l.items.length}</span>
               </button>

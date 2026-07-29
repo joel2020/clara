@@ -377,7 +377,7 @@ function ProduceItemCard({
       >
         {item.text}
       </h1>
-      <p className="mt-5 font-mono text-base text-muted-foreground">{item.ipa}</p>
+      <p className="mt-5 font-ipa text-base text-muted-foreground">{item.ipa}</p>
       {meaningFor(item.text, item.meaning) && (
         <p className="mt-3 max-w-md text-base italic text-primary/90">{meaningFor(item.text, item.meaning)}</p>
       )}

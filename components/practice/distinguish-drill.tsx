@@ -118,7 +118,7 @@ export function DistinguishDrill({
               )}
             >
               <span className="font-display text-3xl font-medium tracking-[-0.02em]">{opt.text}</span>
-              <span className="font-mono text-xs text-muted-foreground">{opt.ipa}</span>
+              <span className="font-ipa text-xs text-muted-foreground">{opt.ipa}</span>
               {answered && isTarget && (
                 <Check className="absolute right-3 top-3 size-4 text-success" />
               )}
