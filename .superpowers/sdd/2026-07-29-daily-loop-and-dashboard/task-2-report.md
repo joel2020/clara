@@ -411,3 +411,88 @@ Result: exit 0; `tsc --noEmit` reported no errors.
 - As in round 1, no local PostgreSQL runtime was available; this scoped SQL
   branch is covered by the migration logic assertion and the existing RPC
   boundary suite.
+
+## Fix round 3/5
+
+### Test correction
+
+The Fix round 2 substring assertion was removed. It could prove only that two
+independent SQL fragments existed, not that the migration's ordered evidence
+selection serialized an older-only pending activity correctly.
+
+`lib/sync/daily-session-sql-logic.test.mjs` is a dependency-free behavioral
+fixture that:
+
+1. reads the migration's actual ordered `terminal_activity` CASE branches;
+2. executes them over a full-join fixture containing an older-only
+   `reflect/pending` activity;
+3. serializes the selected terminal status as the SQL JSON aggregation does;
+4. runs the pending/active current-activity selection over that serialized
+   output.
+
+Test implementation commit:
+`19a8d602cef204882047c1342421ade6de8f4d25`
+
+### Covering behavioral checks
+
+- `older-only pending activity serializes with status pending`
+- `older-only pending activity remains selectable as current`
+
+### Discriminating RED/GREEN evidence
+
+The test was first run against the fixed migration, then mutation-verified by
+temporarily restoring the pre-fix CASE:
+
+```sql
+case when newer_rank >= older_rank
+  then newer_activity
+  else older_activity
+end
+```
+
+Command:
+
+```bash
+node lib/sync/daily-session-sql-logic.test.mjs
+```
+
+RED result against the pre-fix CASE: exit 1 with
+`older-only pending activity serializes with status pending`; actual status was
+`null`, expected `pending`.
+
+After restoring the corrected non-null-side-first CASE, the same command exited
+0 with `daily-session SQL logic: 2 ok, 0 failed`.
+
+### Verification
+
+Command:
+
+```bash
+node lib/sync/daily-session-sql-logic.test.mjs && node lib/sync/schema.test.mjs && node lib/daily-session-store.test.mjs
+```
+
+Result: exit 0.
+
+- Behavioral SQL logic: 2 checks passed, 0 failed.
+- Schema: 128 checks passed, 0 failed.
+- Daily-session focused suite: 7 tests passed, 0 failed.
+
+Command:
+
+```bash
+npm run typecheck
+```
+
+Result: exit 0; `tsc --noEmit` reported no errors.
+
+### Scope and concerns
+
+- No production dependency was added.
+- No production SQL or TypeScript behavior changed in this round; the SQL fix
+  remains the one committed in Fix round 2.
+- The fixture deliberately supports only the three conditions used by the
+  migration's terminal-activity CASE and fails on an unknown condition, so a
+  future SQL redesign must update the behavioral evaluator rather than silently
+  passing.
+- The Supabase migration remains undeployed, and no local PostgreSQL runtime was
+  available.
