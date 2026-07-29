@@ -74,7 +74,10 @@ function compareCandidates(now: number, fatigue: number) {
     const weakness = (candidate: Candidate) => (candidate.attempts - candidate.passes) / Math.max(candidate.attempts, 1) + (5 - candidate.box) / 10;
     if (weakness(a) !== weakness(b)) return weakness(b) - weakness(a); // weakness confidence
     if (a.updatedAt !== b.updatedAt) return b.updatedAt - a.updatedAt; // recency
-    if (fatigue && a.attempts !== b.attempts) return a.attempts - b.attempts; // fatigue
+    // A short recent session should not erase a stable curriculum tie-break,
+    // while a long one should increasingly favour the less-repeated item.
+    const fatiguePenalty = (candidate: Candidate) => Math.floor((fatigue * candidate.attempts) / 15);
+    if (fatiguePenalty(a) !== fatiguePenalty(b)) return fatiguePenalty(a) - fatiguePenalty(b); // fatigue
     return a.itemId.localeCompare(b.itemId);
   };
 }
