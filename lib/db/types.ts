@@ -277,6 +277,17 @@ export interface PlayerStats {
   equippedPet?: string;
   /** The outfit Lumi is wearing (outfit-default = her signature look). */
   equippedOutfit?: string;
+  /**
+   * The learner's own adult avatar (separate from the guide). All three fields
+   * are optional and purely cosmetic: players who predate them resolve to the
+   * defaults in lib/avatar.ts defaultLoadout() and lib/store.ts
+   * DEFAULT_FOR_SLOT — nothing destructive, nothing that touches assessment.
+   */
+  avatarBase?: import("@/lib/avatar").AvatarBase;
+  /** The avatar's outfit (street-default = the free look). */
+  equippedAvatarOutfit?: string;
+  /** The avatar's baseball cap (cap-none = bare-headed). */
+  equippedCap?: string;
   /** Local day the daily reward chest was last opened (null = never). */
   lastChestDay: string | null;
   /** Streak "freezes" banked — one covers a single missed day so the streak survives. */
