@@ -138,6 +138,18 @@ function claraFrames(state: CharacterState): Record<CharacterFrame, string> {
 }
 
 /**
+ * Whether the approved Clara artwork actually exists in public/character/clara.
+ *
+ * The manifest below is the contract the artwork will be drawn to, and it is
+ * deliberately written before the assets exist. Until the master sheet is
+ * approved and the seven states are produced, every path in CLARA_ASSETS is a
+ * 404 — so consumers must render their own placeholder rather than requesting
+ * one and handling the failure. Flip this to true in the same commit that adds
+ * the files; nothing else needs to change.
+ */
+export const CLARA_ARTWORK_AVAILABLE = false;
+
+/**
  * The Clara asset manifest — one entry per approved state. Safe areas and
  * anchors are the rendering contract the production assets are drawn into
  * (Task 2 renders to these numbers; tests pin them). Preferred framing per

@@ -515,6 +515,7 @@ const STRINGS = {
 
   // Virtual Call settings (Ajustes → Llamada virtual)
   vcSettings: { es: "Llamada virtual", en: "Virtual call" },
+  vcCard: { es: "Llamada con Clara", en: "Call with Clara" },
   vcMode: { es: "Cómo te corrige Clara", en: "How Clara corrects you" },
   vcModeNatural: { es: "Natural", en: "Natural" },
   vcModeNaturalSub: {
@@ -681,12 +682,22 @@ const STRINGS = {
     es: "Sostuviste una llamada de {d} en inglés, con {n} turnos tuyos. Eso ya es práctica de verdad.",
     en: "You held a {d} call in English, with {n} turns of your own. That is real practice.",
   },
+  // Singular variants: "con 1 turnos" reads as broken Spanish, and a learner
+  // practicing her language notices that immediately.
+  vcallReportLeadOne: {
+    es: "Sostuviste una llamada de {d} en inglés, con 1 turno tuyo. Eso ya es práctica de verdad.",
+    en: "You held a {d} call in English, with 1 turn of your own. That is real practice.",
+  },
   vcallReportDuration: { es: "Duración", en: "Length" },
   vcallReportTurns: { es: "Tus turnos", en: "Your turns" },
   vcallReportWentWell: { es: "Lo que comunicaste bien", en: "What you got across" },
   vcallReportClean: {
     es: "{n} de tus turnos no necesitaron ninguna corrección.",
     en: "{n} of your turns needed no correction at all.",
+  },
+  vcallReportCleanOne: {
+    es: "1 de tus turnos no necesitó ninguna corrección.",
+    en: "1 of your turns needed no correction at all.",
   },
   vcallReportMet: { es: "Cumpliste el objetivo de la llamada.", en: "You met the call's objective." },
   vcallReportNotMet: {

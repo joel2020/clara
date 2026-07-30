@@ -210,6 +210,7 @@ export default function HomePage() {
         {showMore && (
           <div className="animate-fade-up">
             <div className="mt-4 grid grid-cols-3 gap-3">
+              <Tile href="/virtual-call" icon={PhoneCall} label="vcCard" lang={lang} />
               <Tile href="/duet" icon={Drama} label="duetCard" lang={lang} />
               <Tile href="/media" icon={Clapperboard} label="mediaCard" lang={lang} />
               <Tile href="/listen" icon={Headphones} label="listenCard" lang={lang} />

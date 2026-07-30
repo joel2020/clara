@@ -167,10 +167,19 @@ export function shouldShowInline(mode: CorrectionMode, correction: TurnCorrectio
   return mode === "practice" ? correction.severity !== "minor" : correction.severity !== "minor";
 }
 
-/** Normalize for comparison: case, punctuation, and filler contractions. */
+/**
+ * Normalize for comparison: case and punctuation.
+ *
+ * Typographic apostrophes are folded to a straight one FIRST, and that step is
+ * load-bearing rather than cosmetic. Models and speech synthesis emit "friend’s"
+ * (U+2019) while speech transcripts emit "friend's", so without this a learner
+ * who repeats the corrected sentence perfectly has it split into "friend s" and
+ * scored as a miss. Found in browser testing, where a correct retry was rejected.
+ */
 export function normalizeUtterance(s: string): string {
   return s
     .toLowerCase()
+    .replace(/[‘’ʼ´`]/g, "'")
     .replace(/[^a-z0-9\s']/g, " ")
     .replace(/\s+/g, " ")
     .trim();
