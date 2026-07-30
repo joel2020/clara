@@ -138,16 +138,19 @@ function claraFrames(state: CharacterState): Record<CharacterFrame, string> {
 }
 
 /**
- * Whether the approved Clara artwork actually exists in public/character/clara.
+ * Whether the approved Clara artwork exists in public/character/clara.
  *
- * The manifest below is the contract the artwork will be drawn to, and it is
- * deliberately written before the assets exist. Until the master sheet is
- * approved and the seven states are produced, every path in CLARA_ASSETS is a
- * 404 — so consumers must render their own placeholder rather than requesting
- * one and handling the failure. Flip this to true in the same commit that adds
- * the files; nothing else needs to change.
+ * True since 2026-07-30: Joel approved the master sheet, and all seven states
+ * were produced from it and committed. Consumers may request these paths.
+ *
+ * The safe areas and anchors below are no longer a contract the art will be
+ * drawn to — they are MEASURED from the actual pixels of each state (figure
+ * bounding box and head centre), which is why they differ per state. The bust
+ * and avatar frames are crops of the same canonical drawing around that anchor,
+ * never independently regenerated faces, so the face cannot drift between
+ * frames.
  */
-export const CLARA_ARTWORK_AVAILABLE = false;
+export const CLARA_ARTWORK_AVAILABLE = true;
 
 /**
  * The Clara asset manifest — one entry per approved state. Safe areas and
@@ -159,8 +162,8 @@ export const CLARA_ARTWORK_AVAILABLE = false;
 export const CLARA_ASSETS: Record<CharacterState, ClaraStateAssets> = {
   welcome: {
     frames: claraFrames("welcome"),
-    safeArea: { top: 0.04, right: 0.14, bottom: 0.02, left: 0.14 },
-    anchor: { x: 0.5, y: 0.14 },
+    safeArea: { top: 0.0696, right: 0.3131, bottom: 0.0646, left: 0.2567 },
+    anchor: { x: 0.5089, y: 0.1215 },
     alt: { es: "Clara te da la bienvenida", en: "Clara welcomes you" },
     reducedMotion: "/character/clara/welcome-full.webp",
     screens: ["dashboard hero", "onboarding", "daily session start"],
@@ -168,34 +171,34 @@ export const CLARA_ASSETS: Record<CharacterState, ClaraStateAssets> = {
   teaching: {
     frames: claraFrames("teaching"),
     // Open-palm gesture extends to her right (viewer left): wider left inset.
-    safeArea: { top: 0.05, right: 0.1, bottom: 0.02, left: 0.2 },
-    anchor: { x: 0.54, y: 0.15 },
+    safeArea: { top: 0.085, right: 0.3488, bottom: 0.0646, left: 0.1897 },
+    anchor: { x: 0.5, y: 0.136 },
     alt: { es: "Clara explica el ejercicio", en: "Clara explains the exercise" },
     reducedMotion: "/character/clara/teaching-three-quarter.webp",
     screens: ["lesson intro", "daily session teach step", "technique tips"],
   },
   listening: {
     frames: claraFrames("listening"),
-    safeArea: { top: 0.05, right: 0.14, bottom: 0.02, left: 0.14 },
+    safeArea: { top: 0.0729, right: 0.3432, bottom: 0.0587, left: 0.3237 },
     // Attentive head tilt shifts the face slightly off-center.
-    anchor: { x: 0.48, y: 0.15 },
+    anchor: { x: 0.4838, y: 0.125 },
     alt: { es: "Clara te escucha", en: "Clara is listening to you" },
     reducedMotion: "/character/clara/listening-bust.webp",
     screens: ["pronunciation recording", "conversation practice"],
   },
   encouraging: {
     frames: claraFrames("encouraging"),
-    safeArea: { top: 0.05, right: 0.14, bottom: 0.02, left: 0.14 },
-    anchor: { x: 0.5, y: 0.15 },
+    safeArea: { top: 0.0775, right: 0.3064, bottom: 0.0817, left: 0.3192 },
+    anchor: { x: 0.4947, y: 0.1279 },
     alt: { es: "Clara te anima a intentarlo de nuevo", en: "Clara encourages you to try again" },
     reducedMotion: "/character/clara/encouraging-bust.webp",
     screens: ["practice feedback", "retry prompt", "near-miss result"],
   },
   thinking: {
     frames: claraFrames("thinking"),
-    safeArea: { top: 0.05, right: 0.16, bottom: 0.02, left: 0.12 },
+    safeArea: { top: 0.0808, right: 0.3309, bottom: 0.0542, left: 0.3504 },
     // Reflective gaze up and aside.
-    anchor: { x: 0.52, y: 0.14 },
+    anchor: { x: 0.5165, y: 0.1327 },
     alt: { es: "Clara está pensando", en: "Clara is thinking" },
     reducedMotion: "/character/clara/thinking-three-quarter.webp",
     screens: ["grading wait", "loading states"],
@@ -203,16 +206,16 @@ export const CLARA_ASSETS: Record<CharacterState, ClaraStateAssets> = {
   celebrating: {
     frames: claraFrames("celebrating"),
     // Grounded joy, hands may rise: smaller top inset reserves headroom.
-    safeArea: { top: 0.02, right: 0.14, bottom: 0.02, left: 0.14 },
-    anchor: { x: 0.5, y: 0.16 },
+    safeArea: { top: 0.0679, right: 0.3064, bottom: 0.0571, left: 0.3198 },
+    anchor: { x: 0.5028, y: 0.1204 },
     alt: { es: "Clara celebra tu logro", en: "Clara celebrates your achievement" },
     reducedMotion: "/character/clara/celebrating-full.webp",
     screens: ["session completion", "milestone unlock", "streak celebration"],
   },
   store: {
     frames: claraFrames("store"),
-    safeArea: { top: 0.04, right: 0.14, bottom: 0.02, left: 0.14 },
-    anchor: { x: 0.5, y: 0.14 },
+    safeArea: { top: 0.0758, right: 0.2919, bottom: 0.0821, left: 0.3214 },
+    anchor: { x: 0.5078, y: 0.1264 },
     alt: { es: "Clara en la tienda", en: "Clara in the store" },
     reducedMotion: "/character/clara/store-full.webp",
     screens: ["store preview"],
