@@ -71,7 +71,7 @@ export function OAuthCallbackScreen() {
             hand-back is not a Clara moment, so the card carries it alone. */}
         {!error && (
           <div className="mx-auto h-40 w-36 px-1">
-            <CharacterIllustration state="thinking" frame="threeQuarter" preload />
+            <CharacterIllustration state="thinking" frame="full" preload />
           </div>
         )}
 

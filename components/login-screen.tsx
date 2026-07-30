@@ -37,7 +37,7 @@ export function LoginScreen() {
             {/* First contact with the product: `welcome`, full figure, and the
                 page's LCP element. Decorative — "Bienvenida · Welcome" sits
                 directly beneath her and alt must not repeat it. */}
-            <CharacterIllustration state="welcome" frame="full" preload />
+            <CharacterIllustration state="welcome" preload />
           </div>
           <p className="mt-3 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/70">
             <span className="flag-dots" aria-hidden>

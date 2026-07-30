@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
@@ -25,8 +25,11 @@ import type { CoachLang } from "@/lib/i18n";
 //     alt, and only where Clara carries information the surrounding copy does
 //     not already say. Otherwise she is aria-hidden, so a screen reader hears
 //     the lesson instead of the decoration.
-//   • Under prefers-reduced-motion the manifest names the exact still to show,
-//     and nothing on the figure animates.
+//   • The manifest names one still per state — the state's own preferred
+//     framing — as what a reduced-motion render must show. That makes it the
+//     right default for any render that has not pinned a frame, so `frame`
+//     resolves to it rather than to a hardcoded guess, and nothing the
+//     component draws ever moves.
 //
 // Deliberately hook-free with respect to app state: this renders on pre-session
 // screens that live outside SettingsProvider and DataScope, and Clara's look
@@ -37,21 +40,29 @@ import type { CoachLang } from "@/lib/i18n";
 /** The frames that show the figure. `bust`/`avatar` arrive pre-cropped. */
 const FIGURE_FRAMES = new Set<CharacterFrame>(["full", "threeQuarter"]);
 
-function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(
-    (notify) => {
-      const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-      query.addEventListener("change", notify);
-      return () => query.removeEventListener("change", notify);
-    },
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    () => false,
-  );
+/** Per-frame `sizes`, so the browser never downloads a 864px sheet for a chip. */
+const FRAME_SIZES: Record<CharacterFrame, string> = {
+  full: "(max-width: 640px) 45vw, 320px",
+  threeQuarter: "(max-width: 640px) 60vw, 360px",
+  bust: "160px",
+  avatar: "64px",
+};
+
+/**
+ * The state's documented reduced-motion still, as a frame. It is the framing
+ * the state was designed around, so it is what an unpinned render should show.
+ * A pinned frame is honoured as-is: a caller pins a frame because it pinned a
+ * layout, and swapping the aspect ratio out from under it would break that
+ * layout for exactly the people who asked for less disruption.
+ */
+function documentedFrame(state: CharacterState): CharacterFrame {
+  const { frames, reducedMotion } = CLARA_ASSETS[state];
+  return (Object.keys(frames) as CharacterFrame[]).find((f) => frames[f] === reducedMotion) ?? "full";
 }
 
 export function CharacterIllustration({
   state,
-  frame = "full",
+  frame,
   meaningful = false,
   lang = "es",
   preload,
@@ -59,6 +70,7 @@ export function CharacterIllustration({
 }: {
   /** One of the seven approved states (lib/character.ts). */
   state: CharacterState;
+  /** Defaults to the state's documented reduced-motion still. */
   frame?: CharacterFrame;
   /** Give this render the state's localized alt. Default: decorative. */
   meaningful?: boolean;
@@ -70,11 +82,8 @@ export function CharacterIllustration({
   className?: string;
 }) {
   const art = CLARA_ASSETS[state];
-  const reduced = usePrefersReducedMotion();
-  // The manifest's reduced-motion still is the state's own preferred framing,
-  // so it substitutes only for the figure frames: the chips are already still
-  // images, and a full-figure still is unreadable in a 48px circle.
-  const src = reduced && FIGURE_FRAMES.has(frame) ? art.reducedMotion : art.frames[frame];
+  const shown = frame ?? documentedFrame(state);
+  const src = art.frames[shown];
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const alt = meaningful ? art.alt[lang] : "";
 
@@ -97,13 +106,11 @@ export function CharacterIllustration({
         src={src}
         alt={alt}
         fill
-        sizes={
-          frame === "avatar" ? "64px" : frame === "bust" ? "160px" : "(max-width: 640px) 45vw, 320px"
-        }
+        sizes={FRAME_SIZES[shown]}
         preload={preload}
         className={cn(
           "object-contain",
-          FIGURE_FRAMES.has(frame) && "drop-shadow-[0_14px_30px_rgba(0,0,0,0.14)]",
+          FIGURE_FRAMES.has(shown) && "drop-shadow-[0_14px_30px_rgba(0,0,0,0.14)]",
         )}
         onError={() => setFailedSrc(src)}
       />

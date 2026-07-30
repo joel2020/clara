@@ -77,7 +77,7 @@ export function CinematicLayer() {
         <div className="relative h-64 w-52 sm:h-72 sm:w-60">
           {/* Milestone unlock / streak celebration — `celebrating`, full
               figure. The whole overlay already no-ops under reduced motion. */}
-          <CharacterIllustration state="celebrating" frame="full" preload />
+          <CharacterIllustration state="celebrating" preload />
         </div>
         {scene.title && (
           <p className="mt-1 font-display text-3xl font-semibold tracking-[-0.02em] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">

@@ -58,10 +58,11 @@ function ListenContent() {
 
       <section className="mt-6 flex flex-col items-center text-center animate-fade-up">
         {/* A game's opening screen is a lesson intro: Clara explains what the
-            round is before it starts, then gets out of the way. Three-quarter
-            is the manifest's preferred framing for `teaching`. */}
+            round is before it starts, then gets out of the way. `teaching`'s
+            three-quarter sheet is landscape, so this portrait box pins the
+            full figure rather than squashing her into a band. */}
         <div className="relative h-40 w-32">
-          <CharacterIllustration state="teaching" frame="threeQuarter" preload />
+          <CharacterIllustration state="teaching" frame="full" preload />
         </div>
         <h1 className="mt-4 font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{t("listenTitle", lang)}</h1>
         <p className="mx-auto mt-3 max-w-sm leading-relaxed text-muted-foreground">{t("listenIntro", lang)}</p>

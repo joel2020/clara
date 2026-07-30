@@ -142,7 +142,7 @@ export default function HomePage() {
                 words, and repeating it in alt would double it for a screen
                 reader. No sway: the design system allows micro-movement only,
                 and an 8s infinite tilt on a drawn face is not that. */}
-            <CharacterIllustration state="welcome" frame="full" preload />
+            <CharacterIllustration state="welcome" preload />
             <PetSprite petId={player?.equippedPet} className="absolute -left-8 bottom-1 z-10 sm:-left-10" />
           </div>
         </div>
