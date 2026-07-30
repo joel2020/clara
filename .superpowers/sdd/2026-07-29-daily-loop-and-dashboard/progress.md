@@ -38,3 +38,19 @@ Whole-plan review: no blocking findings; plan delivered and safe to build the ch
 Whole-plan fix round (commit 2a7cac6): shadow-round technical recognition errors now show a neutral notice instead of the miss badge; activity returns carry sessionDay so a post-midnight return cannot credit the new session; checkpointActivity writes locally without a blocking cloud pull.
 Whole-plan review minor (deferred): TS/SQL completedAt tie-break asymmetry (unreachable divergence, informational).
 Whole-plan review minor (deferred to insights plan): evidenced-improvement derivation, player_stats whole-row LWW, real-PostgreSQL migration execution, visible sync queue, comeback session.
+
+## Character, store, and humor plan
+Task 1: complete — CHARACTER_DESIGN_SYSTEM.md + typed CLARA_ASSETS manifest (commit 0402705).
+Task 2: BLOCKED on Joel — master sheet candidates in docs/character/master-sheet-candidates/ (commit a7a2e9e). No pose/outfit expansion until one is approved.
+Task 3: partial — learner-facing Lumi identity, copy, and alt text removed; Lumi artwork still renders pending Task 2.
+Task 4: complete — adult avatar slots, original baseball caps, cosmetic-only (commit a6b275b).
+Task 5: complete — avatar artwork, compositor with per-cap head-opening anchors, store preview and "No real money" copy (commit 596992f).
+Task 6: complete — humor selector, reviewed Clara bank, Joel lines held as drafts, wired into completion (commits f942b5f, 930b0b2).
+
+## Insights, verification, and release plan
+Task 1: complete — closed analytics schema (commit a6d8634).
+Task 2: complete — metric definitions and instructor insights (commit 0681fdb).
+Task 3: complete — comeback sessions and specific notifications (commit 2748502).
+Task 4/5: complete — baseline, requirement matrix, results, 61 screenshots (commit a50b053).
+Task 6: complete — migrations applied and verified, deployed 2db5052, docs and pilot plan (commits 29940d7, 797c69b).
+Release blockers remaining, all owner-only: Clara master sheet approval, Joel humor line approval, authenticated production smoke tests, physical iPhone checks.
