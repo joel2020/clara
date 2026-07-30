@@ -416,7 +416,7 @@ export default function ExamPage() {
 
   if (phase === "grading") {
     return shell(
-      <div className={cn(card)}>
+      <div className={card}>
         {/* A grading wait is the manifest's own `thinking` screen: the pause
             reads as consideration rather than as something going wrong. */}
         <CharacterReaction state="thinking">Calificando tu examen…</CharacterReaction>
