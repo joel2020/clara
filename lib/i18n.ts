@@ -260,6 +260,15 @@ const STRINGS = {
     en: "Saving your reward…",
   },
   todayBackToSession: { es: "Volver a la sesión de hoy", en: "Back to today's session" },
+  todayUnavailableTitle: {
+    es: "Todavía no podemos armar la sesión de hoy",
+    en: "We can't build today's session yet",
+  },
+  todayUnavailableBody: {
+    es: "Tu progreso está a salvo. Vuelve a intentarlo, o practica desde el inicio mientras tanto.",
+    en: "Your progress is safe. Try again, or practice from the home screen meanwhile.",
+  },
+  todayUnavailableRetry: { es: "Reintentar", en: "Try again" },
   todayCompletionRewardOnce: {
     es: "Se agrega una sola vez, aunque vuelvas a abrir esta página.",
     en: "Added once, even if you reopen this page.",
@@ -277,6 +286,17 @@ const STRINGS = {
   shopCardSub: { es: "Gasta tus estrellas en Lumi", en: "Spend your stars on Lumi" },
   shopTitle: { es: "Tienda de Lumi", en: "Lumi's shop" },
   shopIntro: { es: "Gana estrellas hablando bien y vístela a tu gusto.", en: "Earn stars by speaking clearly, then style her up." },
+  // The store's standing promise, shown on the page itself: the currency is
+  // earned by practising, and there is nothing here to buy with money.
+  shopNoRealMoney: {
+    es: "Sin dinero real · Se gana aprendiendo.",
+    en: "No real money · Earned through learning.",
+  },
+  shopYourAvatar: { es: "Tu avatar", en: "Your avatar" },
+  shopYourAvatarAlt: {
+    es: "Tu avatar con el look que llevas puesto",
+    en: "Your avatar in the look you're wearing",
+  },
   rarityLegendary: { es: "Legendario", en: "Legendary" },
   shopPets: { es: "Mascotas", en: "Pets" },
   mundoEyebrow: { es: "Mi mundo", en: "My world" },

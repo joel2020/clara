@@ -115,7 +115,39 @@ function TodaySessionRunner() {
       });
   }, [claimCompletion, session]);
 
-  if (!ready || loading || !session) return <Splash />;
+  if (!ready || loading) return <Splash />;
+
+  // Composition can legitimately yield nothing (no bound account yet, or a
+  // storage read that failed). Say so plainly instead of leaving her on a
+  // splash screen that never resolves.
+  if (!session) {
+    return (
+      <main className="mx-auto max-w-2xl px-5 pb-24 pt-6 sm:px-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          {t("backHome", lang)}
+        </Link>
+        <section className="mt-6 rounded-3xl border border-hairline bg-card p-5 shadow-sm sm:p-7">
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.02em]">
+            {t("todayUnavailableTitle", lang)}
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {t("todayUnavailableBody", lang)}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            className="mt-5 min-h-12 rounded-2xl bg-foreground px-5 py-3 font-semibold text-background transition-opacity hover:opacity-90"
+          >
+            {t("todayUnavailableRetry", lang)}
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   const current = nextActivity(session);
   const recoveryActivity = recoveryActivityId
