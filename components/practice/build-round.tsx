@@ -65,7 +65,8 @@ export function BuildRound({ items, onExit }: { items: PracticeItem[]; onExit: (
   const current = round[idx];
   const chips = useMemo(() => (current ? shuffle(toChips(current.text)) : []), [current]);
   const remaining = chips.filter((c) => !placed.some((p) => p.key === c.key));
-  const voice = useMemo(() => pickDrillVoice().slug, [idx]);
+  const voices = useMemo(() => round.map(() => pickDrillVoice().slug), [round]);
+  const voice = voices[idx];
 
   const play = useCallback(() => {
     if (!current) return;

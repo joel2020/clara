@@ -1,10 +1,12 @@
 "use client";
 
-import { use } from "react";
+import { Suspense, use } from "react";
 import Link from "next/link";
 import { PracticeSession } from "@/components/practice/practice-session";
+import { useSessionReturn } from "@/components/daily-session/use-session-return";
 import { SceneVideo } from "@/components/scene-video";
 import { useLesson } from "@/lib/hooks/useLessons";
+import { Splash } from "@/components/splash";
 
 // A dim cinematic backdrop for the real-world conversation units, so a lesson
 // about the cafe/airport/work feels like you're there. Sound & phonics lessons
@@ -29,8 +31,17 @@ const SCENE_FOR_LESSON: Record<string, string> = {
 };
 
 export default function LessonPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<Splash />}>
+      <LessonContent params={params} />
+    </Suspense>
+  );
+}
+
+function LessonContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const lesson = useLesson(id);
+  const { exitHref, completedHref } = useSessionReturn();
 
   if (!lesson) {
     return (
@@ -56,7 +67,11 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
           <div className="absolute inset-0 bg-background/88 backdrop-blur-[2px]" />
         </div>
       )}
-      <PracticeSession lesson={lesson} />
+      <PracticeSession
+        lesson={lesson}
+        exitHref={exitHref ?? "/"}
+        completionHref={completedHref}
+      />
     </>
   );
 }

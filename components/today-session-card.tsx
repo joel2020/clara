@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Check, Clock3, Flag, PlayCircle, Trophy } from "lucide-react";
-import { nextActivity, sessionProgress } from "@/lib/daily-session";
+import { Check, Circle, Clock3, Flag, PlayCircle, Trophy } from "lucide-react";
+import { sessionProgress } from "@/lib/daily-session";
 import { useDailySession } from "@/lib/hooks/useDailySession";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
@@ -15,7 +15,6 @@ export function TodaySessionCard() {
   const lang = settings.coachLanguage;
   const progress = session ? sessionProgress(session) : { completed: 0, total: 0, percentage: 0 };
   const minutes = session?.activities.reduce((total, activity) => total + activity.estimatedMinutes, 0) ?? 15;
-  const current = session ? nextActivity(session) : null;
   const continuing = session?.startedAt !== null && session?.completedAt === null;
 
   return (
@@ -49,7 +48,14 @@ export function TodaySessionCard() {
           <span className="font-semibold uppercase tracking-[0.1em] text-muted-foreground">{t("todaySessionProgress", lang)}</span>
           <span className="font-medium tabular-nums">{progress.completed}/{progress.total || "—"}</span>
         </div>
-        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-primary/10" aria-label={`${t("todaySessionProgress", lang)} ${progress.percentage}%`}>
+        <div
+          className="mt-1.5 h-2 overflow-hidden rounded-full bg-primary/10"
+          role="progressbar"
+          aria-label={`${t("todaySessionProgress", lang)} ${progress.percentage}%`}
+          aria-valuenow={progress.percentage}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
           <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${progress.percentage}%` }} />
         </div>
       </div>
@@ -59,11 +65,15 @@ export function TodaySessionCard() {
         <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs text-foreground/80">
           {(session?.activities ?? []).map((activity) => (
             <span key={activity.id} className="flex min-w-0 items-center gap-1.5 rounded-lg bg-background/70 px-2 py-1.5">
-              <Check className="size-3 shrink-0 text-primary" aria-hidden />
+              {activity.status === "completed" ? (
+                <Check className="size-3 shrink-0 text-primary" aria-hidden />
+              ) : (
+                <Circle className="size-3 shrink-0 text-primary/45" aria-hidden />
+              )}
               <span className="truncate">{activity.title[lang]}</span>
             </span>
           ))}
-          {!session && !loading && current === null && (
+          {!session && !loading && (
             <span className="col-span-2 text-xs text-muted-foreground">{t("todayIntro", lang)}</span>
           )}
         </div>

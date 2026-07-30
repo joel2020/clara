@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Mic, Square, RotateCcw, Volume2, Loader2, BookmarkPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
@@ -18,6 +19,7 @@ import { ScenarioGlyph } from "@/components/system/scenario-glyph";
 import { Splash } from "@/components/splash";
 import { authHeaders } from "@/lib/auth-client";
 import { SceneVideo } from "@/components/scene-video";
+import { useSessionReturn } from "@/components/daily-session/use-session-return";
 
 // Which cinematic scene loop backs each roleplay.
 const SCENE_FOR: Record<string, string> = {
@@ -56,6 +58,16 @@ interface Turn {
 type Phase = "idle" | "recording" | "thinking";
 
 export default function TalkPage() {
+  return (
+    <Suspense fallback={<Splash />}>
+      <TalkContent />
+    </Suspense>
+  );
+}
+
+function TalkContent() {
+  const router = useRouter();
+  const { exitHref, completedHref, technicalHref } = useSessionReturn();
   const { settings, ready } = useSettings();
   const lang = settings.coachLanguage;
   // Read off settings once so they can be plain deps of send() below.
@@ -190,9 +202,14 @@ export default function TalkPage() {
   const reset = useCallback(() => {
     // Leaving a conversation deliberately still counts as completing it — she
     // talked. Only an unmount mid-session is treated as abandoned.
+    const completed = herTurns.current > 0;
     saveSession(true);
     recRef.current?.cancel();
     audioRef.current?.pause();
+    if (completed && completedHref) {
+      router.push(completedHref);
+      return;
+    }
     setScenario(null);
     setTurns([]);
     setPhase("idle");
@@ -200,7 +217,7 @@ export default function TalkPage() {
     setSuggestions([]);
     setError(null);
     setNotConfigured(false);
-  }, [saveSession]);
+  }, [completedHref, router, saveSession]);
 
   // Send the running conversation to Joel and handle his reply.
   const send = useCallback(
@@ -332,7 +349,7 @@ export default function TalkPage() {
   if (!scenario) {
     return (
       <div className="mx-auto max-w-3xl px-5 pb-24 pt-14 sm:px-6 sm:pt-20">
-        <BackLink lang={lang} />
+        <BackLink lang={lang} href={exitHref ?? "/"} />
         <section className="mt-6 animate-fade-up">
           <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             <span className="flag-dots" aria-hidden>
@@ -417,6 +434,14 @@ export default function TalkPage() {
           <div className="rounded-2xl border border-hairline bg-card p-5">
             <p className="font-display text-lg font-medium">{t("talkNotConfiguredTitle", lang)}</p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("talkNotConfigured", lang)}</p>
+            {technicalHref && (
+              <Link
+                href={technicalHref}
+                className="mt-4 inline-flex rounded-full border border-hairline px-4 py-2 text-sm font-medium"
+              >
+                {t("todayReturnSession", lang)}
+              </Link>
+            )}
           </div>
         )}
 
@@ -548,10 +573,10 @@ function Bubble({
   );
 }
 
-function BackLink({ lang }: { lang: "es" | "en" }) {
+function BackLink({ lang, href }: { lang: "es" | "en"; href: string }) {
   return (
     <Link
-      href="/"
+      href={href}
       className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft className="size-4" />

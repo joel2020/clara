@@ -25,7 +25,19 @@ import { StarRating } from "@/components/star-reward";
 const ROUND_LENGTH = 8;
 type Phase = "listen" | "ready" | "recording" | "scoring" | "flash";
 
-export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: () => void }) {
+export function ShadowRound({
+  items,
+  onExit,
+  onComplete = onExit,
+  onTechnicalExit = onExit,
+  technicalExitLabel,
+}: {
+  items: PracticeItem[];
+  onExit: () => void;
+  onComplete?: () => void;
+  onTechnicalExit?: () => void;
+  technicalExitLabel?: string;
+}) {
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
   const support = useSpeechSupport();
@@ -41,8 +53,9 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
 
   const current = round[idx];
   // A different American voice per phrase, so her ear trains across speakers.
-  // Fixed per item (recomputes only when the phrase changes) so replay matches.
-  const voiceSlug = useMemo(() => pickDrillVoice().slug, [idx]);
+  // Fixed per item so replay matches.
+  const voices = useMemo(() => round.map(() => pickDrillVoice().slug), [round]);
+  const voiceSlug = voices[idx];
 
   const playModel = useCallback(() => {
     if (!current) return;
@@ -134,8 +147,8 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
     return (
       <div className="mx-auto max-w-md px-5 py-24 text-center">
         <p className="font-display text-2xl font-medium tracking-[-0.01em]">{t("shadowNeedsMic", lang)}</p>
-        <button onClick={onExit} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
-          {t("navLessons", lang)}
+        <button onClick={onTechnicalExit} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
+          {technicalExitLabel ?? t("navLessons", lang)}
         </button>
       </div>
     );
@@ -160,7 +173,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         </div>
         <div className="mt-9 flex items-center justify-center gap-3">
           <button
-            onClick={onExit}
+            onClick={onComplete}
             className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground/80 transition-all hover:border-foreground/30 active:scale-[0.98]"
           >
             {t("finish", lang)}

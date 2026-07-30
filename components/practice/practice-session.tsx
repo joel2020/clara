@@ -37,7 +37,15 @@ import { SceneVideo } from "@/components/scene-video";
 
 type Stage = "loading" | "learn" | "distinguish" | "produce" | "phrases" | "done";
 
-export function PracticeSession({ lesson }: { lesson: Lesson }) {
+export function PracticeSession({
+  lesson,
+  exitHref = "/",
+  completionHref,
+}: {
+  lesson: Lesson;
+  exitHref?: string;
+  completionHref?: string | null;
+}) {
   const support = useSpeechSupport();
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
@@ -55,7 +63,6 @@ export function PracticeSession({ lesson }: { lesson: Lesson }) {
     return () => {
       if (started.current && !completedRef.current) track("lesson_abandon", { lesson: lesson.id });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson.id]);
   useEffect(() => {
     if (stage === "done" && !completedRef.current) {
@@ -174,7 +181,7 @@ export function PracticeSession({ lesson }: { lesson: Lesson }) {
 
       <div className="mb-6 flex items-center justify-between">
         <Link
-          href="/"
+          href={exitHref}
           className="group flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
@@ -296,6 +303,7 @@ export function PracticeSession({ lesson }: { lesson: Lesson }) {
           onRestart={restart}
           lang={lang}
           studentName={settings.studentName}
+          completionHref={completionHref}
         />
       )}
     </div>
@@ -411,6 +419,7 @@ function DoneCard({
   onRestart,
   lang,
   studentName,
+  completionHref,
 }: {
   lesson: Lesson;
   results: Record<string, boolean>;
@@ -421,6 +430,7 @@ function DoneCard({
   onRestart: () => void;
   lang: CoachLang;
   studentName: string | null;
+  completionHref?: string | null;
 }) {
   const clear = Object.values(results).filter(Boolean).length;
   const attempted = Object.keys(results).length;
@@ -560,12 +570,20 @@ function DoneCard({
           <Sparkles className="size-4" />
           {t("again", lang)}
         </Button>
-        <Link href="/play" className={cn(buttonVariants(), "rounded-full px-5")}>
-          {t("speedRound", lang)}
-        </Link>
-        <Link href="/dashboard" className={cn(buttonVariants({ variant: "secondary" }), "rounded-full px-5")}>
-          {t("seeSounds", lang)}
-        </Link>
+        {completionHref ? (
+          <Link href={completionHref} className={cn(buttonVariants(), "rounded-full px-5")}>
+            {t("todayContinue", lang)}
+          </Link>
+        ) : (
+          <>
+            <Link href="/play" className={cn(buttonVariants(), "rounded-full px-5")}>
+              {t("speedRound", lang)}
+            </Link>
+            <Link href="/dashboard" className={cn(buttonVariants({ variant: "secondary" }), "rounded-full px-5")}>
+              {t("seeSounds", lang)}
+            </Link>
+          </>
+        )}
       </div>
       <p className="mt-6 text-xs text-muted-foreground">{t("missedResurface", lang)}</p>
     </div>
