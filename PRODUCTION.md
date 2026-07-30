@@ -1,6 +1,25 @@
 # Clara — production readiness
 
-Last verified: 2026-07-28, commit `5480d49`.
+Last verified: 2026-07-30, commit `2db5052` (the daily-classroom rebuild).
+
+The daily-classroom rebuild shipped on 2026-07-30. What changed operationally:
+
+- **New table `daily_sessions`** with own-rows-only RLS and a `merge_daily_session`
+  RPC (security invoker, ownership from `auth.uid()`, granted to `authenticated`,
+  revoked from `public` and `anon`). Applied and verified in production.
+- **`events` gained three rollup indexes**; its RLS policy is unchanged.
+- **`player_stats` gained `avatar_base`, `equipped_avatar_outfit`, `equipped_cap`**
+  (nullable, no backfill needed).
+- Migration verification on the live database, before and after: attempts 601,
+  progress 245, profiles 16, player_stats 8, settings 10 — all unchanged. RLS
+  enabled with exactly one policy on every table.
+- Analytics now go through a closed event schema (`lib/analytics-schema.ts`).
+  Invalid events are dropped before any local or cloud write, and no event type
+  can carry a transcript, audio, voice, email, or free text.
+
+Rollback: promote the previous production deployment (`2997e20`) in the Vercel
+dashboard. The schema changes are additive, so the older build ignores the new
+columns rather than failing on them. No learner data needs migrating backwards.
 
 The app is live and serving two students. This file records what has been
 verified, how to verify it again, and the few things only the account owner can

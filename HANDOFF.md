@@ -1,7 +1,43 @@
 # Clara — Session Handoff
 
 Paste the prompt below into a fresh Claude Code session (run from `~/clara`) to
-continue where the last session left off. Last updated: 2026-07-27.
+continue where the last session left off. Last updated: 2026-07-30.
+
+## Where things stand (2026-07-30)
+
+The daily-classroom rebuild is **shipped to production** at commit `2db5052`.
+Clara is no longer a menu of practice modes: the dashboard leads with today's
+session, and `/today` is a guided, resumable runner that checkpoints every step.
+
+Landed: the daily-loop runner and composer, account-scoped persistence with a
+monotonic Supabase merge, idempotent completion rewards, adult learner avatars
+(woman and man, in their 20s) with original baseball caps and pets, an
+earned-only store stating "No real money · Earned through learning.", a closed
+privacy-bounded analytics schema, instructor insights, comeback sessions, and
+the Clara character design system and typed asset manifest.
+
+Evidence: `docs/verification/2026-07-29-results.md`, the requirement matrix
+beside it, and 61 before/after screenshots across six widths.
+
+**Four things need Joel and are the only blockers:**
+
+1. **Approve the Clara master character sheet.** Candidates are in
+   `docs/character/master-sheet-candidates/` (candidate 2 is recommended).
+   Nothing else about Clara's artwork can proceed until one is approved — the
+   spec forbids pose or outfit expansion before the gate. Until then the old
+   Lumi artwork still renders, even though her learner-facing name and copy are
+   gone.
+2. **Approve or rewrite the Joel humor lines.** Every Joel line in
+   `lib/content/humor.ts` is marked `approval: "draft"` and is excluded at
+   runtime, so none of them can reach a learner. They are proposals in his
+   register, not quotes.
+3. **Authenticated production smoke tests**, which need an owner account on the
+   allowlist.
+4. **Physical iPhone checks**: microphone capture, Safari PWA install, OAuth
+   redirect, and push delivery.
+
+Next up after those: the seven Clara production states, retiring the Lumi
+artwork, and running `docs/PILOT_PLAN_7_DAYS.md`.
 
 ---
 
