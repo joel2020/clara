@@ -7,10 +7,12 @@
 //   the learner ("target" below records which, so tests can assert it).
 // - Any line using slang carries a plain-Spanish meaning and a register note.
 // - Clara's lines ship as reviewed copy ("reviewed" = releasable).
-// - Joel's lines are CANDIDATE DRAFTS. They are proposals in his classroom
-//   register, not real quotes, and stay approval: "draft" — excluded at
-//   runtime — until Joel explicitly approves each one ("joel-approved").
-//   Never present a draft as an authentic Joel quote.
+// - Joel's lines were written as proposals in his classroom register and held
+//   as approval: "draft" (excluded at runtime) until he read them. Joel
+//   approved all six on 2026-07-30, so they now carry "joel-approved" and can
+//   reach a learner in his voice. Any NEW line starts life as "draft" again:
+//   the gate is per line, not per file, and a draft is never presented as an
+//   authentic Joel quote.
 
 export type HumorSpeaker = "clara" | "joel";
 export type HumorStrength = "light" | "strong";
@@ -249,7 +251,7 @@ const JOEL_DRAFTS: HumorReaction[] = [
     speaker: "joel",
     contexts: ["mastery"],
     strength: "strong",
-    approval: "draft",
+    approval: "joel-approved",
     target: "situation",
     text: {
       es: "Eso que acabas de lograr no es suerte. La suerte no se repite tres veces seguidas.",
@@ -261,7 +263,7 @@ const JOEL_DRAFTS: HumorReaction[] = [
     speaker: "joel",
     contexts: ["mastery"],
     strength: "light",
-    approval: "draft",
+    approval: "joel-approved",
     target: "self",
     text: {
       es: "A mí ese sonido me costó más de lo que admito en clase.",
@@ -273,7 +275,7 @@ const JOEL_DRAFTS: HumorReaction[] = [
     speaker: "joel",
     contexts: ["comeback"],
     strength: "strong",
-    approval: "draft",
+    approval: "joel-approved",
     target: "situation",
     text: {
       es: "Volver es la parte difícil, y ya la hiciste. Lo demás es costumbre.",
@@ -285,7 +287,7 @@ const JOEL_DRAFTS: HumorReaction[] = [
     speaker: "joel",
     contexts: ["streak"],
     strength: "light",
-    approval: "draft",
+    approval: "joel-approved",
     target: "situation",
     text: {
       es: "Una racha así no se ve todos los días. Bueno, en tu caso sí, todos los días.",
@@ -297,7 +299,7 @@ const JOEL_DRAFTS: HumorReaction[] = [
     speaker: "joel",
     contexts: ["session-complete"],
     strength: "light",
-    approval: "draft",
+    approval: "joel-approved",
     target: "situation",
     text: {
       es: "Sesión completa. Hoy el que descansa con la conciencia tranquila eres tú.",
@@ -309,7 +311,7 @@ const JOEL_DRAFTS: HumorReaction[] = [
     speaker: "joel",
     contexts: ["recovery"],
     strength: "light",
-    approval: "draft",
+    approval: "joel-approved",
     target: "self",
     text: {
       es: "Equivocarse es entrenar. Yo llevo años en esto y todavía me enredo con algunas palabras.",
