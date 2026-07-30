@@ -83,8 +83,8 @@ const STRINGS = {
   settingsCopied: { es: "¡Copiado!", en: "Copied!" },
   pushTitle: { es: "Recordatorio diario", en: "Daily reminder" },
   pushSub: {
-    es: "Lumi te avisa una vez al día para no perder tu racha.",
-    en: "Lumi nudges you once a day so your streak survives.",
+    es: "Te avisamos una vez al día, sin presión.",
+    en: "One reminder a day, no pressure.",
   },
   pushEnable: { es: "Activar", en: "Turn on" },
   pushEnabled: { es: "Activado — te avisamos a las ~6 pm", en: "On — we'll nudge you around 6 pm" },
@@ -174,14 +174,14 @@ const STRINGS = {
   shopConfirmAfter: { es: "Te quedarían", en: "You'd have" },
   shopConfirmBuy: { es: "Comprar", en: "Buy" },
   shopCancel: { es: "Ahora no", en: "Not now" },
-  shopPurchased: { es: "¡Es tuyo! Lumi ya lo lleva puesto.", en: "It's yours! Lumi is wearing it." },
+  shopPurchased: { es: "¡Es tuyo! Ya lo llevas puesto.", en: "It's yours! You're wearing it." },
   shopInsufficient: { es: "Te faltan", en: "You need" },
   shopInsufficientCta: { es: "Gana estrellas hablando — cada frase clara suma.", en: "Earn stars by speaking — every clear phrase counts." },
   shopGoPractice: { es: "Ir a practicar", en: "Go practice" },
   shopRestoreDefault: { es: "Restaurar el clásico", en: "Restore the classic" },
   shopRemove: { es: "Quitar", en: "Remove" },
   shopLockedLevel: { es: "Se abre en el nivel", en: "Unlocks at level" },
-  shopPreviewTitle: { es: "Así se ve Lumi", en: "Lumi right now" },
+  shopPreviewTitle: { es: "Tu escena", en: "Your scene" },
 
   // Shadowing / listening game
   shadowCard: { es: "Escucha y repite", en: "Listen & echo" },
@@ -283,9 +283,9 @@ const STRINGS = {
 
   // Star shop
   shopCard: { es: "Tienda de estrellas", en: "Star shop" },
-  shopCardSub: { es: "Gasta tus estrellas en Lumi", en: "Spend your stars on Lumi" },
-  shopTitle: { es: "Tienda de Lumi", en: "Lumi's shop" },
-  shopIntro: { es: "Gana estrellas hablando bien y vístela a tu gusto.", en: "Earn stars by speaking clearly, then style her up." },
+  shopCardSub: { es: "Gasta tus estrellas en tu estilo", en: "Spend your stars on your style" },
+  shopTitle: { es: "Tu tienda", en: "Your store" },
+  shopIntro: { es: "Gana estrellas hablando bien y arma tu estilo.", en: "Earn stars by speaking clearly, then build your style." },
   // The store's standing promise, shown on the page itself: the currency is
   // earned by practising, and there is nothing here to buy with money.
   shopNoRealMoney: {
@@ -323,7 +323,7 @@ const STRINGS = {
   installTitle: { es: "Instala Clara en tu iPhone", en: "Install Clara on your iPhone" },
   installBody: { es: "Toca Compartir y luego “Agregar a inicio”. Así tu progreso queda protegido y te llegan los recordatorios.", en: "Tap Share, then “Add to Home Screen”. That protects your progress and enables reminders." },
   installDismiss: { es: "Ahora no", en: "Not now" },
-  shopOutfits: { es: "Looks de Lumi", en: "Lumi's looks" },
+  shopOutfits: { es: "Estilos clásicos", en: "Classic looks" },
   shopBackgrounds: { es: "Fondos", en: "Backgrounds" },
   shopAccessories: { es: "Accesorios", en: "Accessories" },
   shopEffects: { es: "Efectos", en: "Effects" },

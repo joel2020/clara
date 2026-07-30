@@ -33,7 +33,7 @@ export const CHARACTER = {
   role: "companion",
   /** The meaningful alt, used ONLY where she carries information. Everywhere
    *  else she is decoration and renders aria-hidden. */
-  alt: { es: "Lumi, tu compañera de estudio", en: "Lumi, your study companion" },
+  alt: { es: "Tu guía de estudio", en: "Your study guide" },
 } as const;
 
 /**

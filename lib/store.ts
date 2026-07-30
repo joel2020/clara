@@ -12,7 +12,7 @@ import { levelForXp } from "./gamification.ts";
 export const STORE_CATEGORIES: { type: CosmeticType; label: { es: string; en: string } }[] = [
   { type: "avatar-outfit", label: { es: "Tu look", en: "Your look" } },
   { type: "cap", label: { es: "Gorras", en: "Caps" } },
-  { type: "outfit", label: { es: "Looks de Lumi", en: "Lumi's looks" } },
+  { type: "outfit", label: { es: "Estilos clásicos", en: "Classic looks" } },
   { type: "pet", label: { es: "Mascotas", en: "Pets" } },
   { type: "background", label: { es: "Fondos", en: "Backgrounds" } },
   { type: "accessory", label: { es: "Accesorios", en: "Accessories" } },

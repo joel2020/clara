@@ -21,6 +21,7 @@ import { sfx } from "@/lib/sfx";
 import { popConfetti } from "@/lib/fx";
 import { juice } from "@/components/juice";
 import { CharacterPreview } from "@/components/character";
+import { AvatarPreview } from "@/components/avatar/avatar-preview";
 import { SceneArt } from "@/components/scene-art";
 import { SceneVideo } from "@/components/scene-video";
 import { Splash } from "@/components/splash";
@@ -35,6 +36,13 @@ import {
   type Cosmetic,
 } from "@/lib/cosmetics";
 import { STORE_CATEGORIES, DEFAULT_FOR_SLOT, itemState, quotePurchase, slotFor } from "@/lib/store";
+import {
+  avatarCapSrc,
+  avatarFigureSrc,
+  loadoutFor,
+  type AvatarBase,
+  type AvatarLoadout,
+} from "@/lib/avatar";
 
 // The store: where speaking-earned stars become Lumi's world. All spending
 // still flows through the one authoritative path (buyCosmetic → repo →
@@ -115,6 +123,15 @@ export default function ShopPage() {
     previewCosmetic?.type === "effect" ? previewCosmetic.id : player.equippedEffect;
   const previewPet =
     previewCosmetic?.type === "pet" ? previewCosmetic.id : player.equippedPet;
+  // The learner's own avatar reads from the same try-on: her equipped loadout
+  // with the candidate swapped into whichever slot it belongs to.
+  const equippedLoadout = loadoutFor(player);
+  const previewLoadout: AvatarLoadout = {
+    ...equippedLoadout,
+    outfit: previewCosmetic?.type === "avatar-outfit" ? previewCosmetic.id : equippedLoadout.outfit,
+    cap: previewCosmetic?.type === "cap" ? previewCosmetic.id : equippedLoadout.cap,
+    pet: previewPet,
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-28 pt-6 sm:px-6">
@@ -135,10 +152,17 @@ export default function ShopPage() {
         </span>
       </div>
       <p className="type-support mt-2 max-w-md">{t("shopIntro", lang)}</p>
+      {/* The standing promise of this page. */}
+      <p className="mt-2 text-xs font-semibold text-muted-foreground">{t("shopNoRealMoney", lang)}</p>
 
-      {/* Live preview + daily chest. The preview is the point: she's dressing
-          HER Lumi, and every equip updates it instantly. */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-[1.15fr_1fr]">
+      {/* Live previews. The point of the store: she's dressing HER avatar and
+          HER Lumi, and every equip (or try-on tap) updates both instantly. */}
+      <div className="mt-6 grid gap-4 min-[420px]:grid-cols-2">
+        <AvatarPreview
+          loadout={previewLoadout}
+          label={t("shopYourAvatar", lang)}
+          alt={t("shopYourAvatarAlt", lang)}
+        />
         <CharacterPreview
           bgId={previewBg}
           accessoryId={previewAccessory}
@@ -147,32 +171,34 @@ export default function ShopPage() {
           outfit={previewOutfit}
           label={t("shopPreviewTitle", lang)}
         />
-        <div className="flex flex-col justify-center rounded-3xl border border-hairline bg-card p-6 text-center">
-          <span
-            className="mx-auto grid size-14 place-items-center rounded-full"
-            style={{ background: "var(--surface-wash)" }}
-            aria-hidden
+      </div>
+
+      {/* Daily chest. */}
+      <div className="mt-4 flex flex-col justify-center rounded-3xl border border-hairline bg-card p-6 text-center">
+        <span
+          className="mx-auto grid size-14 place-items-center rounded-full"
+          style={{ background: "var(--surface-wash)" }}
+          aria-hidden
+        >
+          <Gift className={cn("size-6 text-primary", canChest && "animate-pop-in")} strokeWidth={1.75} />
+        </span>
+        <p className="type-heading mt-3">{t("chestTitle", lang)}</p>
+        {chestMsg !== null ? (
+          <p className="mt-1 text-sm font-medium text-success">
+            {t("chestGot", lang)} {chestMsg} ★
+          </p>
+        ) : canChest ? (
+          <button
+            type="button"
+            onClick={claimChest}
+            className="star-chip mx-auto mt-3 inline-flex h-11 items-center gap-1.5 rounded-full px-5 text-sm font-bold shadow-sm transition-transform active:scale-95"
           >
-            <Gift className={cn("size-6 text-primary", canChest && "animate-pop-in")} strokeWidth={1.75} />
-          </span>
-          <p className="type-heading mt-3">{t("chestTitle", lang)}</p>
-          {chestMsg !== null ? (
-            <p className="mt-1 text-sm font-medium text-success">
-              {t("chestGot", lang)} {chestMsg} ★
-            </p>
-          ) : canChest ? (
-            <button
-              type="button"
-              onClick={claimChest}
-              className="star-chip mx-auto mt-3 inline-flex h-11 items-center gap-1.5 rounded-full px-5 text-sm font-bold shadow-sm transition-transform active:scale-95"
-            >
-              <Gift className="size-4" aria-hidden />
-              {t("chestOpen", lang)} · +{chestReward(player)} ★
-            </button>
-          ) : (
-            <p className="type-support mt-1">{t("chestBack", lang)}</p>
-          )}
-        </div>
+            <Gift className="size-4" aria-hidden />
+            {t("chestOpen", lang)} · +{chestReward(player)} ★
+          </button>
+        ) : (
+          <p className="type-support mt-1">{t("chestBack", lang)}</p>
+        )}
       </div>
 
       {/* Category navigation: sticky chips, anchor per section. */}
@@ -251,7 +277,7 @@ export default function ShopPage() {
                     )}
                   >
                     <div className="relative">
-                      <Swatch cosmetic={c} />
+                      <Swatch cosmetic={c} base={equippedLoadout.base} />
                       {c.rarity === "legendary" && (
                         <span className="star-chip absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide shadow-sm">
                           <Sparkles className="size-2.5" aria-hidden />
@@ -361,7 +387,35 @@ export default function ShopPage() {
 
 // A small visual chip for each cosmetic: the background gradient, the emoji prop,
 // or a labeled effect tile. (Emoji here are the items' own art, not chrome.)
-function Swatch({ cosmetic }: { cosmetic: Cosmetic }) {
+function Swatch({ cosmetic, base }: { cosmetic: Cosmetic; base: AvatarBase }) {
+  // The learner's own outfits are full-body figure sheets, one per base — the
+  // tile shows the base she actually plays as.
+  if (cosmetic.type === "avatar-outfit") {
+    return (
+      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={avatarFigureSrc(base, cosmetic.id)}
+          alt=""
+          className="shop-figure h-16 w-auto object-contain drop-shadow-[0_6px_8px_rgba(0,0,0,0.22)]"
+        />
+      </div>
+    );
+  }
+  // Caps ship trimmed to their own bounding box, so the chip is just the cap.
+  // ("Sin gorra" has no art and falls through to the empty-slot tile.)
+  if (cosmetic.type === "cap" && cosmetic.id !== DEFAULT_FOR_SLOT.cap) {
+    return (
+      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={avatarCapSrc(cosmetic.id)}
+          alt=""
+          className="shop-figure h-14 w-auto object-contain drop-shadow-[0_6px_8px_rgba(0,0,0,0.22)]"
+        />
+      </div>
+    );
+  }
   if (cosmetic.type === "background") {
     return (
       <div className="relative h-16 w-full overflow-hidden rounded-xl ring-1 ring-black/5" style={{ background: cosmetic.background }} aria-hidden>
