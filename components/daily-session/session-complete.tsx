@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Check, RefreshCcw, Sparkles, Star, Trophy } from "lucide-react";
+import { selectHumorReaction } from "@/lib/humor";
 import type { DailySession } from "@/lib/daily-session";
 import type { DailySessionReward } from "@/lib/daily-session-reward";
 import { DAILY_SESSION_REWARD_STARS, DAILY_SESSION_REWARD_XP } from "@/lib/daily-session-reward";
@@ -33,6 +34,18 @@ export function SessionComplete({
   const rewardStars =
     reward?.stars ||
     (session.rewardClaimed ? DAILY_SESSION_REWARD_STARS : 0);
+  // A finished session is a success moment, so Clara may add a light remark —
+  // but never when a step ended in technical trouble, and never in Joel's
+  // voice unless he approved the line. The selector enforces both.
+  const humor = skipped
+    ? null
+    : selectHumorReaction({
+        speaker: "clara",
+        context: "session-complete",
+        day: session.day,
+        sessionId: session.id,
+        lastStrongReactionAt: null,
+      });
 
   return (
     <section className="mt-6 overflow-hidden rounded-3xl border border-primary/25 bg-card p-5 shadow-sm sm:p-8">
@@ -49,6 +62,16 @@ export function SessionComplete({
         <p className="mx-auto mt-3 max-w-md text-muted-foreground">
           {t("todayCompletionClara", lang)}
         </p>
+        {humor && (
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground/90">
+            {humor.text[lang]}
+            {humor.slang && (
+              <span className="mt-1 block text-xs text-muted-foreground/70">
+                {humor.slang.term}: {humor.slang.meaning}
+              </span>
+            )}
+          </p>
+        )}
       </div>
 
       <div className="mt-7 grid gap-3">
