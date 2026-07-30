@@ -50,7 +50,15 @@ function buildRound(pool: PracticeItem[]): Question[] {
   });
 }
 
-export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: () => void }) {
+export function ListenRound({
+  items,
+  onExit,
+  onComplete = onExit,
+}: {
+  items: PracticeItem[];
+  onExit: () => void;
+  onComplete?: () => void;
+}) {
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
 
@@ -153,7 +161,7 @@ export function ListenRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <button
-            onClick={onExit}
+            onClick={onComplete}
             className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground/80 transition-all hover:border-foreground/30 active:scale-[0.98]"
           >
             {t("finish", lang)}

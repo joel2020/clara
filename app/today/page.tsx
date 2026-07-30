@@ -1,264 +1,251 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, RotateCcw, Sparkles, MessageCircle, Check, Star, Flame, Gift, Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useSettings } from "@/lib/hooks/useSettings";
-import { usePlayer } from "@/lib/hooks/usePlayer";
-import { useAllProgress, useProgressMap, useConvItems, useTodayQuests } from "@/lib/hooks/useData";
-import { countDueReview } from "@/lib/review";
-import { pathOf } from "@/lib/paths";
-import { pickNextLesson, pickScenario } from "@/lib/today";
-import { dayKey } from "@/lib/gamification";
-import { questDone } from "@/lib/quests";
-import { chestAvailable, chestReward } from "@/lib/cosmetics";
-import { t } from "@/lib/i18n";
-import { Lumi } from "@/components/lumi";
-import { SceneVideo } from "@/components/scene-video";
-import { SparkleBurst } from "@/components/star-reward";
-import { celebrate } from "@/lib/fx";
-import { juice } from "@/components/juice";
-import { cinematic } from "@/components/cinematic";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { ActivityShell } from "@/components/daily-session/activity-shell";
+import { activityHref } from "@/components/daily-session/navigation";
+import { SessionComplete } from "@/components/daily-session/session-complete";
+import { SessionIntro } from "@/components/daily-session/session-intro";
+import { TechnicalRecovery } from "@/components/daily-session/technical-recovery";
 import { Splash } from "@/components/splash";
-
-// The guided daily session: warm up → learn → talk, drawn as a little quest
-// path that ends in the daily chest. This is the coach's "here's what we're
-// doing today" — the app leading a solo learner through a complete, sized
-// daily routine instead of leaving her to decide.
-
-// A rotating daily word from the coach — tiny, warm, different each day.
-const COACH_MSGS = {
-  es: [
-    "Hoy hablamos con calma y claro. ¡Tú puedes!",
-    "Quince minuticos hoy valen más que una hora el domingo.",
-    "Tu boca aprende repitiendo. Vamos paso a paso.",
-    "Cada frase de hoy es una que ya no te va a faltar.",
-    "Respira, sonríe y dilo a tu manera. ¡Empezamos!",
-  ],
-  en: [
-    "Today we speak calm and clear. You've got this!",
-    "Fifteen little minutes today beat an hour on Sunday.",
-    "Your mouth learns by repeating. Step by step.",
-    "Every phrase today is one you'll never be missing again.",
-    "Breathe, smile, and say it your way. Let's go!",
-  ],
-};
+import { nextActivity } from "@/lib/daily-session";
+import type { DailySessionReward } from "@/lib/daily-session-reward";
+import { useDailySession } from "@/lib/hooks/useDailySession";
+import { useSettings } from "@/lib/hooks/useSettings";
+import { t } from "@/lib/i18n";
 
 export default function TodayPage() {
-  const { settings, ready } = useSettings();
-  const lang = settings.coachLanguage;
-  const player = usePlayer();
-  const progressArr = useAllProgress();
-  const progressMap = useProgressMap();
-  const convItems = useConvItems();
-  const quests = useTodayQuests();
-
-  const dueCount = progressArr && convItems ? countDueReview(progressArr, convItems) : 0;
-  const nextLesson = pickNextLesson(progressMap, settings.onboarding?.level, pathOf(settings.onboarding));
-  const scenario = pickScenario(dayKey());
-
-  const reviewDone = quests ? questDone(quests, "review") || dueCount === 0 : false;
-  const learnDone = quests ? questDone(quests, "learn") : false;
-  const talkDone = quests ? questDone(quests, "talk") : false;
-  const allDone = reviewDone && learnDone && talkDone;
-
-  useEffect(() => {
-    if (allDone) {
-      celebrate();
-      juice.centerBurst();
-      juice.sweep();
-      cinematic.play({ title: t("todayDoneTitle", lang), subtitle: t("todayDoneSub", lang) });
-    }
-  }, [allDone, lang]);
-
-  if (!ready || !quests) return <Splash />;
-
-  const steps = [
-    {
-      key: "review",
-      icon: RotateCcw,
-      title: t("todayReview", lang),
-      sub: dueCount > 0 ? t("todayReviewSub", lang) : t("todayReviewNone", lang),
-      href: "/review",
-      done: reviewDone,
-      skippable: dueCount === 0,
-    },
-    {
-      key: "learn",
-      icon: Sparkles,
-      title: t("todayLearn", lang),
-      sub: nextLesson.subtitle || nextLesson.title,
-      href: `/lesson/${nextLesson.id}`,
-      done: learnDone,
-      skippable: false,
-    },
-    {
-      key: "talk",
-      icon: MessageCircle,
-      title: t("todayTalk", lang),
-      sub: scenario.title[lang],
-      href: "/talk",
-      done: talkDone,
-      skippable: false,
-    },
-  ];
-
-  const currentIndex = steps.findIndex((s) => !s.done);
-  const chestOpen = chestAvailable(player ?? { lastChestDay: null });
-
   return (
-    <div className="mx-auto max-w-2xl px-5 pb-24 pt-6 sm:px-6">
-      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="size-4" />
-        {t("navLessons", lang)}
-      </Link>
-
-      {allDone ? (
-        <section className="animate-fade-up mt-6 overflow-hidden rounded-3xl border border-hairline bg-card p-8 text-center">
-          <div className="relative mx-auto w-fit">
-            <SparkleBurst />
-            <Lumi frame="bust" mood="love" className="mx-auto size-28" />
-          </div>
-          <h1 className="mt-5 font-display text-3xl font-semibold tracking-[-0.02em]">{t("todayDoneTitle", lang)}</h1>
-          <p className="mx-auto mt-2 max-w-sm text-muted-foreground">{t("todayDoneSub", lang)}</p>
-          <div className="mt-5 flex items-center justify-center gap-6">
-            <Stat icon={<Flame className="size-4 text-warn" />} value={player?.currentStreak ?? 0} label={t("dayStreak", lang)} />
-            <Stat icon={<Star className="size-4 text-co-yellow" style={{ fill: "currentColor" }} />} value={player?.stars ?? 0} label={t("stars", lang)} />
-          </div>
-        </section>
-      ) : (
-        <section className="mt-6 animate-fade-up">
-          <div className="flex items-center gap-4">
-            <div className="relative h-24 w-20 shrink-0">
-              <Lumi frame="full" mood="wave" priority />
-            </div>
-            <div>
-              <h1 className="font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{t("todayTitle", lang)}</h1>
-              <p className="mt-1.5 flex items-center gap-2 text-sm leading-relaxed text-muted-foreground">
-                <span className="size-8 shrink-0 overflow-hidden rounded-full ring-1 ring-white/70" aria-hidden>
-                  <SceneVideo base="/character/joel-wave" className="h-full w-full object-cover object-[center_16%]" />
-                </span>
-                {t("todayIntro", lang)}
-              </p>
-            </div>
-          </div>
-          {/* Lumi's word of the day — a coach in her corner, not just a checklist */}
-          <div className="relative ml-6 mt-3 w-fit rounded-2xl rounded-tl-sm border border-primary/20 bg-primary/[0.05] px-4 py-2.5">
-            <p className="text-sm leading-relaxed text-foreground/85">
-              {COACH_MSGS[lang][dayKey().split("-").reduce((a, b) => a + Number(b), 0) % COACH_MSGS[lang].length]}
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* The quest path: three stops and a chest at the end */}
-      <div className="relative mt-8">
-        <div className="map-trail pointer-events-none absolute bottom-12 left-[25px] top-3 w-1.5 rounded-full" aria-hidden />
-
-        <ol className="relative space-y-4">
-          {steps.map((step, i) => {
-            const isCurrent = i === currentIndex;
-            const Icon = step.icon;
-            return (
-              <li key={step.key} className="relative flex items-center gap-4">
-                <span
-                  className={cn(
-                    "z-10 grid size-[52px] shrink-0 place-items-center rounded-full shadow-sm ring-4",
-                    step.done
-                      ? "text-white ring-primary/25"
-                      : isCurrent
-                        ? "star-chip arcade-ring bloom-gold animate-float ring-co-yellow/30"
-                        : "bg-muted text-muted-foreground/60 shadow-none ring-transparent",
-                  )}
-                  style={
-                    step.done
-                      ? { background: "linear-gradient(145deg, color-mix(in oklch, var(--co-blue) 88%, white), var(--co-blue))" }
-                      : undefined
-                  }
-                >
-                  {step.done ? <Check className="size-6" strokeWidth={2.5} /> : <Icon className="size-5" />}
-                </span>
-
-                <Link
-                  href={step.href}
-                  className={cn(
-                    "group flex min-w-0 flex-1 items-center gap-3 rounded-2xl border p-4 transition-all active:scale-[0.99]",
-                    step.done
-                      ? "border-hairline bg-card opacity-80"
-                      : isCurrent
-                        ? "border-primary bg-primary/[0.05] shadow-sm"
-                        : "border-hairline bg-card hover:border-primary/40",
-                  )}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      {t("todayStep", lang)} {i + 1}
-                    </p>
-                    <p className={cn("font-display text-lg font-medium tracking-[-0.01em]", step.done && "text-muted-foreground")}>
-                      {step.title}
-                    </p>
-                    <p className="truncate text-sm text-muted-foreground">{step.sub}</p>
-                  </div>
-                  {isCurrent && (
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background">
-                      {currentIndex > 0 ? t("todayContinue", lang) : t("todayStart", lang)}
-                      <ArrowRight className="size-4" />
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-
-          {/* The chest at the end of the path */}
-          <li className="relative flex items-center gap-4">
-            <span
-              className={cn(
-                "z-10 grid size-[52px] shrink-0 place-items-center rounded-full shadow-sm ring-4",
-                allDone && chestOpen
-                  ? "star-chip bloom-gold animate-float ring-co-yellow/40"
-                  : "bg-muted text-muted-foreground/60 shadow-none ring-transparent",
-              )}
-            >
-              {allDone && chestOpen ? <Gift className="size-6" /> : allDone ? <Check className="size-6" /> : <Lock className="size-5" />}
-            </span>
-            <Link
-              href="/shop"
-              className={cn(
-                "flex min-w-0 flex-1 items-center gap-3 rounded-2xl border p-4 transition-all active:scale-[0.99]",
-                allDone && chestOpen
-                  ? "border-co-yellow/50 bg-[color-mix(in_oklch,var(--co-yellow)_10%,transparent)] shadow-sm"
-                  : "border-dashed border-hairline bg-card opacity-90",
-              )}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{t("todayChest", lang)}</p>
-                <p className="font-display text-lg font-medium tracking-[-0.01em]">
-                  {allDone ? (chestOpen ? t("todayChestReady", lang) : t("todayChestOpened", lang)) : t("todayChestLocked", lang)}
-                </p>
-              </div>
-              {allDone && chestOpen && (
-                <span className="star-chip shrink-0 rounded-full px-3 py-1.5 font-display text-sm font-semibold">
-                  +{chestReward(player ?? { currentStreak: 0 })} ★
-                </span>
-              )}
-            </Link>
-          </li>
-        </ol>
-      </div>
-    </div>
+    <Suspense fallback={<Splash />}>
+      <TodaySessionRunner />
+    </Suspense>
   );
 }
 
-function Stat({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
+function TodaySessionRunner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { settings, ready } = useSettings();
+  const {
+    session,
+    loading,
+    start,
+    checkpoint,
+    claimCompletion,
+  } = useDailySession();
+  const lang = settings.coachLanguage;
+  const handledReturn = useRef<string | null>(null);
+  const claimedSession = useRef<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [recoveryActivityId, setRecoveryActivityId] = useState<string | null>(
+    null,
+  );
+  const [reward, setReward] = useState<DailySessionReward | null>(null);
+
+  const completeActivity = useCallback(
+    async (activityId: string): Promise<boolean> => {
+      setTransitioning(true);
+      try {
+        await checkpoint(activityId, "completed");
+        return true;
+      } catch {
+        setRecoveryActivityId(activityId);
+        return false;
+      } finally {
+        setTransitioning(false);
+      }
+    },
+    [checkpoint],
+  );
+
+  useEffect(() => {
+    if (!session) return;
+    const activityId = searchParams.get("sessionActivity");
+    if (!activityId) return;
+    const returnDay = searchParams.get("sessionDay");
+    const returnKey = `${returnDay ?? "-"}:${activityId}:${searchParams.get("sessionResult") ?? "completed"}`;
+    if (handledReturn.current === returnKey) return;
+    handledReturn.current = returnKey;
+
+    // Activity ids repeat across days, so a return that crossed midnight would
+    // otherwise credit the identically-named step of today's new session.
+    const staleDay = returnDay !== null && returnDay !== session.day;
+    if (
+      staleDay ||
+      !session.activities.some((activity) => activity.id === activityId)
+    ) {
+      router.replace("/today", { scroll: false });
+      return;
+    }
+    if (searchParams.get("sessionResult") === "technical") {
+      void Promise.resolve().then(() => {
+        setRecoveryActivityId(activityId);
+        router.replace("/today", { scroll: false });
+      });
+      return;
+    }
+
+    void checkpoint(activityId, "completed")
+      .then(() => {
+        router.replace("/today", { scroll: false });
+      })
+      .catch(() => {
+        setRecoveryActivityId(activityId);
+      });
+  }, [checkpoint, router, searchParams, session]);
+
+  useEffect(() => {
+    if (
+      !session?.completedAt ||
+      session.rewardClaimed ||
+      claimedSession.current === session.id
+    ) {
+      return;
+    }
+    claimedSession.current = session.id;
+    void claimCompletion()
+      .then((result) => {
+        if (result) setReward(result.reward);
+      })
+      .catch(() => {
+        claimedSession.current = null;
+      });
+  }, [claimCompletion, session]);
+
+  if (!ready || loading) return <Splash />;
+
+  // Composition can legitimately yield nothing (no bound account yet, or a
+  // storage read that failed). Say so plainly instead of leaving her on a
+  // splash screen that never resolves.
+  if (!session) {
+    return (
+      <main className="mx-auto max-w-2xl px-5 pb-24 pt-6 sm:px-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          {t("backHome", lang)}
+        </Link>
+        <section className="mt-6 rounded-3xl border border-hairline bg-card p-5 shadow-sm sm:p-7">
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.02em]">
+            {t("todayUnavailableTitle", lang)}
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {t("todayUnavailableBody", lang)}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            className="mt-5 min-h-12 rounded-2xl bg-foreground px-5 py-3 font-semibold text-background transition-opacity hover:opacity-90"
+          >
+            {t("todayUnavailableRetry", lang)}
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  const current = nextActivity(session);
+  const recoveryActivity = recoveryActivityId
+    ? session.activities.find(
+        (activity) => activity.id === recoveryActivityId,
+      ) ?? null
+    : null;
+
+  const retry = () => {
+    if (!recoveryActivity) return;
+    const href = activityHref(recoveryActivity, session.day);
+    setRecoveryActivityId(null);
+    if (href) {
+      router.push(href);
+      return;
+    }
+    void completeActivity(recoveryActivity.id);
+  };
+
+  const continueWithListening = async () => {
+    if (!recoveryActivity) return;
+    setTransitioning(true);
+    try {
+      await checkpoint(recoveryActivity.id, "technical-skip");
+      setRecoveryActivityId(null);
+      router.push("/listen?returnTo=%2Ftoday");
+    } catch {
+      // Checkpoint persistence failed again; stay on the recovery screen so
+      // she can retry — nothing was recorded against her.
+    } finally {
+      setTransitioning(false);
+    }
+  };
+
+  const begin = async () => {
+    setStarting(true);
+    try {
+      await start();
+    } catch {
+      const first = nextActivity(session);
+      if (first) setRecoveryActivityId(first.id);
+    } finally {
+      setStarting(false);
+    }
+  };
+
   return (
-    <div className="flex items-center gap-2">
-      {icon}
-      <div className="text-left leading-tight">
-        <p className="font-display text-xl font-medium tabular-nums leading-none">{value}</p>
-        <p className="text-[11px] text-muted-foreground">{label}</p>
-      </div>
-    </div>
+    <main className="mx-auto max-w-2xl px-5 pb-24 pt-6 sm:px-6">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" aria-hidden />
+        {t("backHome", lang)}
+      </Link>
+
+      {transitioning && (
+        <p
+          className="mt-5 rounded-xl border border-primary/20 bg-primary/[0.05] px-4 py-2.5 text-center text-sm font-medium text-primary"
+          role="status"
+        >
+          {t("todayTransition", lang)}
+        </p>
+      )}
+
+      {recoveryActivity ? (
+        <TechnicalRecovery
+          lang={lang}
+          busy={transitioning}
+          onRetry={retry}
+          onContinueListening={() => {
+            void continueWithListening();
+          }}
+        />
+      ) : session.completedAt !== null ? (
+        <SessionComplete session={session} lang={lang} reward={reward} />
+      ) : session.startedAt === null ? (
+        <SessionIntro
+          session={session}
+          lang={lang}
+          starting={starting}
+          onStart={() => {
+            void begin();
+          }}
+        />
+      ) : current ? (
+        <ActivityShell
+          session={session}
+          activity={current}
+          lang={lang}
+          transitioning={transitioning}
+          onComplete={() => {
+            void completeActivity(current.id);
+          }}
+        />
+      ) : (
+        <SessionComplete session={session} lang={lang} reward={reward} />
+      )}
+    </main>
   );
 }

@@ -1,5 +1,12 @@
-import { db } from "./dexie";
-import { DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository";
+import { boundAccountId, db } from "./dexie.ts";
+import { DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository.ts";
+import type { DailySession } from "../daily-session";
+import { mergeDailySessions } from "../daily-session-merge.ts";
+import {
+  applySessionCompletion,
+  type SessionCompletionResult,
+} from "../daily-session-reward.ts";
+import type { DailySessionCompletionClaim } from "./repository.ts";
 import type {
   Attempt,
   CallScore,
@@ -182,6 +189,92 @@ export class DexieRepository implements DataRepository {
     void this.mirror((profileId, sync) => sync.pushQuests(profileId, state));
   }
 
+  async getDailySession(day: string): Promise<DailySession | undefined> {
+    return db.dailySessions.where("day").equals(day).first();
+  }
+
+  async saveDailySession(session: DailySession): Promise<DailySession> {
+    const bound = boundAccountId();
+    if (bound && session.profileId.trim().toLowerCase() !== bound) {
+      throw new Error("Daily session profile does not match the bound account");
+    }
+    const durable = await db.transaction("rw", db.dailySessions, async () => {
+      const existing = await db.dailySessions.where("day").equals(session.day).first();
+      const merged = existing ? mergeDailySessions(existing, session) : session;
+      await db.dailySessions.put(merged);
+      return merged;
+    });
+    if (bound) {
+      void import("../sync/supabase-sync.ts")
+        .then((sync) => sync.pushDailySession(bound, durable))
+        .catch(() => {});
+    }
+    return durable;
+  }
+
+  async claimDailySessionCompletion(
+    input: DailySessionCompletionClaim,
+  ): Promise<SessionCompletionResult | null> {
+    const bound = boundAccountId();
+    const result = await db.transaction(
+      "rw",
+      [db.dailySessions, db.player],
+      async () => {
+        const session = await db.dailySessions
+          .where("day")
+          .equals(input.day)
+          .first();
+        if (!session) return null;
+        if (
+          bound &&
+          session.profileId.trim().toLowerCase() !== bound
+        ) {
+          throw new Error(
+            "Daily session profile does not match the bound account",
+          );
+        }
+
+        // This read belongs inside the same write transaction as both puts.
+        // A stale hook snapshot can never replace attempt or cosmetic progress
+        // that committed before this transaction acquired the store locks.
+        const storedPlayer = await db.player.get("player");
+        const player = { ...DEFAULT_PLAYER, ...(storedPlayer ?? {}) };
+        const completion = applySessionCompletion(
+          player,
+          session,
+          input.today,
+        );
+        if (
+          completion.reward.xp === 0 &&
+          completion.reward.stars === 0
+        ) {
+          return completion;
+        }
+
+        await db.player.put({ ...completion.player, id: "player" });
+        await db.dailySessions.put(completion.session);
+        return completion;
+      },
+    );
+
+    if (
+      result &&
+      (result.reward.xp > 0 || result.reward.stars > 0)
+    ) {
+      void this.mirror((profileId, sync) => {
+        void sync.pushPlayer(profileId, result.player);
+      });
+      if (bound) {
+        void import("../sync/supabase-sync.ts")
+          .then((sync) =>
+            sync.pushDailySession(bound, result.session),
+          )
+          .catch(() => {});
+      }
+    }
+    return result;
+  }
+
   async getCategoryStats(recentWindow = RECENT_WINDOW): Promise<CategoryStat[]> {
     const [attempts, progress] = await Promise.all([
       db.attempts.toArray(),
@@ -260,6 +353,7 @@ export class DexieRepository implements DataRepository {
       db.examAttempts.clear(),
       db.callScores.clear(),
       db.talkSessions.clear(),
+      db.dailySessions.clear(),
       // events was omitted here before — analytics for a wiped profile is
       // meaningless and reset is meant to clear the device.
       db.events.clear(),

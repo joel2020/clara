@@ -3,12 +3,26 @@ import { dayKey } from "@/lib/gamification";
 import { slotFor } from "@/lib/store";
 import type { PlayerStats } from "@/lib/db/types";
 
+export {
+  DAILY_SESSION_REWARD_STARS,
+  DAILY_SESSION_REWARD_XP,
+} from "@/lib/daily-session-reward";
+
 // The star shop: cosmetics Lumi can wear, bought with the stars earned from
 // clear answers. This is the "spend → collect" half of the game loop. Everything
 // here is cosmetic (backgrounds, props, ambient effects) and rendered in-app, so
 // it costs nothing to run and can grow freely.
 
-export type CosmeticType = "background" | "accessory" | "effect" | "pet" | "outfit";
+export type CosmeticType =
+  | "background"
+  | "accessory"
+  | "effect"
+  | "pet"
+  | "outfit"
+  // The learner's own adult avatar (lib/avatar.ts): their outfit and cap slots.
+  // Both avatar bases share every item — nothing here is gender-restricted.
+  | "avatar-outfit"
+  | "cap";
 export type EffectKind =
   | "hearts"
   | "petals"
@@ -205,6 +219,26 @@ export const COSMETICS: Cosmetic[] = [
   { id: "outfit-cargo", type: "outfit", name: { es: "Cargo urbano", en: "Urban cargo" }, cost: 140, outfit: "/character/outfits/cargo" },
   { id: "outfit-noche", type: "outfit", name: { es: "Noche en Poblado", en: "Night in Poblado" }, cost: 180, rarity: "legendary", outfit: "/character/outfits/noche" },
   { id: "outfit-feria", type: "outfit", name: { es: "Feria de las Flores", en: "Flower Festival" }, cost: 200, rarity: "legendary", outfit: "/character/outfits/feria" },
+
+  // ── Avatar outfits (the learner's own look — lib/avatar.ts) ──
+  //    Contemporary Medellín streetwear, all original designs. Both adult
+  //    bases wear every outfit.
+  { id: "street-default", type: "avatar-outfit", name: { es: "Parche de siempre", en: "Everyday street" }, cost: 0, free: true },
+  { id: "street-noche", type: "avatar-outfit", name: { es: "Noche urbana", en: "Urban night" }, cost: 150 },
+  { id: "street-futbol", type: "avatar-outfit", name: { es: "Día de fútbol", en: "Football day" }, cost: 150 },
+  { id: "street-oficina", type: "avatar-outfit", name: { es: "Listo pa'l trabajo", en: "Job-ready" }, cost: 180, rarity: "legendary" },
+
+  // ── Baseball caps (the avatar's cap slot) ──
+  //    Original designs only: solid, two-tone, curved-brim streetwear, a
+  //    minimal original graphic, and Medellín-inspired colorways. No sports
+  //    teams, no fashion brands, no copied marks — ever.
+  { id: "cap-none", type: "cap", name: { es: "Sin gorra", en: "No cap" }, cost: 0, free: true },
+  { id: "cap-ink", type: "cap", name: { es: "Negra tinta", en: "Ink black" }, cost: 60 },
+  { id: "cap-dos-tonos", type: "cap", name: { es: "Dos tonos", en: "Two-tone" }, cost: 70 },
+  { id: "cap-curva", type: "cap", name: { es: "Visera curva", en: "Curved brim" }, cost: 80 },
+  { id: "cap-grafico", type: "cap", name: { es: "Gráfico mínimo", en: "Minimal graphic" }, cost: 90 },
+  { id: "cap-medellin-verde", type: "cap", name: { es: "Verde montaña", en: "Mountain green" }, cost: 110 },
+  { id: "cap-medellin-atardecer", type: "cap", name: { es: "Atardecer paisa", en: "Paisa sunset" }, cost: 130, rarity: "legendary" },
 
   // ── Accessories (props near Lumi) ──
   { id: "acc-none", type: "accessory", name: { es: "Ninguno", en: "None" }, cost: 0, free: true },

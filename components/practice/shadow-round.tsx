@@ -5,7 +5,7 @@ import { Mic, Square, Loader2, Volume2, Check, X, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PracticeItem } from "@/lib/db/types";
 import { repo } from "@/lib/db";
-import { createRecognition, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
+import { createRecognition, recognitionErrorKey, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
 import { recordPracticeAttempt } from "@/lib/practice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
@@ -25,7 +25,19 @@ import { StarRating } from "@/components/star-reward";
 const ROUND_LENGTH = 8;
 type Phase = "listen" | "ready" | "recording" | "scoring" | "flash";
 
-export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: () => void }) {
+export function ShadowRound({
+  items,
+  onExit,
+  onComplete = onExit,
+  onTechnicalExit = onExit,
+  technicalExitLabel,
+}: {
+  items: PracticeItem[];
+  onExit: () => void;
+  onComplete?: () => void;
+  onTechnicalExit?: () => void;
+  technicalExitLabel?: string;
+}) {
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
   const support = useSpeechSupport();
@@ -34,6 +46,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
   const [idx, setIdx] = useState(0);
   const [phase, setPhase] = useState<Phase>("listen");
   const [flash, setFlash] = useState<{ passed: boolean; stars: number } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [totalStars, setTotalStars] = useState(0);
   const [clears, setClears] = useState(0);
   const [done, setDone] = useState(false);
@@ -41,8 +54,9 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
 
   const current = round[idx];
   // A different American voice per phrase, so her ear trains across speakers.
-  // Fixed per item (recomputes only when the phrase changes) so replay matches.
-  const voiceSlug = useMemo(() => pickDrillVoice().slug, [idx]);
+  // Fixed per item so replay matches.
+  const voices = useMemo(() => round.map(() => pickDrillVoice().slug), [round]);
+  const voiceSlug = voices[idx];
 
   const playModel = useCallback(() => {
     if (!current) return;
@@ -70,6 +84,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
 
   const advance = () => {
     setFlash(null);
+    setNotice(null);
     if (idx + 1 >= round.length) {
       setDone(true);
       sfx.finish();
@@ -84,6 +99,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
     if (phase !== "ready") return;
     stopPronunciation();
     setFlash(null);
+    setNotice(null);
     setPhase("recording");
     sfx.tap();
     const h = createRecognition({ lang: settings.recognitionLang, target: current.text });
@@ -123,7 +139,9 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         setPhase("ready");
         return;
       }
-      setFlash({ passed: false, stars: 0 });
+      // A technical failure is not a miss: nothing was scored, so say what went
+      // wrong instead of showing her the miss badge.
+      setNotice(t(recognitionErrorKey(e), lang));
       setPhase("ready");
     } finally {
       handleRef.current = null;
@@ -134,8 +152,8 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
     return (
       <div className="mx-auto max-w-md px-5 py-24 text-center">
         <p className="font-display text-2xl font-medium tracking-[-0.01em]">{t("shadowNeedsMic", lang)}</p>
-        <button onClick={onExit} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
-          {t("navLessons", lang)}
+        <button onClick={onTechnicalExit} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
+          {technicalExitLabel ?? t("navLessons", lang)}
         </button>
       </div>
     );
@@ -160,7 +178,7 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
         </div>
         <div className="mt-9 flex items-center justify-center gap-3">
           <button
-            onClick={onExit}
+            onClick={onComplete}
             className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground/80 transition-all hover:border-foreground/30 active:scale-[0.98]"
           >
             {t("finish", lang)}
@@ -241,7 +259,12 @@ export function ShadowRound({ items, onExit }: { items: PracticeItem[]; onExit: 
               </span>
             )
           )}
-          {!flash && phase === "flash" && <Check className="size-5 text-success" />}
+          {!flash && notice && (
+            <span role="status" className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+              {notice}
+            </span>
+          )}
+          {!flash && !notice && phase === "flash" && <Check className="size-5 text-success" />}
         </div>
 
         {/* Mic */}

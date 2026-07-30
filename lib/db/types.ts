@@ -2,6 +2,8 @@
 // backend. When we swap IndexedDB for Supabase later, these types stay the same;
 // only the repository implementation changes.
 
+import type { AnalyticsEventType } from "@/lib/analytics-schema";
+
 export type ItemKind = "word" | "phrase";
 
 export type LessonKind = "minimal-pairs" | "sound-focus" | "phrase";
@@ -94,6 +96,15 @@ export interface Attempt {
   fluency?: number;
   at: number; // epoch ms
 }
+
+/**
+ * Ephemeral capture evidence supplied to decision code before an attempt is
+ * persisted. A technical failure is not learner performance and must never be
+ * folded into a weakness signal or written into the historical Attempt record.
+ */
+export type AttemptEvidence = Pick<Attempt, "itemId" | "passed" | "at"> & {
+  evidence: "valid" | "technical-failure";
+};
 
 /**
  * One /talk conversation, recorded so the general path's ten-minute milestone can
@@ -268,6 +279,17 @@ export interface PlayerStats {
   equippedPet?: string;
   /** The outfit Lumi is wearing (outfit-default = her signature look). */
   equippedOutfit?: string;
+  /**
+   * The learner's own adult avatar (separate from the guide). All three fields
+   * are optional and purely cosmetic: players who predate them resolve to the
+   * defaults in lib/avatar.ts defaultLoadout() and lib/store.ts
+   * DEFAULT_FOR_SLOT — nothing destructive, nothing that touches assessment.
+   */
+  avatarBase?: import("@/lib/avatar").AvatarBase;
+  /** The avatar's outfit (street-default = the free look). */
+  equippedAvatarOutfit?: string;
+  /** The avatar's baseball cap (cap-none = bare-headed). */
+  equippedCap?: string;
   /** Local day the daily reward chest was last opened (null = never). */
   lastChestDay: string | null;
   /** Streak "freezes" banked — one covers a single missed day so the streak survives. */
@@ -305,24 +327,15 @@ export interface CategoryStat {
 
 /**
  * A lightweight analytics event — engagement signals not already captured by
- * attempts (app opens, mode taps, lesson start/abandon). Privacy-respecting:
- * props carry ids and numbers only, never free text or PII.
+ * attempts (app opens, mode taps, lesson start/abandon, the daily loop).
+ * Privacy-respecting: props carry ids, counts, durations, and enums only, never
+ * free text or PII. The type union and the properties each type may carry live
+ * in lib/analytics-schema.ts, which is the single source of truth; nothing
+ * outside that allowlist is written locally or mirrored to the cloud.
  */
 export interface AnalyticsEvent {
   id?: number;
-  type:
-    | "app_open"
-    | "mode_open"
-    | "lesson_start"
-    | "lesson_complete"
-    | "lesson_abandon"
-    | "session_complete"
-    /**
-     * An uncaught client error or rejected promise. Logged like any other event so
-     * production failures are visible in the coach cockpit instead of only in a
-     * console nobody is watching.
-     */
-    | "client_error";
+  type: AnalyticsEventType;
   at: number;
   day: string; // "YYYY-MM-DD" local, for daily rollups
   props?: Record<string, string | number | boolean>;
@@ -336,7 +349,7 @@ export interface AnalyticsEvent {
  */
 export interface OutboxRow {
   id?: number;
-  kind: "attempt" | "exam" | "call" | "talk";
+  kind: "attempt" | "exam" | "call" | "talk" | "daily-session";
   profileId: string;
   payload: unknown;
   /** When the original write happened (ms). */

@@ -10,25 +10,36 @@ import { levelForXp } from "./gamification.ts";
 // pure on purpose: this module must stay runnable in plain node tests.
 
 export const STORE_CATEGORIES: { type: CosmeticType; label: { es: string; en: string } }[] = [
-  { type: "outfit", label: { es: "Looks de Lumi", en: "Lumi's looks" } },
+  { type: "avatar-outfit", label: { es: "Tu look", en: "Your look" } },
+  { type: "cap", label: { es: "Gorras", en: "Caps" } },
+  { type: "outfit", label: { es: "Estilos clásicos", en: "Classic looks" } },
   { type: "pet", label: { es: "Mascotas", en: "Pets" } },
   { type: "background", label: { es: "Fondos", en: "Backgrounds" } },
   { type: "accessory", label: { es: "Accesorios", en: "Accessories" } },
   { type: "effect", label: { es: "Ambientes", en: "Effects" } },
 ];
 
-export type SlotKey = "equippedBg" | "equippedAccessory" | "equippedEffect" | "equippedPet" | "equippedOutfit";
+export type SlotKey =
+  | "equippedBg"
+  | "equippedAccessory"
+  | "equippedEffect"
+  | "equippedPet"
+  | "equippedOutfit"
+  | "equippedAvatarOutfit"
+  | "equippedCap";
+
+const SLOT_FOR: Record<CosmeticType, SlotKey> = {
+  background: "equippedBg",
+  accessory: "equippedAccessory",
+  effect: "equippedEffect",
+  pet: "equippedPet",
+  outfit: "equippedOutfit",
+  "avatar-outfit": "equippedAvatarOutfit",
+  cap: "equippedCap",
+};
 
 export function slotFor(type: CosmeticType): SlotKey {
-  return type === "background"
-    ? "equippedBg"
-    : type === "accessory"
-      ? "equippedAccessory"
-      : type === "pet"
-        ? "equippedPet"
-        : type === "outfit"
-          ? "equippedOutfit"
-          : "equippedEffect";
+  return SLOT_FOR[type];
 }
 
 /** The free default look for every slot — what "restaurar" returns to. */
@@ -38,10 +49,17 @@ export const DEFAULT_FOR_SLOT: Record<CosmeticType, string> = {
   effect: "fx-none",
   pet: "pet-none",
   outfit: "outfit-default",
+  "avatar-outfit": "street-default",
+  cap: "cap-none",
 };
 
 type PlayerSnapshot = Pick<PlayerStats, "xp" | "stars" | "ownedCosmetics"> &
-  Partial<Pick<PlayerStats, "equippedBg" | "equippedAccessory" | "equippedEffect" | "equippedPet" | "equippedOutfit">>;
+  Partial<
+    Pick<
+      PlayerStats,
+      "equippedBg" | "equippedAccessory" | "equippedEffect" | "equippedPet" | "equippedOutfit" | "equippedAvatarOutfit" | "equippedCap"
+    >
+  >;
 
 export type ItemStatus = "equipped" | "owned" | "available" | "locked";
 

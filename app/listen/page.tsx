@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Headphones } from "lucide-react";
 import { LESSONS } from "@/lib/content/lessons";
 import { ListenRound } from "@/components/practice/listen-round";
+import { useSessionReturn } from "@/components/daily-session/use-session-return";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
@@ -14,7 +16,17 @@ import { Splash } from "@/components/splash";
 // conversation track, whose chunks all carry Spanish meanings.
 
 export default function ListenPage() {
+  return (
+    <Suspense fallback={<Splash />}>
+      <ListenContent />
+    </Suspense>
+  );
+}
+
+function ListenContent() {
+  const router = useRouter();
   const { settings, ready } = useSettings();
+  const { exitHref, completedHref } = useSessionReturn();
   const lang = settings.coachLanguage;
   const [started, setStarted] = useState(false);
 
@@ -24,13 +36,24 @@ export default function ListenPage() {
   );
 
   if (!ready) return <Splash />;
-  if (started) return <ListenRound items={pool} onExit={() => setStarted(false)} />;
+  if (started) {
+    return (
+      <ListenRound
+        items={pool}
+        onExit={() => setStarted(false)}
+        onComplete={() => {
+          if (completedHref) router.push(completedHref);
+          else setStarted(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-xl px-5 pb-24 pt-6 sm:px-6">
-      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+      <Link href={exitHref ?? "/"} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="size-4" />
-        {t("navLessons", lang)}
+        {exitHref ? t("todayBackToSession", lang) : t("navLessons", lang)}
       </Link>
 
       <section className="mt-6 flex flex-col items-center text-center animate-fade-up">

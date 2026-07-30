@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Volume2 } from "lucide-react";
 import { LESSONS } from "@/lib/content/lessons";
 import { ShadowRound } from "@/components/practice/shadow-round";
+import { useSessionReturn } from "@/components/daily-session/use-session-return";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
@@ -15,7 +17,17 @@ import { Splash } from "@/components/splash";
 // with Joel-voice audio).
 
 export default function ShadowPage() {
+  return (
+    <Suspense fallback={<Splash />}>
+      <ShadowContent />
+    </Suspense>
+  );
+}
+
+function ShadowContent() {
+  const router = useRouter();
   const { settings, ready } = useSettings();
+  const { exitHref, completedHref, technicalHref } = useSessionReturn();
   const lang = settings.coachLanguage;
   const [started, setStarted] = useState(false);
 
@@ -25,13 +37,29 @@ export default function ShadowPage() {
   );
 
   if (!ready) return <Splash />;
-  if (started) return <ShadowRound items={pool} onExit={() => setStarted(false)} />;
+  if (started) {
+    return (
+      <ShadowRound
+        items={pool}
+        onExit={() => setStarted(false)}
+        onComplete={() => {
+          if (completedHref) router.push(completedHref);
+          else setStarted(false);
+        }}
+        onTechnicalExit={() => {
+          if (technicalHref) router.push(technicalHref);
+          else setStarted(false);
+        }}
+        technicalExitLabel={technicalHref ? t("todayBackToSession", lang) : undefined}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-xl px-5 pb-24 pt-6 sm:px-6">
-      <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+      <Link href={exitHref ?? "/"} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="size-4" />
-        {t("navLessons", lang)}
+        {exitHref ? t("todayBackToSession", lang) : t("navLessons", lang)}
       </Link>
 
       <section className="mt-6 flex flex-col items-center text-center animate-fade-up">

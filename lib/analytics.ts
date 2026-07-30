@@ -2,29 +2,46 @@
 
 import { db } from "@/lib/db/dexie";
 import { dayKey } from "@/lib/gamification";
+import { validateEvent } from "@/lib/analytics-schema";
+import type { AnalyticsEventType } from "@/lib/analytics-schema";
 import type { AnalyticsEvent } from "@/lib/db/types";
+import type { DailyActivity, DailySession } from "@/lib/daily-session";
 
 // Lightweight, privacy-respecting analytics. We were building blind — this logs
 // the engagement signals that attempts don't already capture (opens, mode taps,
-// lesson start/abandon) so we can see if the app is actually used and where a
-// learner drops off. Local-first (IndexedDB); best-effort mirror to the cloud
-// per user for a cross-device / instructor view. Props carry ids and numbers
-// only — never free text or PII.
+// lesson start/abandon, the daily loop) so we can see if the app is actually
+// used and where a learner drops off. Local-first (IndexedDB); best-effort
+// mirror to the cloud per user for a cross-device / instructor view.
+//
+// What may be recorded is not a convention here, it is enforced:
+// lib/analytics-schema.ts holds the closed list of event types, the properties
+// each one may carry, and the failure categories — and `track` validates
+// against it before the local write and before the cloud mirror, so a
+// transcript or an email address cannot reach either store.
 
 type Props = Record<string, string | number | boolean>;
 
 /** Record an event. Never throws — analytics must not affect the learning flow. */
-export function track(type: AnalyticsEvent["type"], props?: Props): void {
+export function track(type: AnalyticsEventType, props?: Props): void {
   if (typeof window === "undefined" || !db) return;
+  let validated;
+  try {
+    validated = validateEvent({ type, props });
+  } catch {
+    // An event that violates the schema is dropped entirely rather than written
+    // in a weaker form: a rejected required property means we do not actually
+    // know what happened, and half a fact is worse than none.
+    return;
+  }
   const at = Date.now();
   const day = dayKey(new Date(at));
-  const ev: AnalyticsEvent = { type, at, day, props };
+  const ev: AnalyticsEvent = { type, at, day, props: validated.props };
   void db.events.add(ev).catch(() => {});
   void mirror(ev).catch(() => {});
 }
 
 /** Only fire an event once per calendar day (e.g. app_open). */
-export function trackOncePerDay(type: AnalyticsEvent["type"], props?: Props): void {
+export function trackOncePerDay(type: AnalyticsEventType, props?: Props): void {
   if (typeof window === "undefined") return;
   const key = `clara.ev.${type}`;
   const today = dayKey();
@@ -35,6 +52,54 @@ export function trackOncePerDay(type: AnalyticsEvent["type"], props?: Props): vo
     /* private mode — fall through and just log it */
   }
   track(type, props);
+}
+
+export type DailySessionAnalyticsAction =
+  | "start"
+  | "resume"
+  | "checkpoint"
+  | "complete";
+
+/**
+ * Track the daily-loop lifecycle with controlled enums and counts only.
+ * Objective, outcome, learner speech, transcripts, and other free text never
+ * enter the analytics payload.
+ *
+ * Each action records under its own event type (session_start, session_resume,
+ * activity_complete, session_complete) so a completion rate can be computed
+ * without inferring it from a generic mode tap.
+ */
+export function trackDailySession(
+  action: DailySessionAnalyticsAction,
+  session: DailySession,
+  activity?: Pick<DailyActivity, "kind" | "status">,
+): void {
+  const counts = {
+    completedActivities: session.activities.filter(
+      (entry) =>
+        entry.status === "completed" || entry.status === "technical-skip",
+    ).length,
+    totalActivities: session.activities.length,
+  };
+  if (action === "complete") {
+    track("session_complete", { ...counts, rewardClaimed: session.rewardClaimed });
+    return;
+  }
+  if (action === "checkpoint") {
+    // A checkpoint we cannot attribute to an activity still proves the learner
+    // is mid-session, so it records as a resume rather than being lost.
+    if (activity) {
+      track("activity_complete", {
+        ...counts,
+        activityKind: activity.kind,
+        activityStatus: activity.status,
+      });
+    } else {
+      track("session_resume", counts);
+    }
+    return;
+  }
+  track(action === "start" ? "session_start" : "session_resume", counts);
 }
 
 // Best-effort cloud mirror. No-ops silently if Supabase isn't configured, the

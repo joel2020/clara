@@ -24,7 +24,7 @@ export function CharacterPreview({
   petId?: string;
   /** Temporary art-base override for trying on an unowned outfit. */
   outfit?: string;
-  /** Visible caption above the stage (e.g. "Así se ve Lumi"). */
+  /** Visible caption above the stage (e.g. "Tu escena"). */
   label?: string;
   className?: string;
 }) {

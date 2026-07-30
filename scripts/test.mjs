@@ -31,7 +31,7 @@ let failedFiles = 0;
 for (const file of tests) {
   // Pick the runner from the file's own imports rather than a hardcoded list.
   const src = readFileSync(file, "utf8");
-  const needsAlias = /from\s+"@\//.test(src) || /"\.\.?\/[^"]*\.ts"/.test(src);
+  const needsAlias = /from\s+["']@\//.test(src) || /["']\.\.?\/[^"']*\.ts["']/.test(src);
   const runner = needsAlias ? ["npx", ["tsx", file]] : ["node", [file]];
 
   let out = "";
