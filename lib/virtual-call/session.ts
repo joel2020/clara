@@ -159,12 +159,18 @@ export function shouldInterrupt(
   return mode === "practice" && correction.severity === "significant";
 }
 
-/** Corrections shown inline during the call, per mode. */
-export function shouldShowInline(mode: CorrectionMode, correction: TurnCorrection | null): boolean {
+/**
+ * Is this correction shown inline during the call?
+ *
+ * Both modes use the same visibility rule — a `minor` note never interrupts the
+ * conversation visually — because what differs between them is whether the call
+ * STOPS (see shouldInterrupt), not whether the note is legible. An earlier
+ * version branched on mode with identical arms, which read as an intended
+ * difference that did not exist.
+ */
+export function shouldShowInline(correction: TurnCorrection | null): boolean {
   if (!correction) return false;
-  if (correction.severity === "none") return false;
-  // Natural mode keeps them discreet but visible; the report is where they land.
-  return mode === "practice" ? correction.severity !== "minor" : correction.severity !== "minor";
+  return correction.severity !== "none" && correction.severity !== "minor";
 }
 
 /**

@@ -7,6 +7,8 @@ import { AlertTriangle, ArrowLeft, VolumeX, WifiOff } from "lucide-react";
 import { Splash } from "@/components/splash";
 import { getVirtualCallScenario, type VirtualCallScenario } from "@/lib/content/virtual-call-scenarios";
 import { useSettings } from "@/lib/hooks/useSettings";
+import { dayKey } from "@/lib/gamification";
+import { selectCallHumor } from "@/lib/virtual-call/humor";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
 import { t } from "@/lib/i18n";
 import type { CorrectionMode } from "@/lib/virtual-call/session";
@@ -31,7 +33,9 @@ export function VirtualCallScreen() {
   const support = useSpeechSupport();
   const lang = settings.coachLanguage;
   const level = settings.onboarding?.level ?? "A1";
-  const transcriptEnabled = (settings.callTranscriptRetention ?? "session") !== "none";
+  // Fail CLOSED: every other read site defaults to "none", and this is the one
+  // flag deciding whether her words are shown back.
+  const transcriptEnabled = (settings.callTranscriptRetention ?? "none") !== "none";
 
   const call = useVirtualCall({ lang, level, studentName: settings.studentName ?? "" });
   const { start, scenario, state, report, reset } = call;
@@ -62,6 +66,17 @@ export function VirtualCallScreen() {
         report={report}
         scenario={scenario}
         lang={lang}
+        prose={call.prose}
+        humor={selectCallHumor({
+          event: "call-complete",
+          level: settings.humorLevel ?? "light",
+          day: dayKey(),
+          sessionId: `${scenario.id}:${report.durationMs}`,
+          lastStrongReactionAt: null,
+          shownThisCall: 0,
+          // Only celebrate a call that actually went somewhere.
+          succeeded: report.metCriteria || (report.cleanTurns >= 2 && report.priorities.length === 0),
+        })}
         conversation={transcriptEnabled ? call.entries : undefined}
         timeUp={call.timeUp}
         onReplay={call.replay}

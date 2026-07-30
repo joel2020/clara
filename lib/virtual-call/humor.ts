@@ -33,6 +33,15 @@ export interface CallHumorInput {
   lastStrongReactionAt: string | null;
   /** How many reactions have already appeared on this call. */
   shownThisCall: number;
+  /**
+   * Did the moment actually go well?
+   *
+   * Required, and not defaulted to true. A celebratory line after a one-turn
+   * call that missed its objective reads as the app not listening — which is
+   * worse than no joke at all. Observed in browser testing, where a mastery
+   * reaction landed on a call the learner had just struggled through.
+   */
+  succeeded: boolean;
   /** Prefer Joel's voice when he has approved lines; falls back to Clara. */
   preferJoel?: boolean;
 }
@@ -47,6 +56,7 @@ const EVENT_CONTEXT: Record<CallHumorEvent, string> = {
 
 export function selectCallHumor(input: CallHumorInput): HumorReaction | null {
   if (input.level === "off") return null;
+  if (!input.succeeded) return null;
   if (input.shownThisCall >= MAX_REACTIONS_PER_CALL) return null;
   // "light" gets one reaction per call, and only at the end, so a learner who
   // finds this stuff grating still hears it at most once.

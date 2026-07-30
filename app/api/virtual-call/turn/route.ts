@@ -54,7 +54,7 @@ export async function POST(request: Request): Promise<Response> {
   if (unauth) return unauth;
 
   const raw = await request.text();
-  if (raw.length > MAX_BODY_BYTES) {
+  if (Buffer.byteLength(raw) > MAX_BODY_BYTES) {
     return Response.json({ error: "too_large" }, { status: 413 });
   }
 
@@ -118,7 +118,9 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const analysis = await brain.analyzeTurn(req);
     if (!analysis.reply) return Response.json({ error: "empty_reply" }, { status: 502 });
-    return Response.json({ analysis, provider: brain.name });
+    // The provider FAMILY, never brain.name: on Azure that is the deployment
+    // name, which is internal infrastructure naming the browser has no use for.
+    return Response.json({ analysis, provider: brain.name === "mock" ? "mock" : "model" });
   } catch (e) {
     // Usage metadata only. The utterance and the reply are deliberately absent:
     // logging call content would put learner speech in the platform logs, which

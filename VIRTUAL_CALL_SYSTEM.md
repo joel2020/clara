@@ -170,7 +170,9 @@ By name only; all server-side, none exposed to the client.
 | Max turns | 24 | `MAX_TURNS` |
 | Context window | 8 turns | `CONTEXT_WINDOW_TURNS`, enforced **server-side too** |
 | Max utterance | 500 chars | turn route |
-| Max body | 16 KB turn / 32 KB report | turn + report routes |
+| Max body | 16 KB turn / 32 KB report | turn + report routes, measured in **bytes** |
+| Max vocabulary item | 60 chars | report route — these strings enter the system prompt |
+| Fact counts | clamped 0-100 | report route |
 | Per-IP flood limit | 40/min | existing `guardApi` |
 | Same-origin only | required | existing `guardApi` |
 
@@ -210,8 +212,12 @@ Keep `openingPrompt` natural and ending in a question; it is spoken verbatim.
 All reactions live in `lib/content/humor.ts` so Joel can read and edit them in one
 place. Rules enforced by tests:
 
-- Humor fires on **success only** — an accepted retry or a finished call. Never on
-  a correction, a failed retry, a mic problem, or an error.
+- Humor fires on **success only**, and "success" is checked rather than assumed:
+  `selectCallHumor` takes a required `succeeded` flag and returns nothing when it
+  is false. A call that ran one turn and missed its objective gets no celebration
+  — that was found in browser testing, where a mastery line landed on a call the
+  learner had just struggled through, and it read as the app not listening.
+  Never on a correction, a failed retry, a mic problem, or an error.
 - At most `MAX_REACTIONS_PER_CALL` (2), and "light" allows one, at the end only.
 - Never targets the learner: every line is tagged `situation`, `self`, or
   `culture`, and there is deliberately no `learner` option.
@@ -284,4 +290,13 @@ when she is still talking?), and a much tighter per-minute cost ceiling.
 - `metCriteria` is the model's judgment of the scenario's completion criteria; it
   is not independently verified against the transcript.
 - Clara's approved character artwork does not exist yet (pending approval), so the
-  call renders a neutral placeholder rather than temporary AI art.
+  call renders a neutral monogram placeholder rather than temporary AI art.
+  `CLARA_ARTWORK_AVAILABLE` in `lib/character.ts` is the single flag: it is
+  `false`, so no request is made for assets known to be missing. Flip it in the
+  same commit that adds the files and the stage starts using them.
+- The report's aggregate row is stored on-device only. It is deliberately not
+  synced (documented in `lib/sync/coverage.test.mjs`), so it does not survive an
+  iOS storage eviction the way exam history does. Syncing it needs a
+  `virtual_calls` table and a transcript-stripping payload.
+- `metCriteria` is the model's judgment, not an independent check of the
+  transcript, so the "did you reach the goal" line is only as good as that.

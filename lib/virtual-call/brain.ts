@@ -9,6 +9,7 @@
 import type OpenAI from "openai";
 import { getChatModel } from "../ai/chat-client.ts";
 import type { CallBrain, TurnRequest } from "./providers.ts";
+import { normalizeUtterance } from "./session.ts";
 import type { CorrectionKind, MistakeSeverity, TurnAnalysis } from "./session.ts";
 
 const SCHEMA = {
@@ -159,8 +160,12 @@ export function normalizeAnalysis(parsed: RawReply, utterance: string): TurnAnal
   const explanation = rawCorrection?.explanation?.trim() ?? "";
   // A "correction" identical to what she said is not a correction; models emit
   // these when they feel obliged to fill the field.
+  // The normalized form must be non-empty too: a "corrected" sentence of pure
+  // punctuation passes a length check but normalizes to "", and an empty retry
+  // target auto-accepts, crediting her with a fix she never made.
   const meaningful =
     corrected.length > 0 &&
+    normalizeUtterance(corrected).length > 0 &&
     explanation.length > 0 &&
     corrected.toLowerCase().trim() !== utterance.toLowerCase().trim();
 

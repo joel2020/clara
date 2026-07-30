@@ -7,6 +7,7 @@ import { t, type CoachLang } from "@/lib/i18n";
 import type { Level } from "@/lib/placement";
 import { createRecognition, recognitionErrorKey, type RecognitionHandle } from "@/lib/speech/recognition";
 import type { Assessment } from "@/lib/speech/azure";
+import { repo } from "@/lib/db";
 import { buildReport, type CallReport } from "@/lib/virtual-call/report";
 import {
   applyRetry,
@@ -64,6 +65,14 @@ export type CallEntry =
    *  before (and even if) the turn analysis comes back. */
   | { id: string; kind: "learner"; text: string; turnIndex: number };
 
+/** The encouraging copy from /api/virtual-call/report. Never carries numbers:
+ *  every figure on the report is computed locally from the recorded turns. */
+export interface CallProse {
+  summary: string;
+  did_well: string[];
+  next_activity: string;
+}
+
 export interface CallError {
   /** "turn" is recoverable by resending; "mic" and "audio" are not. */
   kind: "turn" | "mic";
@@ -78,6 +87,9 @@ export interface VirtualCallController {
   entries: CallEntry[];
   suggestions: string[];
   report: CallReport | null;
+  /** Model-written encouragement around the computed report. Null until it
+   *  arrives, and stays null if it never does. */
+  prose: CallProse | null;
   elapsedMs: number;
   remainingMs: number;
   error: CallError | null;
@@ -466,6 +478,86 @@ export function useVirtualCall(options: {
     });
   }, [state, scenario, metCriteria]);
 
+  // Persist the finished call and fetch its prose, exactly once.
+  //
+  // Both live here rather than in the report component because the report view
+  // is remounted by navigation: writing from there would save the same call
+  // twice and pay for the prose twice. The record is written even when the
+  // prose request fails — her progress must not depend on a model being up.
+  const savedRef = useRef<string | null>(null);
+  const [prose, setProse] = useState<CallProse | null>(null);
+  useEffect(() => {
+    if (!report || !state || !scenario || state.phase !== "ended") return;
+    const key = `${scenario.id}:${state.startedAt}`;
+    if (savedRef.current === key) return;
+    savedRef.current = key;
+
+    void repo
+      .saveVirtualCall({
+        scenarioId: report.scenarioId,
+        mode: state.mode,
+        level: state.level,
+        startedAt: state.startedAt,
+        endedAt: state.endedAt ?? state.startedAt,
+        at: state.endedAt ?? state.startedAt,
+        durationMs: report.durationMs,
+        learnerTurns: report.learnerTurns,
+        cleanTurns: report.cleanTurns,
+        metCriteria: report.metCriteria,
+        corrections: report.corrections,
+        priorities: report.priorities,
+        vocabularyUsed: report.vocabularyUsed,
+        ...(report.pronunciation ? { pronunciation: report.pronunciation } : {}),
+        retriedCount: report.retriedCount,
+        retriedAcceptedCount: report.retriedAcceptedCount,
+        // Offered in full; the repository strips it unless she opted in.
+        transcript: entries.map((e) => ({
+          role: e.kind === "clara" ? ("clara" as const) : ("learner" as const),
+          text: e.text,
+          at:
+            e.kind === "learner"
+              ? (state.turns[e.turnIndex]?.at ?? state.startedAt)
+              : state.startedAt,
+        })),
+      })
+      // A failed local write must not take the report screen down with it.
+      .catch(() => {});
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/virtual-call/report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+          body: JSON.stringify({
+            scenarioId: report.scenarioId,
+            coachLanguage: lang,
+            facts: {
+              learnerTurns: report.learnerTurns,
+              cleanTurns: report.cleanTurns,
+              durationMs: report.durationMs,
+              metCriteria: report.metCriteria,
+              retriedAcceptedCount: report.retriedAcceptedCount,
+              vocabularyUsed: report.vocabularyUsed,
+              priorities: report.priorities.map((p) => ({
+                corrected: p.corrected,
+                explanation: p.explanation,
+              })),
+            },
+          }),
+        });
+        if (!res.ok || cancelled) return;
+        const payload = (await res.json()) as { prose?: CallProse };
+        if (payload.prose && !cancelled) setProse(payload.prose);
+      } catch {
+        // The locally-assembled report already stands on its own.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [report, state, scenario, entries, lang]);
+
   // Did the call stop because it ran out of time, rather than because she ended
   // it? Readable straight off the ended state; the turn ceiling is not "time up".
   const timeUp =
@@ -482,7 +574,7 @@ export function useVirtualCall(options: {
     if (state.phase === "awaiting-retry") return "awaiting-retry";
     if (speaking) return "clara-speaking";
     const last = state.turns[state.turns.length - 1];
-    if (last && !last.retry && shouldShowInline(state.mode, last.correction)) return "correction";
+    if (last && !last.retry && shouldShowInline(last.correction)) return "correction";
     return "your-turn";
   }, [state, online, recording, error, connecting, speaking]);
 
@@ -492,6 +584,7 @@ export function useVirtualCall(options: {
     state,
     uiState,
     entries,
+    prose,
     suggestions,
     report,
     elapsedMs: state ? callDurationMs(state, now) : 0,

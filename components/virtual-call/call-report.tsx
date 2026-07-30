@@ -35,6 +35,8 @@ export function CallReportView({
   timeUp,
   onReplay,
   onAnother,
+  prose,
+  humor,
   homeHref,
 }: {
   report: CallReport;
@@ -47,11 +49,20 @@ export function CallReportView({
   /** Speak a sentence again — the "replay a sentence" action. */
   onReplay: (text: string) => void;
   onAnother: () => void;
+  /** Model-written encouragement. Null when it never arrived; the computed
+   *  report below stands on its own without it. */
+  prose?: { summary: string; did_well: string[]; next_activity: string } | null;
+  /** An optional Medellin reaction, already vetted by lib/virtual-call/humor. */
+  humor?: { text: { es: string; en: string }; slang?: { term: string; meaning: string } } | null;
   homeHref: string;
 }) {
-  const lead = t(report.learnerTurns === 1 ? "vcallReportLeadOne" : "vcallReportLead", lang)
-    .replace("{d}", formatSpokenDuration(report.durationMs))
-    .replace("{n}", String(report.learnerTurns));
+  // Prefer Clara's written summary when it arrived; fall back to the locally
+  // assembled sentence so a model outage never costs her the report.
+  const lead =
+    prose?.summary?.trim() ||
+    t(report.learnerTurns === 1 ? "vcallReportLeadOne" : "vcallReportLead", lang)
+      .replace("{d}", formatSpokenDuration(report.durationMs))
+      .replace("{n}", String(report.learnerTurns));
 
   // The next step follows the evidence: a call that met its criteria earns a
   // harder situation; unfixed corrections earn a second run at this one.
@@ -72,6 +83,20 @@ export function CallReportView({
         {t("vcallReportTitle", lang)}
       </h1>
       <p className="mt-4 text-base leading-relaxed text-muted-foreground">{lead}</p>
+
+      {/* An optional Medellin reaction. The selector has already applied the
+          learner's humor setting, the once-per-call cap, and the rule that a
+          reaction only ever follows success — so if one is here, it belongs. */}
+      {humor && (
+        <p className="mt-3 text-sm leading-relaxed text-foreground/80">
+          {humor.text[lang]}
+          {humor.slang && (
+            <span className="mt-1 block text-xs text-muted-foreground">
+              {humor.slang.term}: {humor.slang.meaning}
+            </span>
+          )}
+        </p>
+      )}
 
       {timeUp && (
         <p className="mt-4 rounded-xl border border-hairline bg-secondary px-3.5 py-2.5 text-sm text-muted-foreground">

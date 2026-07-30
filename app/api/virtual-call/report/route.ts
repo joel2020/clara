@@ -88,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
   if (unauth) return unauth;
 
   const raw = await request.text();
-  if (raw.length > MAX_BODY_BYTES) return Response.json({ error: "too_large" }, { status: 413 });
+  if (Buffer.byteLength(raw) > MAX_BODY_BYTES) return Response.json({ error: "too_large" }, { status: 413 });
 
   let body: ReportBody;
   try {
@@ -102,14 +102,20 @@ export async function POST(request: Request): Promise<Response> {
 
   const lang: "es" | "en" = body.coachLanguage === "en" ? "en" : "es";
   const f = body.facts ?? {};
-  const turns = Number.isFinite(f.learnerTurns) ? Math.max(0, Math.trunc(f.learnerTurns as number)) : 0;
-  const clean = Number.isFinite(f.cleanTurns) ? Math.max(0, Math.trunc(f.cleanTurns as number)) : 0;
+  const clamp = (v: unknown, max: number) =>
+    Number.isFinite(v) ? Math.min(max, Math.max(0, Math.trunc(v as number))) : 0;
+  const turns = clamp(f.learnerTurns, 100);
+  const clean = clamp(f.cleanTurns, 100);
   const met = Boolean(f.metCriteria);
-  const retriesFixed = Number.isFinite(f.retriedAcceptedCount)
-    ? Math.max(0, Math.trunc(f.retriedAcceptedCount as number))
-    : 0;
+  const retriesFixed = clamp(f.retriedAcceptedCount, 100);
+  // Capped per item, not just per array: these strings are interpolated into
+  // the system prompt, so an uncapped one is a prompt-injection vector even
+  // when the caller is same-origin and authenticated.
   const vocab = Array.isArray(f.vocabularyUsed)
-    ? f.vocabularyUsed.filter((v): v is string => typeof v === "string").slice(0, 10)
+    ? f.vocabularyUsed
+        .filter((v): v is string => typeof v === "string")
+        .slice(0, 10)
+        .map((v) => v.slice(0, 60))
     : [];
   const priorities = Array.isArray(f.priorities)
     ? f.priorities
@@ -161,7 +167,7 @@ Be warm, specific and adult. No baby talk, no empty praise. If the call was shor
           : [],
         next_activity: (parsed.next_activity ?? "").trim(),
       },
-      provider: brain.model,
+      provider: "model",
     });
   } catch (e) {
     console.error("[api/virtual-call/report]", {

@@ -89,7 +89,7 @@ export function Transcript({
               </p>
             </div>
             {/* Inline, below the turn — the conversation above stays readable. */}
-            {correction && shouldShowInline(state.mode, correction) && (
+            {correction && shouldShowInline(correction) && (
               <CorrectionCard
                 correction={correction}
                 lang={lang}
