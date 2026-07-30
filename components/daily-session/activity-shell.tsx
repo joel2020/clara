@@ -27,7 +27,7 @@ export function ActivityShell({
         entry.status !== "completed" && entry.status !== "technical-skip",
     )
     .reduce((total, entry) => total + entry.estimatedMinutes, 0);
-  const href = activityHref(activity);
+  const href = activityHref(activity, session.day);
 
   return (
     <section className="mt-6" aria-labelledby="current-activity-title">

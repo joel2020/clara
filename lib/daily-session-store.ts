@@ -62,7 +62,10 @@ export interface ActivityCheckpoint {
  * so navigation or a tab close immediately after the checkpoint cannot lose it.
  */
 export async function checkpointActivity(input: ActivityCheckpoint): Promise<DailySession> {
-  const existing = await getDailySession(input.day);
+  // Read locally rather than through getDailySession: a hanging cloud pull must
+  // never sit between finishing an activity and the durable write. The merge on
+  // the next read reconciles whatever another device recorded.
+  const existing = await repo.getDailySession(input.day);
   if (!existing) throw new Error(`No daily session exists for ${input.day}`);
   const found = existing.activities.some((entry) => entry.id === input.activityId);
   if (!found) throw new Error(`Unknown daily activity: ${input.activityId}`);

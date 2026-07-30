@@ -65,11 +65,18 @@ function TodaySessionRunner() {
     if (!session) return;
     const activityId = searchParams.get("sessionActivity");
     if (!activityId) return;
-    const returnKey = `${activityId}:${searchParams.get("sessionResult") ?? "completed"}`;
+    const returnDay = searchParams.get("sessionDay");
+    const returnKey = `${returnDay ?? "-"}:${activityId}:${searchParams.get("sessionResult") ?? "completed"}`;
     if (handledReturn.current === returnKey) return;
     handledReturn.current = returnKey;
 
-    if (!session.activities.some((activity) => activity.id === activityId)) {
+    // Activity ids repeat across days, so a return that crossed midnight would
+    // otherwise credit the identically-named step of today's new session.
+    const staleDay = returnDay !== null && returnDay !== session.day;
+    if (
+      staleDay ||
+      !session.activities.some((activity) => activity.id === activityId)
+    ) {
       router.replace("/today", { scroll: false });
       return;
     }
@@ -119,7 +126,7 @@ function TodaySessionRunner() {
 
   const retry = () => {
     if (!recoveryActivity) return;
-    const href = activityHref(recoveryActivity);
+    const href = activityHref(recoveryActivity, session.day);
     setRecoveryActivityId(null);
     if (href) {
       router.push(href);

@@ -5,7 +5,7 @@ import { Mic, Square, Loader2, Volume2, Check, X, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PracticeItem } from "@/lib/db/types";
 import { repo } from "@/lib/db";
-import { createRecognition, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
+import { createRecognition, recognitionErrorKey, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
 import { recordPracticeAttempt } from "@/lib/practice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
@@ -46,6 +46,7 @@ export function ShadowRound({
   const [idx, setIdx] = useState(0);
   const [phase, setPhase] = useState<Phase>("listen");
   const [flash, setFlash] = useState<{ passed: boolean; stars: number } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [totalStars, setTotalStars] = useState(0);
   const [clears, setClears] = useState(0);
   const [done, setDone] = useState(false);
@@ -83,6 +84,7 @@ export function ShadowRound({
 
   const advance = () => {
     setFlash(null);
+    setNotice(null);
     if (idx + 1 >= round.length) {
       setDone(true);
       sfx.finish();
@@ -97,6 +99,7 @@ export function ShadowRound({
     if (phase !== "ready") return;
     stopPronunciation();
     setFlash(null);
+    setNotice(null);
     setPhase("recording");
     sfx.tap();
     const h = createRecognition({ lang: settings.recognitionLang, target: current.text });
@@ -136,7 +139,9 @@ export function ShadowRound({
         setPhase("ready");
         return;
       }
-      setFlash({ passed: false, stars: 0 });
+      // A technical failure is not a miss: nothing was scored, so say what went
+      // wrong instead of showing her the miss badge.
+      setNotice(t(recognitionErrorKey(e), lang));
       setPhase("ready");
     } finally {
       handleRef.current = null;
@@ -254,7 +259,12 @@ export function ShadowRound({
               </span>
             )
           )}
-          {!flash && phase === "flash" && <Check className="size-5 text-success" />}
+          {!flash && notice && (
+            <span role="status" className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+              {notice}
+            </span>
+          )}
+          {!flash && !notice && phase === "flash" && <Check className="size-5 text-success" />}
         </div>
 
         {/* Mic */}
