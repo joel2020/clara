@@ -7,7 +7,7 @@ import { LESSONS } from "@/lib/content/lessons";
 import { BuildRound } from "@/components/practice/build-round";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
-import { Lumi } from "@/components/lumi";
+import { CharacterIllustration } from "@/components/character";
 import { Splash } from "@/components/splash";
 
 // Sentence-builder game: hear it, then build it word by word. Pool = the
@@ -34,8 +34,11 @@ export default function BuildPage() {
       </Link>
 
       <section className="mt-6 flex flex-col items-center text-center animate-fade-up">
+        {/* A game's opening screen is a lesson intro: Clara explains what the
+            round is before it starts, then gets out of the way. Three-quarter
+            is the manifest's preferred framing for `teaching`. */}
         <div className="relative h-40 w-32">
-          <Lumi frame="full" mood="wave" priority />
+          <CharacterIllustration state="teaching" frame="threeQuarter" preload />
         </div>
         <h1 className="mt-4 font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{t("buildTitle", lang)}</h1>
         <p className="mx-auto mt-3 max-w-sm leading-relaxed text-muted-foreground">{t("buildIntro", lang)}</p>

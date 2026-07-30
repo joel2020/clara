@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Lumi } from "@/components/lumi";
+import { CharacterIllustration } from "@/components/character";
 import { supabase } from "@/lib/db/supabase";
 
 // Where Google sends the user back to. The Supabase client runs with
@@ -67,9 +67,13 @@ export function OAuthCallbackScreen() {
       <div className="flag-bar absolute inset-x-0 top-0 h-[3px]" aria-hidden />
 
       <div className="relative z-10 w-full max-w-sm text-center">
-        <div className="mx-auto h-40 w-36 px-1">
-          <Lumi mood={error ? "think" : "wave"} priority depth />
-        </div>
+        {/* Waiting on Google is a loading state (`thinking`); a failed
+            hand-back is not a Clara moment, so the card carries it alone. */}
+        {!error && (
+          <div className="mx-auto h-40 w-36 px-1">
+            <CharacterIllustration state="thinking" frame="threeQuarter" preload />
+          </div>
+        )}
 
         {!error ? (
           <p className="mt-4 text-sm text-muted-foreground">Entrando · Signing you in…</p>

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Lumi } from "@/components/lumi";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { supabase } from "@/lib/db/supabase";
 
@@ -99,9 +98,8 @@ export function ResetPasswordScreen() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mx-auto mb-6 flex flex-col items-center text-center">
-          <div className="h-40 w-36 px-1">
-            <Lumi mood={phase === "done" ? "clap" : "think"} priority depth />
-          </div>
+          {/* Setting a password is account plumbing, not a learning moment;
+              the wordmark and the form are the whole screen. */}
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-[-0.02em]">Clara</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Nueva contraseña · New password

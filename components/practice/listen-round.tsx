@@ -11,7 +11,7 @@ import { popConfetti, celebrate } from "@/lib/fx";
 import { juice } from "@/components/juice";
 import { playPronunciation, stopPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
-import { Lumi } from "@/components/lumi";
+import { CharacterIllustration } from "@/components/character";
 
 // Listen-first comprehension: hear a phrase (NO text on screen) in one of the
 // American voices and pick what it means. This is the ear→meaning training the
@@ -150,7 +150,8 @@ export function ListenRound({
     const acc = round.length ? Math.round((clears / round.length) * 100) : 0;
     return (
       <div className="animate-scale-in px-5 py-14 text-center">
-        <Lumi frame="bust" mood="cheer" className="mx-auto size-28" />
+        {/* Session completion — the manifest's own `celebrating` screen. */}
+        <CharacterIllustration state="celebrating" frame="bust" className="mx-auto size-28" />
         <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("listenTitle", lang)}</p>
         <h1 className="mt-3 inline-flex items-center gap-2 font-display text-5xl font-medium tracking-[-0.03em]">
           {stars}

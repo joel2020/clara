@@ -121,11 +121,17 @@ export function ProducePanel({
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Lumi stays with her through the whole attempt — the scary moment has
-          a friendly face, not just a mic button. */}
+      {/* Clara stays with her through the whole attempt — the scary moment has
+          a face, not just a mic button. The three states are literal: she is
+          listening while the mic is open, thinking while the score is computed,
+          and encouraging in the beat before she starts. */}
       {recognitionSupported && (
         <div className="flex items-center gap-2.5" aria-hidden>
-          <CharacterIllustration mode="bust" mood={phase === "scoring" ? "think" : phase === "listening" ? "idle" : "point"} className="size-14 shrink-0" />
+          <CharacterIllustration
+            state={phase === "listening" ? "listening" : phase === "scoring" ? "thinking" : "encouraging"}
+            frame="bust"
+            className="size-14 shrink-0"
+          />
           <span
             className={cn(
               "rounded-2xl rounded-bl-sm border border-hairline bg-card px-3 py-1.5 text-sm text-foreground/80 shadow-sm",
@@ -207,10 +213,11 @@ function ResultCard({
   const spanish = messages[Math.abs(messageSeed) % messages.length];
   return (
     <div className="animate-fade-up text-center" role="status" aria-live="polite">
-      {/* Lumi reacts — cheering on a win, warmly encouraging after a miss */}
+      {/* Clara reacts — celebrating a clear attempt, encouraging after a miss,
+          which is exactly the manifest's "practice feedback / near-miss". */}
       <div className="relative mx-auto w-fit">
         {passed && <SparkleBurst />}
-        <CharacterIllustration mode="bust" mood={passed ? "cheer" : "encourage"} className="mx-auto size-28" />
+        <CharacterIllustration state={passed ? "celebrating" : "encouraging"} frame="bust" className="mx-auto size-28" />
         <span className="animate-pop-in absolute -right-2 -top-1 rounded-2xl rounded-bl-sm bg-card px-3 py-1.5 text-sm font-semibold text-card-foreground shadow-md ring-1 ring-border">
           {spanish}
         </span>

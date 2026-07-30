@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lumi } from "@/components/lumi";
+import { CharacterIllustration } from "@/components/character";
 
 // A brief "movie moment" for big wins — letterbox bars slide in, the screen
-// dims, light rays sweep behind Lumi's cheer pose as she zooms in, and the
+// dims, light rays sweep behind Clara's celebrating pose as she zooms in, and the
 // star reward counts up. Fully imperative (call `cinematic.play(...)` from
 // anywhere) and self-dismissing (~1.9s). No-ops under reduced motion so it
 // never gets in the way of a learner who's turned motion off.
@@ -73,9 +73,11 @@ export function CinematicLayer() {
       <div className="cine-bar cine-bar-bottom absolute inset-x-0 bottom-0" aria-hidden />
       <div className="cine-rays absolute" aria-hidden />
 
-      <div className="cine-lumi relative flex flex-col items-center">
+      <div className="cine-hero relative flex flex-col items-center">
         <div className="relative h-64 w-52 sm:h-72 sm:w-60">
-          <Lumi frame="full" mood="cheer" priority />
+          {/* Milestone unlock / streak celebration — `celebrating`, full
+              figure. The whole overlay already no-ops under reduced motion. */}
+          <CharacterIllustration state="celebrating" frame="full" preload />
         </div>
         {scene.title && (
           <p className="mt-1 font-display text-3xl font-semibold tracking-[-0.02em] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
