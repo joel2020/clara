@@ -5,10 +5,9 @@ import { TabBar } from "@/components/system/tab-bar";
 import { StatRow } from "@/components/system/stats";
 import { PREVIEW_TABS } from "../tabs";
 
-// Prototype: Yo — the one home for identity, progress detail, constancia, the
-// learner's collection, and settings. Replaces the Mundo/Dashboard/Profile
-// triplet; one language, stats as quiet rows, the collection framed as her own
-// drawn world rather than app chrome.
+// Prototype: Yo — the one home for identity, progress detail, constancia, Lumi
+// and settings. Replaces the Mundo/Dashboard/Profile triplet; one language,
+// stats as quiet rows, Lumi framed as her companion (drawn world, not chrome).
 
 export default function PreviewYo() {
   return (
@@ -62,14 +61,14 @@ export default function PreviewYo() {
           </div>
         </section>
 
-        {/* The collection: the warmth sink, in its own drawn frame. */}
+        {/* Lumi: the warmth sink, in her own drawn frame — never app chrome. */}
         <section className="mt-8">
           <a href="#" className="flex items-center gap-4 rounded-3xl border border-hairline bg-card p-5 transition-colors hover:bg-muted">
             <span className="grid size-11 shrink-0 place-items-center rounded-2xl" style={{ background: "var(--surface-wash)" }}>
               <Sparkles className="size-5 text-primary" strokeWidth={1.75} aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="type-heading block">Tu colección</span>
+              <span className="type-heading block">Lumi y tu colección</span>
               <span className="type-support block">Viste a tu compañera con las estrellas que ganaste hablando</span>
             </span>
             <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />

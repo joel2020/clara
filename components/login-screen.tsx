@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CharacterIllustration } from "@/components/character";
+import { Lumi } from "@/components/lumi";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 // Clara is currently a private-beta product shared by link with family and
@@ -34,10 +34,7 @@ export function LoginScreen() {
       <div className="relative z-10 w-full max-w-sm">
         <div className="mx-auto mb-6 flex flex-col items-center text-center">
           <div className="h-44 w-40 px-1">
-            {/* First contact with the product: `welcome`, full figure, and the
-                page's LCP element. Decorative — "Bienvenida · Welcome" sits
-                directly beneath her and alt must not repeat it. */}
-            <CharacterIllustration state="welcome" preload />
+            <Lumi mood="wave" priority depth />
           </div>
           <p className="mt-3 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/70">
             <span className="flag-dots" aria-hidden>

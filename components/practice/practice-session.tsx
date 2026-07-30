@@ -25,7 +25,7 @@ import { DistinguishDrill } from "./distinguish-drill";
 import { SpeechSupportNotice } from "./speech-support-notice";
 import { LevelUpOverlay } from "./level-up-overlay";
 import { LearnIntro } from "./learn-intro";
-import { CharacterIllustration } from "@/components/character";
+import { Lumi } from "@/components/lumi";
 import { juice } from "@/components/juice";
 import { cinematic } from "@/components/cinematic";
 import { track } from "@/lib/analytics";
@@ -485,15 +485,19 @@ function DoneCard({
 
   return (
     <div className="animate-scale-in py-8 text-center">
-      {/* Clara leads the payoff. A rough session is a reason to come back, not
-          a reason to celebrate, so under half clear she reads as `encouraging`;
-          everything else is the manifest's session-completion `celebrating`. */}
+      {/* Lumi leads the payoff — clapping proud on a clear, warm on a review */}
       <div className="relative mx-auto w-fit">
-        <CharacterIllustration
-          state={attempted > 0 && clear / attempted < 0.5 ? "encouraging" : "celebrating"}
+        <Lumi
           frame="bust"
+          mood={
+            attempted > 0 && clear === attempted
+              ? "clap"
+              : attempted > 0 && clear / attempted < 0.5
+                ? "encourage"
+                : "cheer"
+          }
           className="mx-auto size-24"
-          preload
+          priority
         />
         {sessionStars > 0 && (
           <span className="star-chip bloom-gold absolute -right-9 top-0 animate-star-pop rounded-full px-3 py-1 font-display text-sm font-semibold">

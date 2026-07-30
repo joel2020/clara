@@ -8,7 +8,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { useAllProgress } from "@/lib/hooks/useData";
 import { repo } from "@/lib/db";
 import { Splash } from "@/components/splash";
-import { CharacterReaction } from "@/components/character";
+import { Lumi } from "@/components/lumi";
 import { cinematic } from "@/components/cinematic";
 import { sfx } from "@/lib/sfx";
 import { dayKey } from "@/lib/gamification";
@@ -379,10 +379,8 @@ export default function ExamPage() {
   if (phase === "voided") {
     return shell(
       <div className={cn(card, "text-center")}>
-        {/* Deliberately no Clara here. A grading outage is a system failure,
-            the design system approves no state for one, and putting the guide
-            on it would make the app's fault look like a verdict on her. */}
-        <h2 className="font-display text-xl font-semibold">No pudimos calificar tu examen</h2>
+        <Lumi frame="bust" mood="think" />
+        <h2 className="mt-4 font-display text-xl font-semibold">No pudimos calificar tu examen</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           El servicio que califica tus respuestas habladas no respondió. Este intento{" "}
           <strong>no cuenta</strong> — no gastaste tu examen de hoy y nada quedó registrado.
@@ -416,10 +414,9 @@ export default function ExamPage() {
 
   if (phase === "grading") {
     return shell(
-      <div className={card}>
-        {/* A grading wait is the manifest's own `thinking` screen: the pause
-            reads as consideration rather than as something going wrong. */}
-        <CharacterReaction state="thinking">Calificando tu examen…</CharacterReaction>
+      <div className={cn(card, "text-center")}>
+        <Lumi frame="bust" mood="think" />
+        <p className="mt-4 text-sm text-muted-foreground">Calificando tu examen…</p>
       </div>,
     );
   }

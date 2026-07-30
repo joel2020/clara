@@ -2,34 +2,22 @@
 
 import { CharacterIllustration } from "./character-illustration";
 import { cn } from "@/lib/utils";
-import type { CharacterState } from "@/lib/character";
-import type { CoachLang } from "@/lib/i18n";
+import type { CharacterMood } from "@/lib/character";
 
-// Clara as a small identity dot — map markers, list rows, headers, toasts. The
-// ring and wash live HERE rather than in the illustration, so the figure stays
-// a plain contained image everywhere else. The `avatar` frame is drawn
-// circle-safe and must stay readable at 48px (CHARACTER_DESIGN_SYSTEM.md §6).
+// Lumi as a small identity dot — headers, list rows, toasts. Decorative unless
+// given a meaningful alt.
 
 export function CharacterAvatar({
-  state,
+  mood = "idle",
   size = "size-12",
-  meaningful,
-  lang,
+  alt,
   className,
 }: {
-  state: CharacterState;
-  /** Tailwind size classes; defaults to 48px (the documented minimum). */
+  mood?: CharacterMood;
+  /** Tailwind size classes; defaults to 48px (minimum comfortable). */
   size?: string;
-  meaningful?: boolean;
-  lang?: CoachLang;
+  alt?: string;
   className?: string;
 }) {
-  return (
-    <span
-      className={cn("block shrink-0 overflow-hidden rounded-full ring-1 ring-hairline", size, className)}
-      style={{ background: "var(--surface-wash)" }}
-    >
-      <CharacterIllustration state={state} frame="avatar" meaningful={meaningful} lang={lang} />
-    </span>
-  );
+  return <CharacterIllustration mode="avatar" mood={mood} alt={alt} className={cn(size, "shrink-0", className)} />;
 }

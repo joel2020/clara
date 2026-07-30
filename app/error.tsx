@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { Lumi } from "@/components/lumi";
 
 // Route-level recovery (audit P1: any render exception white-screened the
 // whole app for a non-technical student). Completed work is safe by
@@ -21,9 +22,10 @@ export default function ErrorPage({
 
   return (
     <div className="flex min-h-[70dvh] flex-col items-center justify-center px-6 text-center">
-      {/* No guide on a crash screen: the design system approves no error
-          state, and the recovery copy below is what she actually needs. */}
-      <h1 className="font-display text-2xl font-semibold">Algo salió mal</h1>
+      <div className="h-28 w-24">
+        <Lumi mood="think" priority />
+      </div>
+      <h1 className="mt-4 font-display text-2xl font-semibold">Algo salió mal</h1>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
         No fue tu culpa y tu progreso está guardado. Intenta de nuevo — si sigue igual, vuelve al
         inicio.

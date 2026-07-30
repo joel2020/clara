@@ -78,7 +78,7 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-4 sm:px-6 sm:pt-10">
-      {/* Hero — Clara welcomes her onto the learner's equipped stage */}
+      {/* Hero — Lumi on her equipped stage */}
       <section
         className={cn(
           "animate-fade-up relative overflow-hidden rounded-3xl px-5 pb-0 pt-5 elev-1 sm:px-8 sm:pt-8",
@@ -122,8 +122,8 @@ export default function HomePage() {
           </div>
 
           <div className="relative -mr-2 h-32 w-24 shrink-0 sm:h-56 sm:w-44">
-            {/* Soft ground contact shadow so Clara stands on the hero rather
-                than floating pasted over it. */}
+            {/* Soft ground contact shadow so Lumi stands on the hero rather than
+                floating pasted over it. */}
             <span
               className="pointer-events-none absolute bottom-1 left-1/2 h-2.5 w-[58%] -translate-x-1/2 rounded-[100%] bg-black/20 blur-[6px]"
               aria-hidden
@@ -136,13 +136,10 @@ export default function HomePage() {
                 {accessory.emoji}
               </span>
             )}
-            {/* `welcome` is the manifest's own dashboard-hero state: the daily
-                arrival, direct eye contact, nothing asked of her yet. She is
-                decorative here — the greeting beside her already says it in
-                words, and repeating it in alt would double it for a screen
-                reader. No sway: the design system allows micro-movement only,
-                and an 8s infinite tilt on a drawn face is not that. */}
-            <CharacterIllustration state="welcome" preload />
+            {/* Keep Lumi crisp and single-layered. The former WebGL depth
+                shader displaced different parts of the flat illustration and
+                visibly duplicated her face and body on production devices. */}
+            <CharacterIllustration mode="full" mood="wave" priority className="lumi-3d" />
             <PetSprite petId={player?.equippedPet} className="absolute -left-8 bottom-1 z-10 sm:-left-10" />
           </div>
         </div>

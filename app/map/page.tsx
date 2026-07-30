@@ -11,7 +11,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import type { Lesson, ItemProgress } from "@/lib/db/types";
 import { Splash } from "@/components/splash";
-import { CharacterAvatar } from "@/components/character";
+import { Lumi } from "@/components/lumi";
 import { WORLD_SCENERY } from "@/components/map-scenery";
 
 // The journey: the whole curriculum laid out as a path she travels — a stop per
@@ -165,9 +165,7 @@ export default function MapPage() {
                 )}
                 <div className={cn("flex w-1/2", left ? "justify-end pr-5" : "ml-auto justify-start pl-5")}>
                   <div className="relative">
-                    {/* Clara waits at the current stop. `welcome` in the avatar
-                        frame — the one frame drawn to stay readable this small —
-                        and decorative, because the "Aquí" chip already says it. */}
+                    {/* Lumi camps at the current stop */}
                     {isCurrent && (
                       <div
                         className={cn(
@@ -178,7 +176,7 @@ export default function MapPage() {
                         <span className="mb-1 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold text-background shadow-md">
                           {t("mapHere", lang)}
                         </span>
-                        <CharacterAvatar state="welcome" size="size-14" />
+                        <Lumi frame="bust" mood="wave" className="size-14" />
                       </div>
                     )}
                     <Link

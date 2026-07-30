@@ -91,10 +91,7 @@ export default function MundoPage() {
 
       {/* Header */}
       <section className="mt-5 flex items-center gap-4 animate-fade-up">
-        {/* "Your world" is the page where everything she has built is counted
-            back to her, so Clara reads it as `celebrating` — a bust beside the
-            title, never bigger than the numbers it introduces. */}
-        <CharacterIllustration state="celebrating" frame="bust" className="size-20 shrink-0" preload />
+        <CharacterIllustration mode="bust" mood="cheer" className="size-20 shrink-0" priority />
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("mundoEyebrow", lang)}</p>
           <h1 className="mt-1 font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">

@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { LoginScreen } from "@/components/login-screen";
 import { ResetPasswordScreen } from "@/components/reset-password-screen";
 import { OAuthCallbackScreen } from "@/components/oauth-callback-screen";
-import { CharacterIllustration } from "@/components/character";
+import { Lumi } from "@/components/lumi";
 import { useAccess } from "@/lib/hooks/useAccess";
 import { PrivacyNotice } from "@/components/privacy-notice";
 
@@ -37,8 +37,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center">
         <div className="h-24 w-20 opacity-90">
-          {/* Session check in progress — the manifest's loading state. */}
-          <CharacterIllustration state="thinking" frame="bust" preload />
+          <Lumi mood="idle" priority />
         </div>
       </div>
     );
@@ -51,10 +50,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (required && session && checkFailed) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center px-6 text-center">
-        {/* No Clara on the access-failure screens. There is no approved state
-            for "we could not verify you", and the guide standing over a denial
-            makes the app's problem read as a judgement of the learner. */}
-        <h1 className="font-display text-2xl font-semibold">No pudimos verificar tu acceso</h1>
+        <div className="h-28 w-24">
+          <Lumi mood="think" priority />
+        </div>
+        <h1 className="mt-4 font-display text-2xl font-semibold">No pudimos verificar tu acceso</h1>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
           Parece un problema de conexión, no de tu cuenta. Intenta de nuevo en un momento. ·
           Looks like a connection problem, not your account. Try again in a moment.
@@ -84,8 +83,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center">
         <div className="h-24 w-20 opacity-90">
-          {/* Session check in progress — the manifest's loading state. */}
-          <CharacterIllustration state="thinking" frame="bust" preload />
+          <Lumi mood="idle" priority />
         </div>
       </div>
     );
@@ -94,10 +92,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (required && allowed === false) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center px-6 text-center">
-        {/* No Clara on the access-failure screens. There is no approved state
-            for "we could not verify you", and the guide standing over a denial
-            makes the app's problem read as a judgement of the learner. */}
-        <h1 className="font-display text-2xl font-semibold">Esta cuenta no tiene acceso</h1>
+        <div className="h-28 w-24">
+          <Lumi mood="think" priority />
+        </div>
+        <h1 className="mt-4 font-display text-2xl font-semibold">Esta cuenta no tiene acceso</h1>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
           This account doesn&apos;t have access to Clara. Pídele acceso a tu profe · Ask your teacher for access.
         </p>

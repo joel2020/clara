@@ -5,18 +5,11 @@ import { cn } from "@/lib/utils";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { equippedOutfitBase } from "@/lib/cosmetics";
 
-// Lumi — the STORE's cosmetic model, and nothing more. A set of real
-// illustrations (same girl): waving, cheering, thinking, and more. Moods map to
-// artwork; animation and framing layer on top. `full` shows the whole figure;
-// `bust` crops to her face. Her outfit is swappable in the shop — each outfit
-// is a full pose set under its own art base (see cosmetics.ts) — and learners
-// own what they bought, so this renderer stays.
-//
-// She is NOT the guide. Clara is the sole learner-facing daily guide and is
-// rendered only by components/character/character-illustration.tsx from the
-// approved manifest. Nothing here may claim a teaching or companion role: the
-// artwork below is inventory, so it renders decoratively and the surrounding
-// copy (the store's own labels) says what it is.
+// Lumi — the app's anime study-buddy character. A set of real illustrations
+// (same girl): waving, cheering, thinking, and more. Moods map to artwork;
+// animation and framing layer on top. `full` shows the whole figure; `bust`
+// crops to her face for reaction moments. Her outfit is swappable in the shop —
+// each outfit is a full pose set under its own art base (see cosmetics.ts).
 
 // Mood names and art resolution live in lib/character.ts (the character
 // system's single source); this legacy component re-exports them so existing
@@ -62,7 +55,7 @@ export function Lumi({
         <div className="absolute inset-0 game-hero" aria-hidden />
         <Image
           src={art}
-          alt=""
+          alt="Lumi"
           fill
           sizes="160px"
           priority={priority}
@@ -91,7 +84,7 @@ export function Lumi({
         <div className={cn("lumi-3d absolute inset-0", mood === "cheer" ? "animate-cheer" : "")}>
           <Image
             src={art}
-            alt=""
+            alt="Lumi, tu amiga de estudio"
             fill
             sizes="(max-width: 640px) 45vw, 320px"
             priority={priority}
@@ -106,7 +99,7 @@ export function Lumi({
     <div className={cn("relative h-full w-full select-none", mood !== "cheer" && "animate-float", mood === "cheer" && "animate-cheer", className)}>
       <Image
         src={art}
-        alt=""
+        alt="Lumi, tu amiga de estudio"
         fill
         sizes="(max-width: 640px) 45vw, 320px"
         priority={priority}

@@ -10,14 +10,13 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { sfx } from "@/lib/sfx";
 import { t } from "@/lib/i18n";
 import { introFor } from "@/lib/content/es";
-import { CharacterIllustration } from "@/components/character";
-import type { CharacterState } from "@/lib/character";
+import { Lumi, type LumiMood } from "@/components/lumi";
 import { SceneVideo } from "@/components/scene-video";
 
-// The "Learn" stage as a mini-class card deck: Joel opens, then Clara presents
-// one idea per card (idea → why it's tricky → how to make it → hear it),
-// swipeable and tappable, so the lesson opener feels like part of the game
-// instead of an article. The last card carries the "let's practice" CTA.
+// The "Learn" stage as a mini-class card deck: Lumi presents one idea per
+// card (idea → why it's tricky → how to make it → hear it), swipeable and
+// tappable, so the lesson opener feels like part of the game instead of an
+// article. The last card carries the "let's practice" CTA.
 
 type Card =
   | { kind: "idea"; title: string; body: string }
@@ -25,14 +24,11 @@ type Card =
   | { kind: "how"; title: string; steps: string[] }
   | { kind: "hear"; title: string };
 
-// Clara's state follows what the card asks of her, not the card's mood: she
-// reflects on why a sound is hard, demonstrates the steps, and attends to the
-// audio alongside the learner. The `idea` card is Joel's and never renders her.
-const CARD_ART: Record<Card["kind"], { state: CharacterState; icon: typeof Lightbulb }> = {
-  idea: { state: "welcome", icon: Lightbulb },
-  why: { state: "thinking", icon: Puzzle },
-  how: { state: "teaching", icon: ListOrdered },
-  hear: { state: "listening", icon: Headphones },
+const CARD_ART: Record<Card["kind"], { mood: LumiMood; icon: typeof Lightbulb }> = {
+  idea: { mood: "wave", icon: Lightbulb },
+  why: { mood: "think", icon: Puzzle },
+  how: { mood: "point", icon: ListOrdered },
+  hear: { mood: "cheer", icon: Headphones },
 };
 
 export function LearnIntro({ lesson, onStart }: { lesson: Lesson; onStart: () => void }) {
@@ -134,13 +130,13 @@ export function LearnIntro({ lesson, onStart }: { lesson: Lesson; onStart: () =>
           />
 
           <div className="flex items-center gap-4">
-            {/* Joel himself presents the opening idea; Clara carries the rest. */}
+            {/* Joel himself presents the opening idea; Lumi carries the rest. */}
             {card.kind === "idea" ? (
               <div className="size-16 shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/70 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.25)]">
                 <SceneVideo base={joelBase} className="h-full w-full object-cover object-[center_18%]" alt="Joel" />
               </div>
             ) : (
-              <CharacterIllustration state={art.state} frame="bust" className="size-16 shrink-0" />
+              <Lumi frame="bust" mood={art.mood} className="size-16 shrink-0" />
             )}
             <div>
               <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">

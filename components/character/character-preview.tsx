@@ -3,14 +3,11 @@
 import { LumiScene } from "@/components/lumi-scene";
 import { cn } from "@/lib/utils";
 
-// The store's try-on mirror for the COSMETIC catalog: the purchasable outfit
-// artwork full-figure on the learner's equipped stage (background, effect,
-// accessory, pet), with an optional outfit override so a card tap can preview
-// before buying. Responsive by height steps; the figure itself is contain-fit
-// inside the stage, so head, hands, and hem survive every width — 320 included.
-//
-// This is owned inventory, not the guide. Clara's teaching identity is rendered
-// by CharacterIllustration and can never be bought, equipped, or dressed.
+// The store's try-on mirror: Lumi full-figure on her equipped stage
+// (background, effect, accessory, pet), with an optional outfit override so a
+// card tap can preview before buying. Responsive by height steps; the figure
+// itself is contain-fit inside the stage, so head, hands, and hem survive
+// every width — 320 included.
 
 export function CharacterPreview({
   bgId,

@@ -44,7 +44,7 @@ import {
   type AvatarLoadout,
 } from "@/lib/avatar";
 
-// The store: where speaking-earned stars become her own world. All spending
+// The store: where speaking-earned stars become Lumi's world. All spending
 // still flows through the one authoritative path (buyCosmetic → repo →
 // cloud mirror); this page derives every card from the pure state layer and
 // never spends without an explicit confirmation.
@@ -156,8 +156,7 @@ export default function ShopPage() {
       <p className="mt-2 text-xs font-semibold text-muted-foreground">{t("shopNoRealMoney", lang)}</p>
 
       {/* Live previews. The point of the store: she's dressing HER avatar and
-          HER cosmetic scene, and every equip (or try-on tap) updates both
-          instantly. Clara, the guide, is not for sale and never appears here. */}
+          HER Lumi, and every equip (or try-on tap) updates both instantly. */}
       <div className="mt-6 grid gap-4 min-[420px]:grid-cols-2">
         <AvatarPreview
           loadout={previewLoadout}

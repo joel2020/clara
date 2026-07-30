@@ -437,9 +437,7 @@ function ResultCard({ result, goal, startLower, onToggleLower, onFinish }: {
   };
   return (
     <div className="animate-scale-in text-center">
-      {/* Onboarding is an approved `welcome` screen: this is the moment she is
-          placed and let in, so Clara greets rather than applauds. */}
-      <div className="mx-auto h-28 w-24"><CharacterIllustration state="welcome" preload /></div>
+      <div className="mx-auto h-28 w-24"><CharacterIllustration mood="cheer" priority /></div>
       <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Tu nivel</p>
       <h2 className="mt-1 font-display text-5xl font-semibold tracking-[-0.02em]">{shown}</h2>
       <p className="mt-2 font-display text-xl">{blurb.title}</p>

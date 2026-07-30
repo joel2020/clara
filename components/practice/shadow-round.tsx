@@ -14,7 +14,7 @@ import { popConfetti, celebrate } from "@/lib/fx";
 import { juice } from "@/components/juice";
 import { playPronunciation, stopPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
-import { CharacterIllustration } from "@/components/character";
+import { Lumi } from "@/components/lumi";
 import { StarRating } from "@/components/star-reward";
 
 // Shadowing: hear Joel say a phrase, then echo it back right away. This trains
@@ -164,8 +164,7 @@ export function ShadowRound({
     return (
       <div className="animate-scale-in px-5 py-14 text-center">
         <div className="relative mx-auto w-fit">
-          {/* Session completion — the manifest's own `celebrating` screen. */}
-          <CharacterIllustration state="celebrating" frame="bust" className="mx-auto size-28" />
+          <Lumi frame="bust" mood="cheer" className="mx-auto size-28" />
         </div>
         <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("shadowTitle", lang)}</p>
         <h1 className="mt-3 inline-flex items-center gap-2 font-display text-5xl font-medium tracking-[-0.03em]">

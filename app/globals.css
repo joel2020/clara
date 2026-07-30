@@ -618,7 +618,7 @@ html { scroll-behavior: smooth; }
 @keyframes cine-ray-spin {
   to { transform: rotate(360deg); }
 }
-.cine-hero {
+.cine-lumi {
   animation: cine-pop 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes cine-pop {

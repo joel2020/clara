@@ -12,7 +12,7 @@ import { juice } from "@/components/juice";
 import { playPronunciation, stopPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { normalize } from "@/lib/speech/scoring";
 import { t } from "@/lib/i18n";
-import { CharacterIllustration } from "@/components/character";
+import { Lumi } from "@/components/lumi";
 
 // Sentence builder: hear a phrase, then tap the shuffled words into the right
 // order. Trains word order — the grammar skill that chunk-drilling alone
@@ -157,8 +157,7 @@ export function BuildRound({ items, onExit }: { items: PracticeItem[]; onExit: (
     const acc = round.length ? Math.round((clears / round.length) * 100) : 0;
     return (
       <div className="animate-scale-in px-5 py-14 text-center">
-        {/* Session completion — the manifest's own `celebrating` screen. */}
-        <CharacterIllustration state="celebrating" frame="bust" className="mx-auto size-28" />
+        <Lumi frame="bust" mood="cheer" className="mx-auto size-28" />
         <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("buildTitle", lang)}</p>
         <h1 className="mt-3 inline-flex items-center gap-2 font-display text-5xl font-medium tracking-[-0.03em]">
           {stars}

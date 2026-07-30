@@ -212,7 +212,7 @@ export function LumiDepth({
       <div className={cn("relative h-full w-full select-none", className)}>
         <Image
           src={resolvedColor}
-          alt=""
+          alt="Lumi, tu amiga de estudio"
           fill
           sizes="(max-width: 640px) 45vw, 320px"
           priority={priority}

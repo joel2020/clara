@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { getCosmetic } from "@/lib/cosmetics";
 
-// Her companion pet on the equipped stage — not a static emoji in a corner, but a
+// Her companion pet on Lumi's stage — not a static emoji in a corner, but a
 // little creature that bobs beside her with its own ground shadow. Legendary
 // pets get a soft golden sparkle so they read as the luxury items they are.
 

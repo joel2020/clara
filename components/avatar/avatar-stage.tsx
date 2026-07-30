@@ -21,10 +21,9 @@ import {
 // the figure sheet is contain-fit, and lib/avatar.ts computes the cap and pet
 // boxes so they stay inside the figure's own safe area.
 //
-// This is the learner's equipment only. Clara's guide artwork lives in
-// components/character/character-illustration and must never be mixed in
-// here: the guide is not something the learner dresses. The store's
-// cosmetic model (components/lumi-scene) is separate from both.
+// This is the learner's equipment only. Clara/Lumi's teaching art lives in
+// components/character and components/lumi-scene and must never be mixed in
+// here: the guide is not something the learner dresses.
 
 export function AvatarStage({
   loadout,
