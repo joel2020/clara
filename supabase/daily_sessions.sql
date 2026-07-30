@@ -166,3 +166,7 @@ $$;
 
 revoke all on function public.merge_daily_session(text, integer, jsonb, bigint) from public;
 grant execute on function public.merge_daily_session(text, integer, jsonb, bigint) to authenticated;
+-- Supabase's default grants hand `anon` execute on new public functions, so the
+-- revoke from `public` above is not enough on its own. The function already
+-- fails closed (it raises when auth.uid() is null), but deny anon explicitly.
+revoke all on function public.merge_daily_session(text, integer, jsonb, bigint) from anon;
