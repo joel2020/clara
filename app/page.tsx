@@ -8,7 +8,6 @@ import {
   MessageCircle,
   PhoneCall,
   Store,
-  PlayCircle,
   Volume2,
   Map as MapIcon,
   Headphones,
@@ -34,6 +33,7 @@ import { PetSprite } from "@/components/pet-sprite";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { pathOf } from "@/lib/paths";
 import { ReadinessCard } from "@/components/readiness-card";
+import { TodaySessionCard } from "@/components/today-session-card";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { getCosmetic, chestAvailable } from "@/lib/cosmetics";
 import { timeGreetingKey } from "@/lib/greeting";
@@ -77,11 +77,11 @@ export default function HomePage() {
   const chestReady = player ? chestAvailable(player) : false;
 
   return (
-    <div className="mx-auto max-w-3xl px-5 pb-24 pt-6 sm:px-6 sm:pt-10">
+    <div className="mx-auto max-w-3xl px-4 pb-24 pt-4 sm:px-6 sm:pt-10">
       {/* Hero — Lumi on her equipped stage */}
       <section
         className={cn(
-          "animate-fade-up relative overflow-hidden rounded-3xl px-6 pb-0 pt-6 elev-1 sm:px-8 sm:pt-8",
+          "animate-fade-up relative overflow-hidden rounded-3xl px-5 pb-0 pt-5 elev-1 sm:px-8 sm:pt-8",
           !hasCosmeticBg && "hero-calm",
         )}
         style={hasCosmeticBg && bg?.background ? { background: bg.background } : undefined}
@@ -106,22 +106,22 @@ export default function HomePage() {
         )}
 
         <div className="relative z-10 flex items-end justify-between gap-3">
-          <div className="max-w-[58%] pb-7">
+          <div className="max-w-[64%] pb-5">
             <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/70">
               <span className="flag-dots" aria-hidden>
                 <i /><i /><i />
               </span>
               {name ? `${greeting}, ${name}` : greeting}
             </p>
-            <h1 lang="en" className="mt-3 font-display text-3xl font-semibold leading-[1.03] tracking-[-0.03em] sm:text-5xl">
+            <h1 lang="en" className="mt-2 font-display text-2xl font-semibold leading-[1.03] tracking-[-0.03em] sm:mt-3 sm:text-5xl">
               {t("heroTitleBottom", lang)}
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-foreground/70 sm:text-base">
+            <p className="mt-2 text-sm leading-snug text-foreground/70 sm:mt-3 sm:leading-relaxed sm:text-base">
               {streak > 1 ? t("heroStreakLine", lang).replace("{n}", String(streak)) : t("heroTagline", lang)}
             </p>
           </div>
 
-          <div className="relative -mr-2 h-44 w-32 shrink-0 sm:h-56 sm:w-44">
+          <div className="relative -mr-2 h-32 w-24 shrink-0 sm:h-56 sm:w-44">
             {/* Soft ground contact shadow so Lumi stands on the hero rather than
                 floating pasted over it. */}
             <span
@@ -145,22 +145,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <InstallNudge />
-
-      {/* THE action */}
-      <Link
-        href="/today"
-        className="sheen group mt-5 flex items-center gap-4 rounded-3xl bg-primary px-6 py-5 text-primary-foreground elev-1 transition-all hover:opacity-95 active:scale-[0.995]"
-      >
-        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-foreground/15">
-          <PlayCircle className="size-6" />
-        </span>
-        <div className="flex-1">
-          <p className="font-display text-lg font-semibold tracking-[-0.01em]">{t("todayCard", lang)}</p>
-          <p className="text-sm text-primary-foreground/70">{t("todayCardSub", lang)}</p>
-        </div>
-        <span className="text-primary-foreground/60 transition-transform group-hover:translate-x-0.5">→</span>
-      </Link>
+      <TodaySessionCard />
 
       {/* The destination: one number, its trend, and the single blocker. This is
           the spine of the app — everything below is how she moves it. */}
@@ -169,7 +154,7 @@ export default function HomePage() {
       </div>
 
       <div className="mt-4">
-        <PlayerBar />
+        <ReviewCallout />
       </div>
 
       <div className="mt-4">
@@ -177,8 +162,10 @@ export default function HomePage() {
       </div>
 
       <div className="mt-4">
-        <ReviewCallout />
+        <PlayerBar />
       </div>
+
+      <InstallNudge />
 
       {/* The one high-value secondary action: talk to Joel — the thing that
           actually builds conversation. On the job path it is framed as a call,

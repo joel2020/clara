@@ -198,6 +198,13 @@ const STRINGS = {
   // Today's guided session
   todayCard: { es: "Sesión de hoy", en: "Today's session" },
   todayCardSub: { es: "Tu rutina guiada — empieza aquí", en: "Your guided routine — start here" },
+  todaySessionObjective: { es: "Objetivo", en: "Objective" },
+  todaySessionOutcome: { es: "Al terminar", en: "By the end" },
+  todaySessionTime: { es: "Tiempo", en: "Time" },
+  todaySessionProgress: { es: "Progreso", en: "Progress" },
+  todaySessionActivities: { es: "Hoy practicarás", en: "Today you'll practice" },
+  todayReward: { es: "Recompensa", en: "Reward" },
+  todayRewardValue: { es: "XP y racha", en: "XP and streak" },
   todayTitle: { es: "Tu sesión de hoy", en: "Your session today" },
   todayIntro: { es: "Sigue los pasos y en ~15 minutos habrás practicado todo lo que necesitas hoy.", en: "Follow the steps — in ~15 minutes you'll have practiced everything you need today." },
   todayStart: { es: "Empezar", en: "Start" },
