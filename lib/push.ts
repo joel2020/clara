@@ -73,15 +73,20 @@ export async function enablePush(lang: "es" | "en"): Promise<void> {
   if (!res.ok) throw new Error("server");
 }
 
+/** Turn reminders off everywhere, not just in this browser. The stored
+ *  subscription is the ONLY thing the sender consults, so a delete that quietly
+ *  failed would leave the learner opted out in the UI and still receiving
+ *  reminders — the settings screen shows an error instead. */
 export async function disablePush(): Promise<void> {
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
   if (!sub) return;
   const endpoint = sub.endpoint;
   await sub.unsubscribe().catch(() => {});
-  await fetch("/api/push", {
+  const res = await fetch("/api/push", {
     method: "DELETE",
     headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({ endpoint }),
-  }).catch(() => {});
+  });
+  if (!res.ok) throw new Error("server");
 }

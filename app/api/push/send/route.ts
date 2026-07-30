@@ -1,28 +1,19 @@
 // The daily reminder sender, fired by Vercel Cron (see vercel.json — 23:00 UTC
-// = 6 pm in Colombia). Loads every stored subscription and sends a warm, short
-// nudge in the student's coaching language; dead subscriptions (410/404) are
-// pruned so the table stays clean. Protected by CRON_SECRET when set.
+// = 6 pm in Colombia). Loads every stored subscription and, for anyone who has
+// not practiced today, sends the most specific true thing there is to say in
+// the student's coaching language; dead subscriptions (410/404) are pruned so
+// the table stays clean. Protected by CRON_SECRET when set.
+//
+// This route only gathers evidence. What the message says — and whether there
+// is one at all — is decided by lib/comeback's selectNotification, so the copy
+// can be held to a test.
 
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { selectNotification } from "@/lib/comeback";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-const MESSAGES = {
-  es: [
-    { title: "¡Lumi te espera! ⭐", body: "Tu sesión de hoy toma 15 minuticos. ¡Vamos!" },
-    { title: "Tu racha te necesita 🔥", body: "Un ratico de práctica y sigue viva." },
-    { title: "¿Hablamos inglés hoy?", body: "Joel tiene una conversación lista para ti." },
-    { title: "Tu cofre diario está listo 🎁", body: "Ábrelo y gana estrellas gratis." },
-  ],
-  en: [
-    { title: "Lumi is waiting! ⭐", body: "Today's session takes 15 little minutes. Let's go!" },
-    { title: "Your streak needs you 🔥", body: "A quick practice keeps it alive." },
-    { title: "English today?", body: "Joel has a conversation ready for you." },
-    { title: "Your daily chest is ready 🎁", body: "Open it for free stars." },
-  ],
-};
 
 interface Row {
   endpoint: string;
@@ -31,27 +22,14 @@ interface Row {
   profile_id: string | null;
 }
 
-// A personalized, streak-aware nudge. Returns null when the learner already
-// practiced today (don't nag). Uses their name + streak so it feels personal.
-function buildMessage(
-  lang: "es" | "en",
-  name: string | null,
-  streak: number,
-  practicedToday: boolean,
-  dayIndex: number,
-): { title: string; body: string } | null {
-  if (practicedToday) return null;
-  const who = name ? name.split(" ")[0] : null;
-  const hi = who ? `${who}, ` : "";
-  if (streak >= 2) {
-    return lang === "en"
-      ? { title: `Your ${streak}-day streak 🔥`, body: `${hi}keep it alive — a few minutes is all it takes.` }
-      : { title: `Tu racha de ${streak} días 🔥`, body: `${hi}no la dejes caer — con unos minuticos basta.` };
-  }
-  const pool = lang === "en" ? MESSAGES.en : MESSAGES.es;
-  const m = pool[dayIndex % pool.length];
-  return who ? { title: m.title, body: `${who}, ${m.body}` } : m;
+/** The part of a stored daily session a reminder needs. */
+interface SessionPayload {
+  startedAt: number | null;
+  activities?: Array<{ kind: string; status: string; title: { es: string; en: string } }>;
 }
+
+/** Still waiting for the learner, as opposed to done or skipped. */
+const open = (status?: string) => status === "pending" || status === "active";
 
 export async function GET(request: Request): Promise<Response> {
   // Vercel Cron sends `authorization: Bearer ${CRON_SECRET}`. Fail CLOSED: a
@@ -100,21 +78,32 @@ export async function GET(request: Request): Promise<Response> {
   if (error) return Response.json({ error: "storage_unavailable" }, { status: 503 });
 
   const rows = (data ?? []) as Row[];
-  const dayIndex = Math.floor(Date.now() / 86_400_000);
+  const now = Date.now();
+  // The cron fires at 18:00 in Colombia, where the UTC and local dates agree,
+  // so this matches the local day key the app stores.
   const today = new Date().toISOString().slice(0, 10);
 
-  // Pull each subscriber's streak + last-active + name so the nudge is personal
-  // and we can skip anyone who already practiced today.
+  // Gather what each subscriber could actually be told: whether they practiced
+  // today, what today's plan still has open, how much review is genuinely due,
+  // and their name.
   const ids = [...new Set(rows.map((r) => r.profile_id).filter((x): x is string => Boolean(x)))];
-  const stats = new Map<string, { streak: number; lastActive: string | null }>();
+  const lastActive = new Map<string, string | null>();
   const names = new Map<string, string>();
+  const sessions = new Map<string, SessionPayload>();
+  const dueReviews = new Map<string, number>();
   if (ids.length) {
-    const [statRes, nameRes] = await Promise.all([
-      sb.from("player_stats").select("profile_id,current_streak,last_active_day").in("profile_id", ids),
+    const [statRes, nameRes, sessionRes, dueRes] = await Promise.all([
+      sb.from("player_stats").select("profile_id,last_active_day").in("profile_id", ids),
       sb.from("profiles").select("id,name").in("id", ids),
+      sb.from("daily_sessions").select("profile_id,payload").eq("day", today).in("profile_id", ids),
+      sb.from("progress").select("profile_id").in("profile_id", ids).lte("due_at", now),
     ]);
-    for (const s of statRes.data ?? []) stats.set(s.profile_id, { streak: s.current_streak ?? 0, lastActive: s.last_active_day });
+    for (const s of statRes.data ?? []) lastActive.set(s.profile_id, s.last_active_day);
     for (const p of nameRes.data ?? []) if (p.name) names.set(p.id, p.name);
+    // A missing or unreadable session simply means one less specific thing to
+    // say — never a reason to fall back to pressure.
+    for (const s of sessionRes.data ?? []) sessions.set(s.profile_id, s.payload as SessionPayload);
+    for (const p of dueRes.data ?? []) dueReviews.set(p.profile_id, (dueReviews.get(p.profile_id) ?? 0) + 1);
   }
 
   let sent = 0;
@@ -123,15 +112,17 @@ export async function GET(request: Request): Promise<Response> {
 
   await Promise.all(
     rows.map(async (row) => {
-      const st = row.profile_id ? stats.get(row.profile_id) : undefined;
-      const name = row.profile_id ? names.get(row.profile_id) ?? null : null;
-      const msg = buildMessage(
-        row.lang === "en" ? "en" : "es",
-        name,
-        st?.streak ?? 0,
-        st?.lastActive === today,
-        dayIndex,
-      );
+      const id = row.profile_id;
+      const session = id ? sessions.get(id) : undefined;
+      const speaking = session?.activities?.find((entry) => entry.kind === "speak");
+      const msg = selectNotification({
+        lang: row.lang === "en" ? "en" : "es",
+        name: id ? names.get(id) ?? null : null,
+        practicedToday: id ? lastActive.get(id) === today : false,
+        unfinishedSpeaking: Boolean(session?.startedAt) && open(speaking?.status),
+        dueReviews: id ? dueReviews.get(id) ?? 0 : 0,
+        readyActivity: session?.activities?.find((entry) => open(entry.status))?.title ?? null,
+      });
       if (!msg) {
         skipped++;
         return;

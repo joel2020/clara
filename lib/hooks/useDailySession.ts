@@ -6,8 +6,8 @@ import { LESSONS } from "@/lib/content/lessons";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { SUPPORT_UNIT_IDS } from "@/lib/content/conversation-support";
 import type { SessionCompletionResult } from "@/lib/daily-session-reward";
+import { composeComebackSession } from "@/lib/comeback";
 import {
-  composeDailySession,
   type ActivityStatus,
   type DailySession,
 } from "@/lib/daily-session";
@@ -78,12 +78,13 @@ export function useDailySession(): DailySessionHook {
           compose: async () => {
             const settings = await repo.getSettings();
             if (!settings.profileId) return null;
-            const [progress, attempts, customLessons, quests] =
+            const [progress, attempts, customLessons, quests, stats] =
               await Promise.all([
                 repo.getAllProgress(),
                 repo.getAttempts({ limit: 50 }),
                 repo.getCustomLessons(),
                 repo.getQuests(day),
+                repo.getPlayerStats(),
               ]);
             const now = Date.now();
             const level: Level = settings.onboarding?.level ?? "A1";
@@ -92,7 +93,9 @@ export function useDailySession(): DailySessionHook {
               path === "job"
                 ? [...SUPPORT_UNIT_IDS, ...levelLessonPool(level)]
                 : levelLessonPool(level);
-            return composeDailySession({
+            // Composes the ordinary session unless a local day was missed, in
+            // which case the learner gets the shorter recovery plan.
+            return composeComebackSession({
               profileId: settings.profileId,
               day,
               now,
@@ -109,6 +112,7 @@ export function useDailySession(): DailySessionHook {
               })),
               pathLessonIds,
               recentMinutes: estimatedRecentMinutes(quests),
+              lastActiveDay: stats.lastActiveDay,
             });
           },
           save: saveDailySession,
