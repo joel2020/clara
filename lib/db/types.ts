@@ -2,6 +2,8 @@
 // backend. When we swap IndexedDB for Supabase later, these types stay the same;
 // only the repository implementation changes.
 
+import type { AnalyticsEventType } from "@/lib/analytics-schema";
+
 export type ItemKind = "word" | "phrase";
 
 export type LessonKind = "minimal-pairs" | "sound-focus" | "phrase";
@@ -325,24 +327,15 @@ export interface CategoryStat {
 
 /**
  * A lightweight analytics event — engagement signals not already captured by
- * attempts (app opens, mode taps, lesson start/abandon). Privacy-respecting:
- * props carry ids and numbers only, never free text or PII.
+ * attempts (app opens, mode taps, lesson start/abandon, the daily loop).
+ * Privacy-respecting: props carry ids, counts, durations, and enums only, never
+ * free text or PII. The type union and the properties each type may carry live
+ * in lib/analytics-schema.ts, which is the single source of truth; nothing
+ * outside that allowlist is written locally or mirrored to the cloud.
  */
 export interface AnalyticsEvent {
   id?: number;
-  type:
-    | "app_open"
-    | "mode_open"
-    | "lesson_start"
-    | "lesson_complete"
-    | "lesson_abandon"
-    | "session_complete"
-    /**
-     * An uncaught client error or rejected promise. Logged like any other event so
-     * production failures are visible in the coach cockpit instead of only in a
-     * console nobody is watching.
-     */
-    | "client_error";
+  type: AnalyticsEventType;
   at: number;
   day: string; // "YYYY-MM-DD" local, for daily rollups
   props?: Record<string, string | number | boolean>;
