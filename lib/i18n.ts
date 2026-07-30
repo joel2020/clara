@@ -512,6 +512,229 @@ const STRINGS = {
     es: "Todavía no. Toca Escucha, mira el consejo de boca, e inténtalo de nuevo.",
     en: "Not quite. Tap Listen, watch the mouth hint, and give it another go.",
   },
+
+  // Virtual Call settings (Ajustes → Llamada virtual)
+  vcSettings: { es: "Llamada virtual", en: "Virtual call" },
+  vcMode: { es: "Cómo te corrige Clara", en: "How Clara corrects you" },
+  vcModeNatural: { es: "Natural", en: "Natural" },
+  vcModeNaturalSub: {
+    es: "La charla no se detiene: Clara anota los errores y te los muestra al final.",
+    en: "The conversation keeps flowing: Clara notes mistakes and shows them at the end.",
+  },
+  vcModePractice: { es: "Práctica", en: "Practice" },
+  vcModePracticeSub: {
+    es: "Clara para en el error que importa, te lo explica en una línea y te pide la frase otra vez.",
+    en: "Clara stops on a mistake that matters, explains it in one line, and asks for the sentence again.",
+  },
+  vcHumor: { es: "Bromas de Clara", en: "Clara's humor" },
+  vcHumorOff: { es: "Sin bromas", en: "No jokes" },
+  vcHumorLight: { es: "Pocas", en: "A few" },
+  vcHumorFull: { es: "Normal", en: "Normal" },
+  vcTranscript: { es: "Qué se guarda de la llamada", en: "What is saved from the call" },
+  vcTranscriptNone: { es: "Nada de lo que dijiste", en: "Nothing you said" },
+  vcTranscriptNoneSub: {
+    es: "Solo se guarda el resumen: cuántos turnos, qué corregir y tu progreso. Lo que dijiste se borra al terminar la llamada.",
+    en: "Only the summary is stored: how many turns, what to work on, and your progress. What you said is gone when the call ends.",
+  },
+  vcTranscriptSession: { es: "Solo hasta salir", en: "Until you leave" },
+  vcTranscriptSessionSub: {
+    es: "Puedes releer la conversación en la pantalla del resumen; se borra al salir y no se guarda en el dispositivo.",
+    en: "You can re-read the conversation on the summary screen; it goes when you leave and is never written to the device.",
+  },
+  vcTranscriptKeep: { es: "Guardar la conversación", en: "Keep the conversation" },
+  vcTranscriptKeepSub: {
+    es: "La conversación se guarda en este dispositivo (no en la nube) para que la releas después. Puedes borrarla cuando quieras.",
+    en: "The conversation is saved on this device (not in the cloud) so you can re-read it later. You can delete it whenever you want.",
+  },
+  vcDeleteTranscripts: { es: "Borrar transcripciones guardadas", en: "Delete saved transcripts" },
+  vcDeleteTranscriptsConfirm: { es: "Toca otra vez para borrar", en: "Tap again to delete" },
+  vcDeleteTranscriptsDone: { es: "Transcripciones borradas", en: "Transcripts deleted" },
+  vcDeleteTranscriptsSub: {
+    es: "Borra lo que dijiste en tus llamadas. Tu progreso y tus resúmenes se quedan.",
+    en: "Deletes what you said on your calls. Your progress and your summaries stay.",
+  },
+
+  // Virtual Call screen (/virtual-call). Namespaced `vcall*` so it cannot
+  // collide with the `vc*` settings keys above, which another surface owns.
+  vcallEyebrow: { es: "Llamada virtual", en: "Virtual call" },
+  vcallTitle: { es: "Habla por teléfono con Clara", en: "Get on a call with Clara" },
+  vcallIntro: {
+    es: "Elige una situación y sostén una llamada entera en inglés. Clara te responde, te corrige como tú elijas, y al final te dice qué comunicaste bien y qué pulir.",
+    en: "Pick a situation and hold a whole call in English. Clara answers, corrects you the way you choose, and at the end tells you what you got across and what to polish.",
+  },
+  // The standing AI disclosure. Shown on the picker AND pinned in the call
+  // header — she must never be able to forget who she is talking to.
+  vcallDisclosure: {
+    es: "Clara es una guía de práctica con IA, no una persona real.",
+    en: "Clara is an AI practice guide, not a real person.",
+  },
+  vcallChoose: { es: "Elige una situación", en: "Choose a situation" },
+  vcallObjective: { es: "Objetivo", en: "Objective" },
+  vcallDurationLabel: { es: "Duración", en: "Length" },
+  vcallDurationShort: { es: "Corta · ~5 min", en: "Short · ~5 min" },
+  vcallDurationStandard: { es: "Estándar · ~10 min", en: "Standard · ~10 min" },
+  vcallCultural: { es: "Nota cultural", en: "Cultural note" },
+  vcallLevelLabel: { es: "Nivel", en: "Level" },
+  vcallFitsLevel: { es: "A tu nivel", en: "At your level" },
+  vcallAboveLevel: { es: "Un paso más exigente", en: "One step tougher" },
+  vcallCall: { es: "Llamar", en: "Call" },
+  vcallNoScenarios: {
+    es: "Todavía no hay situaciones disponibles para tu nivel.",
+    en: "There are no situations available for your level yet.",
+  },
+  vcallLoading: { es: "Preparando la llamada…", en: "Getting the call ready…" },
+
+  // Live call — status, states, and the recording indicator.
+  vcallElapsed: { es: "Tiempo de llamada", en: "Call time" },
+  vcallTimeLeft: { es: "restante", en: "left" },
+  vcallStatusLabel: { es: "Estado de la llamada", en: "Call status" },
+  vcallConnecting: { es: "Conectando con Clara…", en: "Connecting to Clara…" },
+  vcallSpeaking: { es: "Clara está hablando", en: "Clara is speaking" },
+  vcallYourTurn: { es: "Tu turno — toca y habla", en: "Your turn — tap and speak" },
+  vcallListening: {
+    es: "Grabando: te escucho. Toca detener cuando termines.",
+    en: "Recording: I can hear you. Tap stop when you finish.",
+  },
+  vcallProcessing: { es: "Clara está pensando…", en: "Clara is thinking…" },
+  vcallAwaitingRetry: {
+    es: "Clara espera la frase corregida",
+    en: "Clara is waiting for the corrected sentence",
+  },
+  vcallCorrectionState: { es: "Clara te dejó una corrección", en: "Clara left you a correction" },
+  vcallEnded: { es: "Llamada terminada", en: "Call ended" },
+  vcallOffline: { es: "Sin conexión", en: "You're offline" },
+  vcallOfflineBody: {
+    es: "La llamada se pausa hasta que vuelva el internet. No perdiste nada de lo que ya hiciste.",
+    en: "The call pauses until your connection is back. Nothing you have done is lost.",
+  },
+  vcallErrorState: { es: "Hubo un problema", en: "Something went wrong" },
+  vcallTurnError: {
+    es: "No pudimos procesar tu turno. La llamada sigue abierta.",
+    en: "We couldn't process your turn. The call is still open.",
+  },
+  vcallTryAgain: { es: "Intentar de nuevo", en: "Try again" },
+  vcallDismiss: { es: "Cerrar el aviso", en: "Dismiss this notice" },
+  vcallAudioFailed: {
+    es: "No pudimos reproducir la voz de Clara. Lo que dijo está escrito abajo.",
+    en: "We couldn't play Clara's voice. What she said is written below.",
+  },
+  vcallTimeUp: { es: "Se acabó el tiempo de esta llamada.", en: "This call reached its time limit." },
+  vcallRecordingOn: { es: "Grabación activada", en: "Recording on" },
+  vcallRecordingOff: { es: "Grabación detenida", en: "Recording stopped" },
+  vcallMicUnsupported: {
+    es: "Este navegador no puede grabar tu voz. Abre Clara en Google Chrome para hacer la llamada.",
+    en: "This browser can't record your voice. Open Clara in Google Chrome to make the call.",
+  },
+
+  // Call controls.
+  vcallSpeak: { es: "Hablar", en: "Speak" },
+  vcallStop: { es: "Detener grabación", en: "Stop recording" },
+  vcallRetryBtn: { es: "Repetir la frase", en: "Say it again" },
+  vcallMute: { es: "Silenciar a Clara", en: "Mute Clara" },
+  vcallUnmute: { es: "Activar el audio de Clara", en: "Unmute Clara" },
+  vcallMutedNote: {
+    es: "El audio de Clara está silenciado. Puedes leer todo lo que dice.",
+    en: "Clara's audio is muted. You can read everything she says.",
+  },
+  vcallEnd: { es: "Terminar llamada", en: "End call" },
+  vcallReplay: { es: "Escuchar otra vez", en: "Play it again" },
+
+  // Transcript.
+  vcallTranscriptLabel: { es: "Transcripción de la llamada", en: "Call transcript" },
+  vcallYouSaid: { es: "Tú", en: "You" },
+  vcallClara: { es: "Clara", en: "Clara" },
+  vcallSuggestions: { es: "Puedes decir…", en: "You could say…" },
+  vcallTranscriptEmpty: {
+    es: "Aquí aparece todo lo que se dice en la llamada.",
+    en: "Everything said on the call appears here.",
+  },
+
+  // Inline correction card.
+  vcallCorrectionTitle: { es: "Una corrección", en: "One fix" },
+  vcallInstead: { es: "En vez de", en: "Instead of" },
+  vcallSay: { es: "Di", en: "Say" },
+  vcallKindGrammar: { es: "Gramática", en: "Grammar" },
+  vcallKindVocabulary: { es: "Vocabulario", en: "Vocabulary" },
+  vcallKindPhrasing: { es: "Forma de decirlo", en: "Phrasing" },
+
+  // Retry prompt.
+  vcallRetryTitle: { es: "Dilo otra vez, así", en: "Say it again, like this" },
+  vcallRetryHelp: {
+    es: "Toca y repite la frase corregida. Es un solo intento — después seguimos con la llamada.",
+    en: "Tap and repeat the corrected sentence. One attempt — then the call moves on.",
+  },
+  vcallRetryAccepted: { es: "Eso es. Quedó clarísimo.", en: "That's it. Nice and clear." },
+  vcallRetryMissed: {
+    es: "Casi. Seguimos con la llamada y lo vuelves a ver en el reporte.",
+    en: "Close. The call moves on, and you'll see it again in the report.",
+  },
+  vcallRetryHeard: { es: "Escuché", en: "Heard" },
+
+  // Clara's call-state artwork. The approved illustrations do not exist yet, so
+  // the stage renders a state medallion instead of temporary art.
+  vcallClaraAlt: { es: "Clara, tu guía de práctica con IA", en: "Clara, your AI practice guide" },
+  vcallArtPending: { es: "Ilustración pendiente de aprobación", en: "Artwork pending approval" },
+
+  // End-of-call report.
+  vcallReportTitle: { es: "Cómo te fue", en: "How the call went" },
+  vcallReportLead: {
+    es: "Sostuviste una llamada de {d} en inglés, con {n} turnos tuyos. Eso ya es práctica de verdad.",
+    en: "You held a {d} call in English, with {n} turns of your own. That is real practice.",
+  },
+  vcallReportDuration: { es: "Duración", en: "Length" },
+  vcallReportTurns: { es: "Tus turnos", en: "Your turns" },
+  vcallReportWentWell: { es: "Lo que comunicaste bien", en: "What you got across" },
+  vcallReportClean: {
+    es: "{n} de tus turnos no necesitaron ninguna corrección.",
+    en: "{n} of your turns needed no correction at all.",
+  },
+  vcallReportMet: { es: "Cumpliste el objetivo de la llamada.", en: "You met the call's objective." },
+  vcallReportNotMet: {
+    es: "Esta vez no llegaste al objetivo completo — eso es justo lo que practica la siguiente llamada.",
+    en: "You didn't reach the full objective this time — that is exactly what the next call is for.",
+  },
+  vcallReportRetries: {
+    es: "Repetiste {a} de {n} frases corregidas y te salieron.",
+    en: "You repeated {a} of {n} corrected sentences and landed them.",
+  },
+  vcallReportPriorities: { es: "Para la próxima llamada", en: "For your next call" },
+  vcallReportNoPriorities: {
+    es: "No hubo correcciones que valga la pena destacar en esta llamada.",
+    en: "Nothing came up on this call worth singling out.",
+  },
+  vcallReportExamples: { es: "Ejemplos corregidos", en: "Corrected examples" },
+  vcallReportFixed: { es: "Ya la corregiste", en: "You already fixed this one" },
+  vcallReportVocab: { es: "Vocabulario que usaste", en: "Vocabulary you used" },
+  vcallReportNoVocab: {
+    es: "En esta llamada no apareció el vocabulario de la lista. No pasa nada: búscalo en la siguiente.",
+    en: "None of the target vocabulary came up on this call. That's fine — reach for it next time.",
+  },
+  vcallReportPron: { es: "Pronunciación", en: "Pronunciation" },
+  vcallReportPronScored: { es: "frases medidas", en: "sentences measured" },
+  vcallReportPronWorst: { es: "Palabras por pulir", en: "Words to polish" },
+  // Absent pronunciation must never read as a perfect score.
+  vcallReportPronAbsent: {
+    es: "No se midió la pronunciación en esta llamada. Solo se puede medir cuando repites una frase corregida, porque solo ahí hay una frase objetivo con la que comparar.",
+    en: "Pronunciation was not measured on this call. It can only be measured when you repeat a corrected sentence, because that is the only time there is a target to compare against.",
+  },
+  vcallReportNext: { es: "Siguiente paso", en: "Next step" },
+  vcallReportNextSame: {
+    es: "Repite esta misma llamada. La segunda vez sale más suelta y vas a notar la diferencia.",
+    en: "Run this same call again. The second time flows better and you will feel the difference.",
+  },
+  vcallReportNextNew: {
+    es: "Prueba una situación nueva, un paso más exigente.",
+    en: "Try a new situation, one step tougher.",
+  },
+  vcallReportNextRetry: {
+    es: "Vuelve sobre las frases de arriba: escúchalas y dilas en voz alta.",
+    en: "Go back over the sentences above: listen to them, then say them out loud.",
+  },
+  vcallReportHear: { es: "Escuchar la frase", en: "Hear the sentence" },
+  vcallReportPractice: { es: "Repetirla", en: "Say it back" },
+  vcallReportAnother: { es: "Hacer otra llamada", en: "Make another call" },
+  vcallReportConversation: { es: "La conversación", en: "The conversation" },
+  vcallReportBuilding: { es: "Armando tu reporte…", en: "Building your report…" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

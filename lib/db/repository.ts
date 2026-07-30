@@ -11,6 +11,7 @@ import type {
   PlayerStats,
   Settings,
   TalkSession,
+  VirtualCallRecord,
 } from "./types";
 import type { DailySession } from "../daily-session";
 import type { SessionCompletionResult } from "../daily-session-reward";
@@ -70,6 +71,23 @@ export interface DataRepository {
   saveCallScore(score: Omit<CallScore, "id">): Promise<void>;
   saveExamAttempt(attempt: Omit<ExamAttempt, "id">): Promise<void>;
 
+  // --- Virtual Call (spoken practice conversation with Clara) ---
+  /** Completed Virtual Calls, newest first. Append-only. */
+  getVirtualCalls(limit?: number): Promise<VirtualCallRecord[]>;
+  /**
+   * Store one finished call. The transcript is dropped unless she opted into
+   * keeping it (Settings.callTranscriptRetention) — the report is always kept.
+   */
+  saveVirtualCall(record: Omit<VirtualCallRecord, "id">): Promise<void>;
+  /**
+   * Clear the stored transcript on every call, keeping every report row. This
+   * is the privacy control, not a reset: deleting her recordings must never
+   * delete the progress she earned making them.
+   */
+  deleteVirtualCallTranscripts(): Promise<void>;
+  /** Remove one call outright (report included), by row id. */
+  deleteVirtualCall(id: number): Promise<void>;
+
   getQuests(day: string): Promise<DailyQuestState | undefined>;
   saveQuests(state: DailyQuestState): Promise<void>;
 
@@ -103,7 +121,30 @@ export const DEFAULT_SETTINGS: Settings = {
   coachLanguage: "es",
   // Adaptive by default: the pass bar meets her where she is (lib/adaptive.ts).
   difficulty: "auto",
+  // Virtual Call defaults. getSettings() merges these over a stored row, so a
+  // learner who set up her profile before these fields existed resolves to the
+  // same values as a new one — no migration, nothing silently switched on.
+  callCorrectionMode: "natural",
+  humorLevel: "light",
+  // Minimal retention by default: the conversation is not written down unless
+  // she asks for it. The aggregate report is stored either way.
+  callTranscriptRetention: "none",
 };
+
+/**
+ * Enforce the transcript-retention choice at the point of writing, not at the
+ * point of building the record. The caller assembling a finished call should
+ * not have to remember the privacy rule for it to hold, and a bug there must
+ * not be able to persist her words against her setting.
+ */
+export function applyTranscriptRetention(
+  record: Omit<VirtualCallRecord, "id">,
+  retention: Settings["callTranscriptRetention"],
+): Omit<VirtualCallRecord, "id"> {
+  if (retention === "keep") return record;
+  const { transcript: _dropped, ...rest } = record;
+  return rest;
+}
 
 export const DEFAULT_PLAYER: PlayerStats = {
   id: "player",

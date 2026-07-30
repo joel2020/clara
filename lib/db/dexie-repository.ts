@@ -1,5 +1,5 @@
 import { boundAccountId, db } from "./dexie.ts";
-import { DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository.ts";
+import { applyTranscriptRetention, DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository.ts";
 import type { DailySession } from "../daily-session";
 import { mergeDailySessions } from "../daily-session-merge.ts";
 import {
@@ -20,6 +20,7 @@ import type {
   PlayerStats,
   Settings,
   TalkSession,
+  VirtualCallRecord,
 } from "./types";
 
 const RECENT_WINDOW = 20; // attempts per category counted as "recent"
@@ -164,6 +165,46 @@ export class DexieRepository implements DataRepository {
   async saveTalkSession(session: Omit<TalkSession, "id">): Promise<void> {
     await db.talkSessions.add(session as TalkSession);
     void this.mirror((profileId, sync) => sync.pushTalkSession(profileId, session as TalkSession));
+  }
+
+  async getVirtualCalls(limit?: number): Promise<VirtualCallRecord[]> {
+    // The `at` index already IS newest-first once reversed, so the limit can be
+    // taken at the index (same reasoning as the unfiltered getAttempts path).
+    const coll = db.virtualCalls.orderBy("at").reverse();
+    return (limit ? coll.limit(limit) : coll).toArray();
+  }
+
+  async saveVirtualCall(record: Omit<VirtualCallRecord, "id">): Promise<void> {
+    // The retention setting is read asynchronously, so the account binding is
+    // re-checked before the write: an account switch in between would land this
+    // call in the WRONG learner's database (the failure saveDailySession guards
+    // against, arriving here through the awaited read rather than a stale hook).
+    const bound = boundAccountId();
+    const { callTranscriptRetention } = await this.getSettings();
+    if (boundAccountId() !== bound) {
+      throw new Error("Account changed while saving the virtual call");
+    }
+    // Append-only, and no cloud mirror: there is no virtual_calls table, so a
+    // kept transcript stays in this account's local database.
+    await db.virtualCalls.add(
+      applyTranscriptRetention(record, callTranscriptRetention) as VirtualCallRecord,
+    );
+  }
+
+  async deleteVirtualCallTranscripts(): Promise<void> {
+    // Strip the field, keep the row: her report — turns, corrections, priorities,
+    // pronunciation evidence — is progress she earned, and a privacy control
+    // that quietly erased it would be a data-loss bug wearing a delete button.
+    await db.transaction("rw", db.virtualCalls, async () => {
+      const stripped = (await db.virtualCalls.toArray())
+        .filter((call) => call.transcript !== undefined)
+        .map(({ transcript: _dropped, ...rest }) => rest as VirtualCallRecord);
+      if (stripped.length) await db.virtualCalls.bulkPut(stripped);
+    });
+  }
+
+  async deleteVirtualCall(id: number): Promise<void> {
+    await db.virtualCalls.delete(id);
   }
 
   /** Fire-and-forget cloud mirror, skipped when there is no profile or no env. */
@@ -354,6 +395,7 @@ export class DexieRepository implements DataRepository {
       db.callScores.clear(),
       db.talkSessions.clear(),
       db.dailySessions.clear(),
+      db.virtualCalls.clear(),
       // events was omitted here before — analytics for a wiped profile is
       // meaningless and reset is meant to clear the device.
       db.events.clear(),

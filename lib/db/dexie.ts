@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { DailySession } from "../daily-session";
-import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession } from "./types";
+import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "./types";
 import type { OutboxRow } from "./types";
 
 /**
@@ -32,6 +32,7 @@ export class ClaraDB extends Dexie {
   talkSessions!: Table<TalkSession, number>;
   outbox!: Table<OutboxRow, number>;
   dailySessions!: Table<DailySession, string>;
+  virtualCalls!: Table<VirtualCallRecord, number>;
 
   constructor(name = "clara") {
     super(name);
@@ -90,6 +91,14 @@ export class ClaraDB extends Dexie {
     // untouched; one account-scoped row is kept per local day.
     this.version(10).stores({
       dailySessions: "id, day, updatedAt, completedAt",
+    });
+    // v11 adds completed Virtual Calls (the spoken practice conversation with
+    // Clara), so that practice is measurable on her report. Purely additive:
+    // no existing store or row is touched. The row is the aggregate report; a
+    // transcript is only present when she opted into keeping one, and stays on
+    // this device — there is no cloud table for it.
+    this.version(11).stores({
+      virtualCalls: "++id, at, scenarioId",
     });
   }
 }
@@ -161,7 +170,7 @@ export function boundAccountId(): string | null {
 const LEGACY_TABLES = [
   "attempts", "progress", "customLessons", "settings", "player", "convItems",
   "quests", "recordings", "events", "examAttempts", "callScores", "talkSessions",
-  "outbox", "dailySessions",
+  "outbox", "dailySessions", "virtualCalls",
 ] as const;
 
 /** An account database with no settings row and no history is considered new. */
@@ -217,7 +226,7 @@ async function claimLegacyInto(target: ClaraDB, accountId: string): Promise<void
           }];
         });
         if (claimable.length) await target.outbox.bulkAdd(claimable);
-      } else if (name === "attempts" || name === "events" || name === "examAttempts" || name === "callScores" || name === "talkSessions") {
+      } else if (name === "attempts" || name === "events" || name === "examAttempts" || name === "callScores" || name === "talkSessions" || name === "virtualCalls") {
         // Auto-increment keys: strip ids so the target assigns fresh ones.
         await target.table(name).bulkAdd(rows.map((r) => { const { id: _id, ...rest } = r as { id?: number }; return rest; }));
       } else {

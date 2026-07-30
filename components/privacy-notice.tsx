@@ -24,7 +24,7 @@ export function PrivacyNotice() {
         Tu voz y tus datos
         <span className="block text-lg font-normal text-muted-foreground">Your voice and your data</span>
       </h1>
-      <p className="mt-2 text-xs text-muted-foreground">Actualizado · Updated: 2026-07-28 · v1</p>
+      <p className="mt-2 text-xs text-muted-foreground">Actualizado · Updated: 2026-07-30 · v2</p>
 
       <H es="Cuándo se graba tu voz" en="When your voice is recorded" />
       <P
@@ -46,6 +46,24 @@ export function PrivacyNotice() {
       <P
         es="En tu dispositivo y en tu cuenta (Supabase, protegida por tu inicio de sesión): el texto de lo que el reconocedor entendió, tus puntajes, tu progreso, tu nombre y tus ajustes, y tu historial de exámenes, llamadas y conversaciones. Tu 'diario de voz' (las grabaciones que puedes re-escuchar en Mi Mundo) vive SOLO en tu dispositivo y nunca se sube."
         en="On your device and in your account (Supabase, protected by your sign-in): the text the recognizer heard, your scores, your progress, your name and settings, and your exam/call/conversation history. Your voice journal (the recordings you can replay in Mi Mundo) lives ONLY on your device and is never uploaded."
+      />
+
+      <H es="La llamada virtual" en="The virtual call" />
+      <P
+        es="En una llamada con Clara el micrófono se enciende solo cuando tú tocas grabar tu turno, y se corta solo a los 30 segundos. Entre turnos no se graba nada, y la llamada tiene un tope de tiempo."
+        en="On a call with Clara the microphone only turns on when you tap to record your turn, and it cuts off on its own after 30 seconds. Nothing is recorded between turns, and the call itself has a time limit."
+      />
+      <P
+        es="Tu audio va a un servicio de voz solo para convertirlo en texto (y para calificar tu pronunciación cuando repites una frase corregida, que es la única vez que hay una frase exacta contra la cual calificar). Clara no guarda ese audio en sus servidores. El texto de tu turno sí se envía al servicio de IA para que Clara pueda responderte y corregirte."
+        en="Your audio goes to a speech service only to turn it into text (and to score your pronunciation when you repeat a corrected sentence — the only moment there is an exact target to score against). Clara does not keep that audio on its servers. The text of your turn does go to the AI service so Clara can reply and correct you."
+      />
+      <P
+        es="De cada llamada se guarda el resumen: cuántos turnos hablaste, cuáles salieron limpios, las correcciones y en qué enfocarte, el vocabulario que usaste y tu puntaje de pronunciación cuando se midió. Lo que dijiste palabra por palabra NO se guarda, salvo que tú lo elijas en Ajustes → Llamada virtual; y si lo eliges, se queda solo en este dispositivo, no sube a la nube."
+        en="What is stored from each call is the summary: how many turns you spoke, which came out clean, the corrections and what to focus on, the vocabulary you used, and your pronunciation score when it was measured. What you said word for word is NOT stored unless you choose that in Settings → Virtual call; and if you do, it stays on this device only and is not uploaded."
+      />
+      <P
+        es="Puedes borrar esas transcripciones cuando quieras con 'Borrar transcripciones guardadas' en Ajustes. Eso borra tus palabras y deja intactos los resúmenes: borrar tus grabaciones no debe borrarte el progreso."
+        en="You can delete those transcripts whenever you want with 'Delete saved transcripts' in Settings. That removes your words and leaves the summaries intact: deleting your recordings should never delete your progress."
       />
 
       <H es="Cuánto tiempo y cómo borrar" en="Retention and deletion" />

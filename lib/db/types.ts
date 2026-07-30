@@ -3,6 +3,9 @@
 // only the repository implementation changes.
 
 import type { AnalyticsEventType } from "@/lib/analytics-schema";
+import type { Level } from "@/lib/placement";
+import type { CorrectionMode } from "@/lib/virtual-call/session";
+import type { PronunciationSummary, ReportCorrection } from "@/lib/virtual-call/report";
 
 export type ItemKind = "word" | "phrase";
 
@@ -138,6 +141,61 @@ export interface CallScore {
   checks: Record<string, boolean>;
 }
 
+/** One line of a Virtual Call conversation, in the order it was spoken. */
+export interface VirtualCallLine {
+  role: "clara" | "learner";
+  /** Clara's spoken line, or what the recognizer transcribed from the learner. */
+  text: string;
+  at: number; // epoch ms
+}
+
+/**
+ * One completed Virtual Call, kept so spoken practice is measurable and can
+ * appear on her report. Append-only, like exam sittings and call-simulator runs.
+ *
+ * Everything above `transcript` IS the end-of-call report (built by
+ * lib/virtual-call/report.ts from the recorded turns) and is always stored —
+ * counts, corrections and priorities are aggregates, not recordings.
+ * `transcript` is the only field carrying what she actually said, and it is
+ * written ONLY when Settings.callTranscriptRetention is "keep"; the write path
+ * drops it otherwise (see applyTranscriptRetention in ./repository.ts).
+ *
+ * These rows never leave the device: there is no cloud table for virtual calls,
+ * so a kept transcript stays in this account's local database and is removed by
+ * deleteVirtualCallTranscripts() without touching the report rows.
+ */
+export interface VirtualCallRecord {
+  id?: number; // auto-increment (Dexie)
+  scenarioId: string;
+  /** The correction mode the call actually ran in ("natural" | "practice"). */
+  mode: CorrectionMode;
+  /** The CEFR band the call was pitched at. */
+  level: Level;
+  startedAt: number; // epoch ms
+  endedAt: number; // epoch ms
+  /** History timestamp (the moment the call ended) — the indexed sort key. */
+  at: number;
+  durationMs: number;
+  learnerTurns: number;
+  /** Turns where nothing needed fixing — the "what went well" evidence. */
+  cleanTurns: number;
+  metCriteria: boolean;
+  corrections: ReportCorrection[];
+  /** The two or three worth working on, most severe first. */
+  priorities: ReportCorrection[];
+  vocabularyUsed: string[];
+  /**
+   * Present ONLY when at least one utterance was scored against a known target
+   * (a retry). Absent means pronunciation was not measured on this call — never
+   * that it was perfect.
+   */
+  pronunciation?: PronunciationSummary;
+  retriedCount: number;
+  retriedAcceptedCount: number;
+  /** The conversation itself. Absent unless she opted into keeping it. */
+  transcript?: VirtualCallLine[];
+}
+
 /**
  * One sitting of a stage exam — the gate between CEFR bands.
  *
@@ -248,6 +306,37 @@ export interface Settings {
    * Absent until the learner completes onboarding (which is what gates the flow).
    */
   onboarding?: import("@/lib/onboarding").OnboardingProfile;
+  /**
+   * How Clara corrects her on a Virtual Call. "natural" (the default when the
+   * field is absent) keeps the conversation going and saves the corrections for
+   * the end report; "practice" stops on a mistake that matters and asks for the
+   * sentence again. See lib/virtual-call/session.ts — they are two different
+   * products, not a severity slider.
+   *
+   * Device-local: the cloud `settings` table has no column for it (see
+   * pushSettings in lib/sync/supabase-sync.ts).
+   */
+  callCorrectionMode?: CorrectionMode;
+  /**
+   * How playful Clara is on a call. "light" is the default when absent: some
+   * warmth, no comedy routine. "off" for a learner who finds jokes distracting,
+   * "full" for one who wants them. Device-local.
+   */
+  humorLevel?: "off" | "light" | "full";
+  /**
+   * What is kept from a Virtual Call once it ends. Absent = "none", the minimal
+   * option, chosen as the default deliberately: the aggregate report is always
+   * stored either way, so nothing about her progress depends on keeping a record
+   * of her words.
+   *   none    — the transcript is never written to storage; it is gone when the
+   *             call ends. Only the aggregate report row is saved.
+   *   session — the transcript stays in memory for the summary screen right
+   *             after the call, then goes; still never written to storage.
+   *   keep    — the transcript is saved with the call on THIS device so she can
+   *             re-read it later. Removable at any time from Settings.
+   * Device-local.
+   */
+  callTranscriptRetention?: "none" | "session" | "keep";
 }
 
 /**

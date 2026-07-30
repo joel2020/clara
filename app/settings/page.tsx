@@ -41,6 +41,11 @@ export default function SettingsPage() {
   const lang = settings.coachLanguage;
   const [copied, setCopied] = useState(false);
   const [armReset, setArmReset] = useState(false);
+  // Narrower two-tap confirm for the transcript wipe: it deletes what she said
+  // on her calls and nothing else, so it is deliberately NOT dressed as the
+  // full reset.
+  const [armWipeTranscripts, setArmWipeTranscripts] = useState(false);
+  const [transcriptsWiped, setTranscriptsWiped] = useState(false);
   const [pushUi, setPushUi] = useState<PushUi>("hidden");
 
   useEffect(() => {
@@ -98,6 +103,19 @@ export default function SettingsPage() {
     } catch {
       /* clipboard can be unavailable — the code is visible to copy by hand */
     }
+  };
+
+  const wipeTranscripts = async () => {
+    if (!armWipeTranscripts) {
+      setArmWipeTranscripts(true);
+      setTimeout(() => setArmWipeTranscripts(false), 4000);
+      return;
+    }
+    setArmWipeTranscripts(false);
+    await repo.deleteVirtualCallTranscripts();
+    sfx.tap();
+    setTranscriptsWiped(true);
+    setTimeout(() => setTranscriptsWiped(false), 2600);
   };
 
   const reset = async () => {
@@ -207,6 +225,104 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+        </section>
+
+        {/* Virtual call */}
+        <section className="rounded-2xl border border-hairline bg-card p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{t("vcSettings", lang)}</p>
+
+          {/* Correction mode — two different calls, not a severity slider. */}
+          <p className="mt-4 text-sm font-medium">{t("vcMode", lang)}</p>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            {(["natural", "practice"] as const).map((mode) => {
+              const active = (settings.callCorrectionMode ?? "natural") === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => void update({ callCorrectionMode: mode })}
+                  className={cn(
+                    "rounded-2xl border p-4 text-left transition-all active:scale-[0.99]",
+                    active ? "border-primary bg-primary/[0.05]" : "border-hairline hover:border-foreground/30",
+                  )}
+                  aria-pressed={active}
+                >
+                  <span className={cn("font-display text-lg font-medium", active && "text-primary")}>
+                    {t(mode === "natural" ? "vcModeNatural" : "vcModePractice", lang)}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                    {t(mode === "natural" ? "vcModeNaturalSub" : "vcModePracticeSub", lang)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Humor */}
+          <p className="mt-5 text-sm font-medium">{t("vcHumor", lang)}</p>
+          <div className="mt-2 grid grid-cols-3 gap-3">
+            {(["off", "light", "full"] as const).map((level) => {
+              const active = (settings.humorLevel ?? "light") === level;
+              return (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => void update({ humorLevel: level })}
+                  className={cn(
+                    "rounded-2xl border py-3 text-center text-sm font-medium transition-all active:scale-[0.99]",
+                    active ? "border-primary bg-primary/[0.05] text-primary" : "border-hairline hover:border-foreground/30",
+                  )}
+                  aria-pressed={active}
+                >
+                  {t(level === "off" ? "vcHumorOff" : level === "light" ? "vcHumorLight" : "vcHumorFull", lang)}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Transcript retention — plain language about what is stored. */}
+          <p className="mt-5 text-sm font-medium">{t("vcTranscript", lang)}</p>
+          <div className="mt-2 grid gap-3">
+            {(["none", "session", "keep"] as const).map((choice) => {
+              const active = (settings.callTranscriptRetention ?? "none") === choice;
+              return (
+                <button
+                  key={choice}
+                  type="button"
+                  onClick={() => void update({ callTranscriptRetention: choice })}
+                  className={cn(
+                    "rounded-2xl border p-4 text-left transition-all active:scale-[0.99]",
+                    active ? "border-primary bg-primary/[0.05]" : "border-hairline hover:border-foreground/30",
+                  )}
+                  aria-pressed={active}
+                >
+                  <span className={cn("font-display text-base font-medium", active && "text-primary")}>
+                    {t(choice === "none" ? "vcTranscriptNone" : choice === "session" ? "vcTranscriptSession" : "vcTranscriptKeep", lang)}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                    {t(choice === "none" ? "vcTranscriptNoneSub" : choice === "session" ? "vcTranscriptSessionSub" : "vcTranscriptKeepSub", lang)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="mt-5 text-xs leading-relaxed text-muted-foreground">{t("vcDeleteTranscriptsSub", lang)}</p>
+          <button
+            type="button"
+            onClick={() => void wipeTranscripts()}
+            className={cn(
+              "mt-2 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all active:scale-[0.98]",
+              armWipeTranscripts ? "border-foreground bg-foreground text-background" : "border-hairline hover:border-foreground/30",
+            )}
+          >
+            {transcriptsWiped ? <Check className="size-4 text-success" /> : <Trash2 className="size-4" />}
+            {transcriptsWiped
+              ? t("vcDeleteTranscriptsDone", lang)
+              : armWipeTranscripts
+                ? t("vcDeleteTranscriptsConfirm", lang)
+                : t("vcDeleteTranscripts", lang)}
+          </button>
         </section>
 
         {/* Daily goal */}
