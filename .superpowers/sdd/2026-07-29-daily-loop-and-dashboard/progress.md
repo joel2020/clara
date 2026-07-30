@@ -34,3 +34,7 @@ Task 5: minor (deferred): /talk mid-conversation API failures lack a session tec
 Task 5: minor (deferred): state swaps do not move focus to the new content heading.
 Task 5: minor (pre-existing, for whole-plan review): shadow-round renders a failed flash for non-consent technical recognition errors.
 Task 5: complete (commits 04fc97e..f8014b4, Claude review: no blocking findings; full gate green: typecheck, lint 0 errors, ratchet 0, 21451 checks, build, diff --check)
+Whole-plan review: no blocking findings; plan delivered and safe to build the character and release plans on.
+Whole-plan fix round (commit 2a7cac6): shadow-round technical recognition errors now show a neutral notice instead of the miss badge; activity returns carry sessionDay so a post-midnight return cannot credit the new session; checkpointActivity writes locally without a blocking cloud pull.
+Whole-plan review minor (deferred): TS/SQL completedAt tie-break asymmetry (unreachable divergence, informational).
+Whole-plan review minor (deferred to insights plan): evidenced-improvement derivation, player_stats whole-row LWW, real-PostgreSQL migration execution, visible sync queue, comeback session.
