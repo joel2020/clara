@@ -60,12 +60,27 @@ export interface WavHandle {
   peak: () => number;
 }
 
+export interface WavOptions {
+  /**
+   * Fired once she stops talking, so a continuous call can take its turn
+   * without her tapping a button. Only ever fires AFTER speech was detected —
+   * a learner thinking before she answers must not be cut off, which is the
+   * difference between a conversation and an interrogation.
+   */
+  onSpeechEnd?: () => void;
+}
+
 const MAX_MS = 15000;
+
+/** Silence this long after she has spoken reads as "her turn is over". */
+const END_OF_SPEECH_MS = 1400;
+/** A frame at or above this counts as voice rather than room noise. */
+const VOICE_PEAK = 0.02;
 
 /** Below this the capture is silence, not a quiet voice — the mic never opened. */
 export const SILENCE_PEAK = 0.004;
 
-export async function startWavRecording(): Promise<WavHandle> {
+export async function startWavRecording(options: WavOptions = {}): Promise<WavHandle> {
   // Create AND unlock the AudioContext *before* awaiting getUserMedia. On iOS
   // Safari the mic permission prompt ends the user-gesture window, so a context
   // constructed or resumed after that await stays suspended forever —
@@ -93,14 +108,38 @@ export async function startWavRecording(): Promise<WavHandle> {
   let finished = false;
   let peak = 0;
 
+  // End-of-speech detection, measured per frame rather than from the cumulative
+  // peak: `peak` only grows, so it can say "the mic worked" but never "she has
+  // finished". A frame's own peak can.
+  let heardVoice = false;
+  let quietSince = 0;
+  let endFired = false;
+
   processor.onaudioprocess = (e) => {
     if (finished) return;
     const input = e.inputBuffer.getChannelData(0);
+    let framePeak = 0;
     for (let i = 0; i < input.length; i++) {
       const a = input[i] < 0 ? -input[i] : input[i];
-      if (a > peak) peak = a;
+      if (a > framePeak) framePeak = a;
     }
+    if (framePeak > peak) peak = framePeak;
     chunks.push(new Float32Array(input));
+
+    if (!options.onSpeechEnd || endFired) return;
+    const now = Date.now();
+    if (framePeak >= VOICE_PEAK) {
+      heardVoice = true;
+      quietSince = 0;
+      return;
+    }
+    // Silence before she has said anything is her thinking. Leave her alone.
+    if (!heardVoice) return;
+    if (quietSince === 0) quietSince = now;
+    else if (now - quietSince >= END_OF_SPEECH_MS) {
+      endFired = true;
+      options.onSpeechEnd();
+    }
   };
   source.connect(processor);
   processor.connect(ctx.destination);

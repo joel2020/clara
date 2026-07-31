@@ -62,8 +62,16 @@ the call runs, and a crashed tab cannot strand a server session.
    including here. Nothing records before an affirmative action.
 3. **Lumi opens.** `openingPrompt` renders locally and is spoken, so the call
    starts instantly with no model round trip.
-4. **The learner records one answer.** Press to record, press to stop. Capped at
-   `MAX_RECORDING_MS` (30s).
+4. **The learner speaks.** The call is **continuous**: the mic opens on its own
+   when the guide stops talking, and silence hands the turn back — one tap
+   starts the call, and nothing is tapped again. `wav-recorder` detects
+   end-of-speech from a per-frame peak (a cumulative peak can say "the mic
+   worked" but never "she has finished"), and only ever after speech was heard,
+   so a learner thinking before she answers is not cut off. Manual stop stays
+   available, and `MAX_RECORDING_MS` (30s) is still the ceiling.
+   With audio muted there is no voice to stop, so the handoff instead fires when
+   the reply is on screen to read — muting the guide must not silently disable
+   the conversation.
 5. **Transcribe → analyze → reply.** `POST /api/virtual-call/turn`.
 6. **Correction, per mode.** See below.
 7. **Repeat** until the scenario's `targetTurns`, `MAX_TURNS` (24), or

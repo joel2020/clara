@@ -276,7 +276,7 @@ export function startCloudRecognition(): RecognitionHandle {
  * for phoneme-level scoring. She taps stop (like the cloud path); a safety
  * timer auto-stops so a forgotten tap can't hang the flow.
  */
-function startAzureRecognition(target?: string): RecognitionHandle {
+function startAzureRecognition(target?: string, autoEnd = false): RecognitionHandle {
   let wav: WavHandle | null = null;
   let settled = false;
   let stopping = false;
@@ -329,7 +329,9 @@ function startAzureRecognition(target?: string): RecognitionHandle {
 
   void (async () => {
     try {
-      wav = await startWavRecording();
+      // In a continuous call the recorder decides when her turn ended, so she
+      // never taps to hand the conversation back.
+      wav = await startWavRecording(autoEnd ? { onSpeechEnd: () => void finish() } : {});
       if (cancelled) {
         wav.cancel();
         return;
@@ -376,7 +378,9 @@ export function recognitionMode(): RecognitionMode {
  * when Azure is configured and the target is known; otherwise the Web Speech
  * API (desktop Chrome — instant, free) or record-and-transcribe (iOS Safari).
  */
-export function createRecognition(opts: { lang?: string; target?: string; assess?: boolean } = {}): RecognitionHandle {
+export function createRecognition(
+  opts: { lang?: string; target?: string; assess?: boolean; autoEnd?: boolean } = {},
+): RecognitionHandle {
   // Consent before capture (audit P0): the first mic use anywhere opens the
   // one-time consent sheet; a decline blocks capture only, never the app.
   // The gate sits here because this is the single entry point for every mic
@@ -405,7 +409,7 @@ export function createRecognition(opts: { lang?: string; target?: string; assess
   // too, so free conversation gets real pronunciation scores instead of only
   // repeat-after-me drills. `assess: true` opts a caller in without one.
   if ((opts.target || opts.assess) && assessEnabledSync() && hasMediaRecording()) {
-    return startAzureRecognition(opts.target);
+    return startAzureRecognition(opts.target, opts.autoEnd);
   }
   if (getSpeechRecognitionCtor()) return startRecognition(opts);
   if (hasMediaRecording()) return startCloudRecognition();

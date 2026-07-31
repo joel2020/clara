@@ -385,7 +385,14 @@ export function useVirtualCall(options: {
       // assess: true grades free conversation too — Azure scores unscripted
       // speech, so she gets pronunciation feedback on what she actually chose to
       // say, not only on a sentence we handed her to repeat.
-      const handle = createRecognition({ lang: "en-US", assess: true, ...(target ? { target } : {}) });
+      const handle = createRecognition({
+        lang: "en-US",
+        assess: true,
+        // The call listens continuously: silence hands the turn back, so she
+        // never taps to stop mid-conversation.
+        autoEnd: true,
+        ...(target ? { target } : {}),
+      });
       recRef.current = handle;
       setRecording(true);
       // MAX_RECORDING_MS is a cost control as much as a UX one: stop rather
@@ -420,6 +427,33 @@ export function useVirtualCall(options: {
     },
     [state, recording, online, lang, send, finishRetry],
   );
+
+  // Continuous conversation: when the guide stops talking, the learner's turn
+  // begins on its own. A call where every exchange needs two taps is a form to
+  // fill in, not a conversation — and the whole point is rehearsing the real
+  // thing. Only ever while the call is live and she is not already recording,
+  // and never over a pending retry, which she should hear before repeating.
+  const wasSpeaking = useRef(false);
+  const lastHandoff = useRef(-1);
+  useEffect(() => {
+    if (!state || state.phase === "ended" || state.pendingRetry || recording || !online || error) {
+      wasSpeaking.current = speaking;
+      return;
+    }
+    // Two ways a turn comes back to her, and both must open the mic. With audio
+    // on it is the moment the guide's voice stops. With audio MUTED there is no
+    // voice to stop, so it is the moment her reply is on screen to read —
+    // otherwise muting the guide would silently disable the whole continuous
+    // flow and leave her tapping.
+    const spokenHandoff = wasSpeaking.current && !speaking;
+    wasSpeaking.current = speaking;
+    const readable = entries.length > 0 && entries[entries.length - 1].kind === "guide";
+    const mutedHandoff = muted && !speaking && readable && lastHandoff.current !== entries.length;
+    if (!spokenHandoff && !mutedHandoff) return;
+    lastHandoff.current = entries.length;
+    const t = setTimeout(() => capture(), muted ? 700 : 250);
+    return () => clearTimeout(t);
+  }, [speaking, state, recording, online, error, capture, muted, entries]);
 
   const record = useCallback(() => capture(), [capture]);
   const retry = useCallback(() => capture(state?.pendingRetry?.corrected), [capture, state]);
