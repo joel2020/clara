@@ -26,16 +26,31 @@ Naming: `bg-<scene>-<ratio>.<ext>`, `loop-<scene>-9x16.<ext>`, `fx-<name>.<ext>`
 
 ## 1. Home landscape — Medellín golden hour (subtle, ambient)
 
+**Corrected 2026-07-31.** The original prompt asked for a scene "inspired by the
+*feeling* of Medellín" with "terracotta rooftops", and got exactly what that
+describes: a Mediterranean hill town — white stucco villas, tiled roofs, gentle
+Tuscan farmland. That is not Medellín, and a learner from there notices
+immediately. Medellín is specific and must be prompted specifically: a narrow
+valley (the Aburrá), steep Andean slopes rising on BOTH sides, dense
+**unpainted red-orange brick** houses with flat roofs stacked up the hillsides,
+a cluster of high-rise towers on the flat valley floor, tropical greenery and
+palms, and window lights spreading across the barrios at dusk.
+
 **Prompt:**
-> A dreamy, hand-illustrated animated landscape of a warm valley city at golden
-> hour, inspired by the feeling of Medellín: layered green hills and mountains
-> fading into soft haze, terracotta rooftops and scattered warm window lights
-> beginning to glow, a gentle gradient sky from peach to lavender with slow
-> drifting clouds, faint birds. Storybook/anime aesthetic, soft painterly shapes,
-> subtle film grain, no text, no recognizable landmarks, no people. Palette: warm
-> cream, golden yellow, deep blue, coral. Loopable, very slow ambient motion
-> (drifting clouds, twinkling lights, soft light shift). Cinematic but calm —
-> a backdrop, not a focal point.
+> Soft painterly anime-style illustrated background, Studio Ghibli inspired,
+> warm and calm, wide cinematic 16:9. The real city of MEDELLÍN, COLOMBIA at
+> golden-hour sunset from a hillside lookout in the Aburrá Valley: a long narrow
+> valley with steep green Andean mountains rising sharply on both the left and
+> right and closing the distance; the valley floor and lower slopes densely
+> packed with characteristic unpainted red-orange brick buildings, small
+> flat-roofed houses stacked tightly and climbing high up the steep hillsides in
+> irregular rows; a cluster of modern white and glass high-rise apartment towers
+> on the flat valley floor in the middle distance; lush tropical vegetation and
+> palms between the buildings; warm amber and rose sunset sky with soft tropical
+> cumulus catching gold light over the ridges; the first tiny warm window lights
+> beginning to twinkle across the brick hillsides. No terracotta tile roofs, no
+> white Mediterranean stucco villas, no Tuscan rolling farmland, no European
+> village. Gentle hand-painted texture, no text, no people, no logos.
 
 - **Use:** Home hero backdrop behind Lumi + the greeting/HUD.
 - **Ratio / format:** 16:9 master, also export 3:2 crop for the hero card. MP4 + WebM loop, WebP poster.
@@ -109,3 +124,45 @@ tricolor accent, minimal, lots of negative space, no text." Files: `ill-coffee`,
   every loop lazy-loads. Never block a lesson on a video.
 - Generation cost: Higgsfield/nano-banana ~2 credits/image, video higher; batch and
   review before committing. Get budget sign-off before generating the video loops.
+
+---
+
+## Asset production procedure (2026-07-31)
+
+How the pets and the Medellín loop were actually produced, so this is repeatable.
+
+**Style-matching a new sticker to the existing set.** Do not describe the style
+from scratch — import an existing asset as a visual reference and change only the
+subject. The production files are public, so they can be imported directly by
+URL (e.g. `https://<prod-host>/pets/tabby.png`) and passed as an `image` role.
+`pets/cloe.png` was drawn against `tabby.png`, `pets/pandora.png` against
+`golden.png`; both match the cream sticker outline, pose and shading without a
+single style adjective in the prompt.
+
+**Pet sizing.** Background-remove, then trim to the content box and resize to
+**420 px tall**, PNG compression level 9. That lands each pet at 50–70 KB, in
+line with the originals.
+
+**Video loops.** `ffmpeg` is NOT a project dependency — an 80 MB binary should
+not sit in every install for a job run once a year. Install it only for the
+encode and remove it afterwards:
+
+```bash
+npm i -D ffmpeg-static
+FF=node_modules/ffmpeg-static/ffmpeg
+S=public/scenes/bg-home-medellin-16x9
+$FF -y -i raw.mp4 -vf "scale=1280:720:flags=lanczos" -an \
+  -c:v libx264 -profile:v high -crf 30 -preset slow -pix_fmt yuv420p \
+  -movflags +faststart $S.mp4
+$FF -y -i raw.mp4 -vf "scale=1280:720:flags=lanczos" -an \
+  -c:v libvpx-vp9 -crf 40 -b:v 0 -row-mt 1 -deadline good $S.webm
+$FF -y -i raw.mp4 -vf "scale=1280:720:flags=lanczos" -frames:v 1 -q:v 9 $S-poster.jpg
+npm uninstall ffmpeg-static   # leave package.json exactly as you found it
+```
+
+Check `git status package.json package-lock.json` is clean before committing.
+
+**Catalog wiring.** Add the entry to `lib/cosmetics.ts`. `lib/store.test.mjs`
+asserts every `image:` and `video:` in the catalog resolves on disk — a cosmetic
+pointing at a missing file renders as a blank tile and nothing else fails, so a
+learner could buy something invisible.
