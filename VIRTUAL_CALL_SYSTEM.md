@@ -195,6 +195,15 @@ the completed call: scenario, mode, level, timings, turn counts, corrections,
 priorities, vocabulary used, optional pronunciation summary, retry counts, and —
 only when retention is enabled — the transcript.
 
+**The report syncs; the transcript never does.** `public.virtual_calls`
+(`supabase/virtual_calls.sql`, own-rows-only RLS) mirrors the report so it
+survives an iOS storage eviction — Safari drops IndexedDB after about seven
+inactive days, which used to take her whole call history with it. The table has
+no transcript column and `virtualCallRow()` names every column explicitly rather
+than spreading the record, so a field added to `VirtualCallRecord` later cannot
+ride along into the payload. `lib/virtual-call/persistence.test.mjs` asserts all
+three of those properties.
+
 Rollback: the store is additive and nothing existing is modified, so reverting the
 app code leaves prior data intact and simply stops writing new rows.
 
@@ -298,9 +307,5 @@ when she is still talking?), and a much tighter per-minute cost ceiling.
 - The guide's artwork is Lumi's existing pose set, resolved from whatever outfit
   the learner has equipped in the store, so the guide on a call is the same
   character she has been dressing.
-- The report's aggregate row is stored on-device only. It is deliberately not
-  synced (documented in `lib/sync/coverage.test.mjs`), so it does not survive an
-  iOS storage eviction the way exam history does. Syncing it needs a
-  `virtual_calls` table and a transcript-stripping payload.
 - `metCriteria` is the model's judgment, not an independent check of the
   transcript, so the "did you reach the goal" line is only as good as that.

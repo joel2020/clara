@@ -184,11 +184,13 @@ export class DexieRepository implements DataRepository {
     if (boundAccountId() !== bound) {
       throw new Error("Account changed while saving the virtual call");
     }
-    // Append-only, and no cloud mirror: there is no virtual_calls table, so a
-    // kept transcript stays in this account's local database.
-    await db.virtualCalls.add(
-      applyTranscriptRetention(record, callTranscriptRetention) as VirtualCallRecord,
-    );
+    const stored = applyTranscriptRetention(record, callTranscriptRetention) as VirtualCallRecord;
+    await db.virtualCalls.add(stored);
+    // Mirror the REPORT to the cloud so it survives an iOS storage eviction —
+    // seven quiet days used to take her whole call history with it. The
+    // transcript never goes: pushVirtualCall names its columns explicitly and
+    // has none for it, which is what /privacidad promises.
+    void this.mirror((profileId, sync) => sync.pushVirtualCall(profileId, stored));
   }
 
   async deleteVirtualCallTranscripts(): Promise<void> {

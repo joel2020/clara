@@ -1,7 +1,7 @@
 "use client";
 
 import { supabase, syncEnabled } from "../db/supabase.ts";
-import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession } from "../db/types.ts";
+import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "../db/types.ts";
 import type { DailySession } from "../daily-session.ts";
 
 // The cloud-sync layer. The app writes to Dexie first (instant, offline); these
@@ -72,7 +72,7 @@ function bg(p: PromiseLike<unknown> | undefined, label: string): void {
 // hands it the payload for retry. Kept as a registration to avoid an import
 // cycle, and so this module stays inert in tests and on the server.
 
-export type DurableKind = "attempt" | "exam" | "call" | "talk" | "daily-session";
+export type DurableKind = "attempt" | "exam" | "call" | "talk" | "daily-session" | "virtual-call";
 
 let outboxSink: ((kind: DurableKind, profileId: string, payload: unknown) => void) | null = null;
 
@@ -120,6 +120,10 @@ export async function deliverQueued(kind: DurableKind, profileId: string, payloa
     }
     if (kind === "exam") {
       const { error } = await sb.from("exam_attempts").upsert(examRow(profileId, payload as ExamAttempt), { onConflict: "profile_id,day", ignoreDuplicates: true });
+      return !error;
+    }
+    if (kind === "virtual-call") {
+      const { error } = await sb.from("virtual_calls").upsert(virtualCallRow(profileId, payload as VirtualCallRecord), { onConflict: "profile_id,at", ignoreDuplicates: true });
       return !error;
     }
     if (kind === "call") {
@@ -506,6 +510,44 @@ function callRow(profileId: string, c: CallScore) {
     score: c.score,
     checks: c.checks,
   };
+}
+
+/**
+ * The cloud shape of a finished Virtual Call.
+ *
+ * The transcript is deliberately absent, and that is enforced here rather than
+ * left to callers: /privacidad promises a kept conversation stays on her
+ * device, so this function names every column explicitly instead of spreading
+ * the record. A new field on VirtualCallRecord cannot leak by being added.
+ */
+function virtualCallRow(profileId: string, v: VirtualCallRecord) {
+  return {
+    profile_id: profileId,
+    at: v.at,
+    scenario_id: v.scenarioId,
+    mode: v.mode,
+    level: v.level,
+    started_at: v.startedAt,
+    ended_at: v.endedAt,
+    duration_ms: v.durationMs,
+    learner_turns: v.learnerTurns,
+    clean_turns: v.cleanTurns,
+    met_criteria: v.metCriteria,
+    corrections: v.corrections,
+    priorities: v.priorities,
+    vocabulary_used: v.vocabularyUsed,
+    pronunciation: v.pronunciation ?? null,
+    retried_count: v.retriedCount,
+    retried_accepted_count: v.retriedAcceptedCount,
+  };
+}
+
+export function pushVirtualCall(profileId: string, v: VirtualCallRecord): void {
+  const sb = supabase();
+  if (!ok() || !sb) return;
+  bgDurable(
+    sb.from("virtual_calls").upsert(virtualCallRow(profileId, v), { onConflict: "profile_id,at", ignoreDuplicates: true }),
+    "virtual_calls", "virtual-call", profileId, v);
 }
 
 export function pushCallScore(profileId: string, c: CallScore): void {

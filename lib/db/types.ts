@@ -438,7 +438,10 @@ export interface AnalyticsEvent {
  */
 export interface OutboxRow {
   id?: number;
-  kind: "attempt" | "exam" | "call" | "talk" | "daily-session";
+  /** Kept in step with DurableKind in lib/sync/supabase-sync.ts. Duplicating
+   *  the union here rather than importing it keeps this module free of sync
+   *  imports; the compiler catches any drift at the enqueue call site. */
+  kind: "attempt" | "exam" | "call" | "talk" | "daily-session" | "virtual-call";
   profileId: string;
   payload: unknown;
   /** When the original write happened (ms). */
