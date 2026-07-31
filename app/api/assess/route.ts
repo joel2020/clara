@@ -71,20 +71,29 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json({ error: "Bad request." }, { status: 400 });
   }
-  if (!(file instanceof Blob) || file.size === 0 || typeof target !== "string" || !target.trim()) {
-    return Response.json({ error: "Missing audio or target." }, { status: 400 });
+  if (!(file instanceof Blob) || file.size === 0) {
+    return Response.json({ error: "Missing audio." }, { status: 400 });
   }
+  // The target is OPTIONAL. With one, Azure runs a scripted assessment and can
+  // report completeness and miscue against the expected sentence. Without one
+  // it runs an UNSCRIPTED assessment of whatever she actually said, which is
+  // what makes it possible to grade free conversation rather than only a
+  // repeat-after-me drill.
+  const reference = typeof target === "string" ? target.trim() : "";
   if (file.size > 4 * 1024 * 1024) {
     return Response.json({ error: "Audio too large." }, { status: 413 });
   }
 
   const assessment = Buffer.from(
     JSON.stringify({
-      ReferenceText: target.trim(),
+      ReferenceText: reference,
       GradingSystem: "HundredMark",
       Granularity: "Phoneme",
       Dimension: "Comprehensive",
-      EnableMiscue: true,
+      // Miscue compares what she said against the expected words, which only
+      // means something when there ARE expected words. Left on for unscripted
+      // speech it would flag every word she chose herself as an insertion.
+      EnableMiscue: reference.length > 0,
       PhonemeAlphabet: "IPA",
     }),
   ).toString("base64");
@@ -130,7 +139,14 @@ export async function POST(request: Request): Promise<Response> {
       pronScore: Math.round(pa.PronScore ?? best.PronScore ?? 0),
       accuracyScore: Math.round(pa.AccuracyScore ?? best.AccuracyScore ?? 0),
       fluencyScore: Math.round(pa.FluencyScore ?? best.FluencyScore ?? 0),
-      completenessScore: Math.round(pa.CompletenessScore ?? best.CompletenessScore ?? 0),
+      // Completeness answers "did she say all of the expected words", which has
+      // no meaning without expected words. Omitted for unscripted speech rather
+      // than reported as a zero, which would read as a failure she did not earn.
+      ...(reference
+        ? { completenessScore: Math.round(pa.CompletenessScore ?? best.CompletenessScore ?? 0) }
+        : {}),
+      /** Whether this was graded against a known sentence. */
+      scripted: reference.length > 0,
       words,
     });
   } catch (e) {

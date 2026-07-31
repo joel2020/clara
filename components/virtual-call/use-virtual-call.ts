@@ -121,14 +121,14 @@ function nextEntryId(prefix: string): string {
 }
 
 /** The one place an Azure assessment becomes report-grade evidence. */
-function toPronunciation(assessment: Assessment | undefined, target: string): PronunciationEvidence | undefined {
+function toPronunciation(assessment: Assessment | undefined, target?: string): PronunciationEvidence | undefined {
   if (!assessment) return undefined;
   const missed = assessment.words
     .filter((w) => w.errorType !== "None")
     .sort((a, b) => a.accuracy - b.accuracy)[0];
   return {
     score: Math.round(assessment.pronScore),
-    target,
+    ...(target ? { target } : {}),
     ...(missed ? { worstWord: missed.word } : {}),
   };
 }
@@ -275,7 +275,7 @@ export function useVirtualCall(options: {
 
   /** Ask the provider for the guide's response to one learner turn. */
   const send = useCallback(
-    async (transcript: string, turnIndex: number) => {
+    async (transcript: string, turnIndex: number, assessment?: Assessment) => {
       const current = state;
       if (!current || !scenario) return;
       inFlight.current = { transcript, turnIndex };
@@ -308,7 +308,10 @@ export function useVirtualCall(options: {
         const correction = analysis.correction;
         const interrupted =
           shouldInterrupt(current.mode, correction, analysis.needsClarification) && correction !== null;
-        setState((s) => (s ? applyTurn(s, { transcript, analysis, at: Date.now() }) : s));
+        const turnPronunciation = toPronunciation(assessment);
+        setState((s) =>
+          s ? applyTurn(s, { transcript, analysis, at: Date.now(), pronunciation: turnPronunciation }) : s,
+        );
         if (interrupted && correction) {
           // Hold the real reply until she has said the fixed sentence, so the
           // conversation does not run away from the correction.
@@ -379,7 +382,10 @@ export function useVirtualCall(options: {
       audioRef.current?.pause();
       setError(null);
       const turnIndex = state.turns.length;
-      const handle = createRecognition({ lang: "en-US", ...(target ? { target } : {}) });
+      // assess: true grades free conversation too — Azure scores unscripted
+      // speech, so she gets pronunciation feedback on what she actually chose to
+      // say, not only on a sentence we handed her to repeat.
+      const handle = createRecognition({ lang: "en-US", assess: true, ...(target ? { target } : {}) });
       recRef.current = handle;
       setRecording(true);
       // MAX_RECORDING_MS is a cost control as much as a UX one: stop rather
@@ -401,7 +407,7 @@ export function useVirtualCall(options: {
           }
           setRetriedTurnIndex(null);
           setEntries((prev) => [...prev, { id: nextEntryId("learner"), kind: "learner", text: said, turnIndex }]);
-          void send(said, turnIndex);
+          void send(said, turnIndex, result.assessment);
         })
         .catch((e: unknown) => {
           clearTimeout(cap);
@@ -460,6 +466,8 @@ export function useVirtualCall(options: {
       setError(null);
       return;
     }
+    // No audio to re-score on a resend, so this turn carries no pronunciation
+    // rather than a score borrowed from a different utterance.
     void send(pending.transcript, pending.turnIndex);
   }, [send]);
 

@@ -144,7 +144,15 @@ export function VirtualCallScreen() {
     // app header (3px flag bar + h-16 bar) and scrolls only the conversation.
     // That is what keeps the AI disclosure, the call state, and the controls on
     // screen for the whole call instead of scrolling away mid-conversation.
-    <div className="mx-auto flex h-[calc(100dvh-4rem-3px)] w-full max-w-2xl flex-col px-4 sm:px-6">
+    <div
+      className="mx-auto flex w-full max-w-2xl flex-col px-4 sm:px-6"
+      // The column is exactly the visible area, so the controls never scroll
+      // away mid-call. env(safe-area-inset-bottom) is load-bearing: without it
+      // the record, mute and end buttons sit under an iPhone's home indicator.
+      // Headless Chromium does not emulate safe areas, so this is invisible in
+      // automated testing and only shows up on a real notched device.
+      style={{ height: "calc(100dvh - 4rem - 3px - env(safe-area-inset-bottom, 0px))" }}
+    >
       <div className="shrink-0 pt-4">
         <CallHeader
           scenario={scenario}

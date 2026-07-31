@@ -23,7 +23,15 @@ export interface Assessment {
   pronScore: number;
   accuracyScore?: number;
   fluencyScore?: number;
+  /** Only present for a scripted assessment — see `scripted`. */
   completenessScore?: number;
+  /**
+   * True when the audio was graded against a known sentence (a retry), false
+   * for free conversation. Both are real measurements of her speech; the flag
+   * says which claims the score supports, since completeness and miscue need
+   * expected words to mean anything.
+   */
+  scripted?: boolean;
   words: AssessedWord[];
 }
 
@@ -52,10 +60,15 @@ export function assessEnabledSync(): boolean {
 }
 
 /** Send a WAV recording + target text for assessment. Throws on failure. */
-export async function assessRecording(wav: Blob, target: string): Promise<Assessment> {
+/**
+ * Score a recording. With `target`, Azure grades against that exact sentence
+ * (a repeat-after-me retry). Without it, Azure runs an unscripted assessment of
+ * whatever she actually said — which is how free conversation gets graded.
+ */
+export async function assessRecording(wav: Blob, target?: string): Promise<Assessment> {
   const form = new FormData();
   form.append("file", wav, "attempt.wav");
-  form.append("target", target);
+  if (target?.trim()) form.append("target", target.trim());
   const res = await fetch("/api/assess", { method: "POST", body: form, headers: await authHeaders() });
   if (!res.ok) throw new Error(String(res.status));
   return (await res.json()) as Assessment;

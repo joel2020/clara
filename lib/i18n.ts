@@ -723,10 +723,12 @@ const STRINGS = {
   vcallReportPron: { es: "Pronunciación", en: "Pronunciation" },
   vcallReportPronScored: { es: "frases medidas", en: "sentences measured" },
   vcallReportPronWorst: { es: "Palabras por pulir", en: "Words to polish" },
-  // Absent pronunciation must never read as a perfect score.
+  // Absent pronunciation must never read as a perfect score. It is absent only
+  // when the scoring service was unavailable — every spoken turn is graded when
+  // it is configured, free conversation included.
   vcallReportPronAbsent: {
-    es: "No se midió la pronunciación en esta llamada. Solo se puede medir cuando repites una frase corregida, porque solo ahí hay una frase objetivo con la que comparar.",
-    en: "Pronunciation was not measured on this call. It can only be measured when you repeat a corrected sentence, because that is the only time there is a target to compare against.",
+    es: "No se pudo medir la pronunciación en esta llamada. El servicio de puntaje no estuvo disponible; no quiere decir que hayas hablado mal.",
+    en: "Pronunciation could not be measured on this call. The scoring service was unavailable — it does not mean you spoke badly.",
   },
   vcallReportNext: { es: "Siguiente paso", en: "Next step" },
   vcallReportNextSame: {

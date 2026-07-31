@@ -67,9 +67,10 @@ export interface LearnerTurn {
   /** Set when this turn's correction was retried. */
   retry?: RetryOutcome;
   /**
-   * Pronunciation is only ever present when the utterance had a KNOWN target
-   * (a retry), because that is the only case the speech service can score
-   * against. Never inferred from a free-speech transcript.
+   * Present whenever the audio was actually scored by the speech service —
+   * which is every turn when Azure is configured, since it grades unscripted
+   * speech as well as a known sentence. Still never INFERRED from a transcript:
+   * absent means nothing was measured, not that it was fine.
    */
   pronunciation?: PronunciationEvidence;
 }
@@ -77,8 +78,13 @@ export interface LearnerTurn {
 export interface PronunciationEvidence {
   /** 0-100 from the assessment service. */
   score: number;
-  /** The sentence that was scored — the evidence this number refers to. */
-  target: string;
+  /**
+   * The sentence it was graded against, when there was one. Present for a
+   * retry (scripted); absent for free conversation, which Azure grades
+   * unscripted against whatever she actually said. Both are real measurements —
+   * this says which one, so a report never implies more than was measured.
+   */
+  target?: string;
   worstWord?: string;
 }
 
@@ -227,7 +233,7 @@ export function evaluateRetry(said: string, target: string, at: number): RetryOu
 /** Apply one analyzed learner turn, returning the next state. Pure. */
 export function applyTurn(
   state: CallState,
-  input: { transcript: string; analysis: TurnAnalysis; at: number },
+  input: { transcript: string; analysis: TurnAnalysis; at: number; pronunciation?: PronunciationEvidence },
 ): CallState {
   const correction = input.analysis.correction;
   const interrupt = shouldInterrupt(state.mode, correction, input.analysis.needsClarification);
@@ -236,6 +242,7 @@ export function applyTurn(
     transcript: input.transcript,
     at: input.at,
     correction,
+    ...(input.pronunciation ? { pronunciation: input.pronunciation } : {}),
   };
   const turns = [...state.turns, turn];
   const pending = interrupt && correction ? correction : null;

@@ -119,15 +119,24 @@ transcription through `lib/speech/recognition.ts` (Web Speech → cloud transcri
 
 ### Pronunciation is evidence-based
 
-Azure returns phoneme scores only when the **target text is known**. That is true
-on a retry (we know the corrected sentence) and false for free speech. So:
+**Every spoken turn is graded**, free conversation included. Azure runs an
+*unscripted* assessment when the reference text is omitted, so it scores what she
+actually chose to say rather than only a sentence handed to her to repeat.
 
-- Retry utterances may carry `PronunciationEvidence { score, target, worstWord }`.
-- Free-speech turns never do.
-- `summarizePronunciation()` returns `undefined` when nothing was scored, and the
-  report says pronunciation was **not measured** rather than implying it was fine.
+- A retry is **scripted**: graded against the corrected sentence, so completeness
+  and miscue are meaningful. `PronunciationEvidence` carries `target`.
+- A free turn is **unscripted**: accuracy, fluency and prosody against her own
+  words. No `target`, and `completenessScore` is omitted rather than reported as
+  a zero — "did she say all the expected words" has no meaning without expected
+  words, and a zero would read as a failure she did not earn.
+- `EnableMiscue` is on only for scripted assessment. Left on for free speech it
+  would flag every word she chose herself as an insertion.
+- `summarizePronunciation()` returns `undefined` only when nothing was scored at
+  all — that means the service was unavailable, and the report says so rather
+  than implying she spoke well.
 
-Never present a transcript as pronunciation analysis.
+Never present a transcript as pronunciation analysis. A score must come from the
+speech service having actually heard the audio.
 
 ---
 

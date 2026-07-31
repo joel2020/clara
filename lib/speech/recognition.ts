@@ -276,7 +276,7 @@ export function startCloudRecognition(): RecognitionHandle {
  * for phoneme-level scoring. She taps stop (like the cloud path); a safety
  * timer auto-stops so a forgotten tap can't hang the flow.
  */
-function startAzureRecognition(target: string): RecognitionHandle {
+function startAzureRecognition(target?: string): RecognitionHandle {
   let wav: WavHandle | null = null;
   let settled = false;
   let stopping = false;
@@ -376,7 +376,7 @@ export function recognitionMode(): RecognitionMode {
  * when Azure is configured and the target is known; otherwise the Web Speech
  * API (desktop Chrome — instant, free) or record-and-transcribe (iOS Safari).
  */
-export function createRecognition(opts: { lang?: string; target?: string } = {}): RecognitionHandle {
+export function createRecognition(opts: { lang?: string; target?: string; assess?: boolean } = {}): RecognitionHandle {
   // Consent before capture (audit P0): the first mic use anywhere opens the
   // one-time consent sheet; a decline blocks capture only, never the app.
   // The gate sits here because this is the single entry point for every mic
@@ -401,7 +401,10 @@ export function createRecognition(opts: { lang?: string; target?: string } = {})
   }
   // Warm the capability probe so the second attempt onward can use Azure.
   void assessEnabled();
-  if (opts.target && assessEnabledSync() && hasMediaRecording()) {
+  // Assessment no longer needs a known target: Azure grades unscripted speech
+  // too, so free conversation gets real pronunciation scores instead of only
+  // repeat-after-me drills. `assess: true` opts a caller in without one.
+  if ((opts.target || opts.assess) && assessEnabledSync() && hasMediaRecording()) {
     return startAzureRecognition(opts.target);
   }
   if (getSpeechRecognitionCtor()) return startRecognition(opts);
