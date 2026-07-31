@@ -19,10 +19,10 @@ export interface TurnRequest {
   level: string;
   coachLanguage: "es" | "en";
   studentName: string;
-  /** Clara's opening line, so the model sees how the call started. */
+  /** The guide's opening line, so the model sees how the call started. */
   opener: string;
   /** Windowed recent turns — never the whole call. */
-  history: { role: "clara" | "learner"; text: string }[];
+  history: { role: "guide" | "learner"; text: string }[];
   /** The learner's newest utterance, already transcribed. */
   utterance: string;
   scenario: {

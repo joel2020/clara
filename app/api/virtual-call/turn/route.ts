@@ -1,4 +1,4 @@
-// One turn of a Virtual Call: the learner's transcribed utterance in, Clara's
+// One turn of a Virtual Call: the learner's transcribed utterance in, the guide's
 // reply plus a candidate correction out.
 //
 // The route deliberately does NOT hold call state. The client owns the call and
@@ -83,7 +83,7 @@ export async function POST(request: Request): Promise<Response> {
     ? body.history
         .filter((t): t is { role: unknown; text: unknown } => Boolean(t) && typeof t === "object")
         .map((t) => ({
-          role: t.role === "learner" ? ("learner" as const) : ("clara" as const),
+          role: t.role === "learner" ? ("learner" as const) : ("guide" as const),
           text: typeof t.text === "string" ? t.text.slice(0, MAX_HISTORY_TEXT) : "",
         }))
         .filter((t) => t.text.length > 0)

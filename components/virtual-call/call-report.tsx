@@ -56,7 +56,7 @@ export function CallReportView({
   humor?: { text: { es: string; en: string }; slang?: { term: string; meaning: string } } | null;
   homeHref: string;
 }) {
-  // Prefer Clara's written summary when it arrived; fall back to the locally
+  // Prefer the guide's written summary when it arrived; fall back to the locally
   // assembled sentence so a model outage never costs her the report.
   const lead =
     prose?.summary?.trim() ||
@@ -227,7 +227,7 @@ export function CallReportView({
             {conversation.map((entry) => (
               <li key={entry.id} className="min-w-0 break-words">
                 <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  {t(entry.kind === "clara" ? "vcallClara" : "vcallYouSaid", lang)}:{" "}
+                  {t(entry.kind === "guide" ? "vcallGuideName" : "vcallYouSaid", lang)}:{" "}
                 </span>
                 <span lang="en">{entry.text}</span>
               </li>

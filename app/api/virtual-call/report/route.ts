@@ -133,7 +133,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const coach = lang === "es" ? "Spanish" : "English";
-  const system = `You are Clara, an encouraging AI practice guide, writing a short end-of-call review for an adult Colombian learner in her twenties. Write in ${coach}.
+  const system = `You are Lumi, an encouraging AI practice guide, writing a short end-of-call review for an adult Colombian learner in her twenties. Write in ${coach}.
 
 These are the FACTS of the call. Do not invent anything beyond them, and never claim she did something the facts do not show:
 - Scenario: ${scenario.title.en} (${scenario.objective.en})

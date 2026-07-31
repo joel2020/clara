@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 //
 // Deliberately not a modal or an overlay: a correction that covers the
 // conversation makes the learner lose the thread she was mid-way through, and
-// she can no longer compare what she said with what Clara said back.
+// she can no longer compare what she said with what the guide said back.
 
 const KIND_LABEL: Record<CorrectionKind, StringKey> = {
   grammar: "vcallKindGrammar",

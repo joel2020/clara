@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { AiDisclosure } from "./ai-disclosure";
 import { formatClock, formatSpokenDuration } from "./format";
 
-// Who she is talking to, how long she has been talking, how Clara is correcting
-// her — and, pinned underneath and never dismissible, what Clara actually is.
+// Who she is talking to, how long she has been talking, how the guide is correcting
+// her — and, pinned underneath and never dismissible, what the guide actually is.
 
 const MODE_LABEL: Record<CorrectionMode, StringKey> = {
   natural: "vcModeNatural",

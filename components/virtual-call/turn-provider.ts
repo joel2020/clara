@@ -20,13 +20,13 @@ export interface VirtualCallTurnRequest {
   scenarioId: string;
   mode: CorrectionMode;
   level: Level;
-  /** The language Clara explains in — never the language she speaks in. */
+  /** The language the guide explains in — never the language she speaks in. */
   coachLanguage: CoachLang;
   studentName: string;
   /** What the learner just said, as transcribed. */
   utterance: string;
   /** Recent lines from both sides, oldest first, already windowed. */
-  history: { role: "clara" | "learner"; text: string }[];
+  history: { role: "guide" | "learner"; text: string }[];
   /** Aborted when the call ends or the learner navigates away. */
   signal?: AbortSignal;
 }
@@ -213,7 +213,7 @@ export const mockTurnProvider: VirtualCallTurnProvider = (req) =>
     const timer = setTimeout(() => {
       // History interleaves both sides, so learner turns are half of it.
       const index = Math.floor(req.history.length / 2);
-      // Every fourth turn, Clara genuinely misses it — the clarification path.
+      // Every fourth turn, the guide genuinely misses it — the clarification path.
       const needsClarification = index > 0 && index % 4 === 3;
       const correction = needsClarification ? null : mockCorrection(req.utterance, req.coachLanguage);
       const reply = needsClarification ? MOCK_CLARIFY : MOCK_REPLIES[index % MOCK_REPLIES.length];

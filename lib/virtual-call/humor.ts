@@ -42,7 +42,7 @@ export interface CallHumorInput {
    * reaction landed on a call the learner had just struggled through.
    */
   succeeded: boolean;
-  /** Prefer Joel's voice when he has approved lines; falls back to Clara. */
+  /** Prefer Joel's voice when he has approved lines; falls back to the guide. */
   preferJoel?: boolean;
 }
 
@@ -75,5 +75,5 @@ export function selectCallHumor(input: CallHumorInput): HumorReaction | null {
     const joel = selectHumorReaction({ ...base, speaker: "joel" });
     if (joel) return joel;
   }
-  return selectHumorReaction({ ...base, speaker: "clara" });
+  return selectHumorReaction({ ...base, speaker: "guide" });
 }

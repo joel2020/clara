@@ -275,9 +275,9 @@ const STRINGS = {
   },
   todayCompletionTomorrow: { es: "Sugerencia para mañana", en: "Tomorrow's suggestion" },
   todayCompletionTryAgain: { es: "puedes retomarlo sin penalización", en: "you can revisit it without penalty" },
-  todayCompletionClara: {
-    es: "Clara: Hoy cumpliste el objetivo. Ya puedes parar con tranquilidad.",
-    en: "Clara: You met today's objective. You can stop here with confidence.",
+  todayCompletionGuide: {
+    es: "Lumi: Hoy cumpliste el objetivo. Ya puedes parar con tranquilidad.",
+    en: "Lumi: You met today's objective. You can stop here with confidence.",
   },
   todayDoneForToday: { es: "Listo por hoy", en: "Done for today" },
 
@@ -515,19 +515,19 @@ const STRINGS = {
 
   // Virtual Call settings (Ajustes → Llamada virtual)
   vcSettings: { es: "Llamada virtual", en: "Virtual call" },
-  vcCard: { es: "Llamada con Clara", en: "Call with Clara" },
-  vcMode: { es: "Cómo te corrige Clara", en: "How Clara corrects you" },
+  vcCard: { es: "Llamada con Lumi", en: "Call with Lumi" },
+  vcMode: { es: "Cómo te corrige Lumi", en: "How Lumi corrects you" },
   vcModeNatural: { es: "Natural", en: "Natural" },
   vcModeNaturalSub: {
-    es: "La charla no se detiene: Clara anota los errores y te los muestra al final.",
-    en: "The conversation keeps flowing: Clara notes mistakes and shows them at the end.",
+    es: "La charla no se detiene: Lumi anota los errores y te los muestra al final.",
+    en: "The conversation keeps flowing: Lumi notes mistakes and shows them at the end.",
   },
   vcModePractice: { es: "Práctica", en: "Practice" },
   vcModePracticeSub: {
-    es: "Clara para en el error que importa, te lo explica en una línea y te pide la frase otra vez.",
-    en: "Clara stops on a mistake that matters, explains it in one line, and asks for the sentence again.",
+    es: "Lumi para en el error que importa, te lo explica en una línea y te pide la frase otra vez.",
+    en: "Lumi stops on a mistake that matters, explains it in one line, and asks for the sentence again.",
   },
-  vcHumor: { es: "Bromas de Clara", en: "Clara's humor" },
+  vcHumor: { es: "Bromas de Lumi", en: "Lumi's humor" },
   vcHumorOff: { es: "Sin bromas", en: "No jokes" },
   vcHumorLight: { es: "Pocas", en: "A few" },
   vcHumorFull: { es: "Normal", en: "Normal" },
@@ -558,16 +558,16 @@ const STRINGS = {
   // Virtual Call screen (/virtual-call). Namespaced `vcall*` so it cannot
   // collide with the `vc*` settings keys above, which another surface owns.
   vcallEyebrow: { es: "Llamada virtual", en: "Virtual call" },
-  vcallTitle: { es: "Habla por teléfono con Clara", en: "Get on a call with Clara" },
+  vcallTitle: { es: "Habla por teléfono con Lumi", en: "Get on a call with Lumi" },
   vcallIntro: {
-    es: "Elige una situación y sostén una llamada entera en inglés. Clara te responde, te corrige como tú elijas, y al final te dice qué comunicaste bien y qué pulir.",
-    en: "Pick a situation and hold a whole call in English. Clara answers, corrects you the way you choose, and at the end tells you what you got across and what to polish.",
+    es: "Elige una situación y sostén una llamada entera en inglés. Lumi te responde, te corrige como tú elijas, y al final te dice qué comunicaste bien y qué pulir.",
+    en: "Pick a situation and hold a whole call in English. Lumi answers, corrects you the way you choose, and at the end tells you what you got across and what to polish.",
   },
   // The standing AI disclosure. Shown on the picker AND pinned in the call
   // header — she must never be able to forget who she is talking to.
   vcallDisclosure: {
-    es: "Clara es una guía de práctica con IA, no una persona real.",
-    en: "Clara is an AI practice guide, not a real person.",
+    es: "Lumi es una guía de práctica con IA, no una persona real.",
+    en: "Lumi is an AI practice guide, not a real person.",
   },
   vcallChoose: { es: "Elige una situación", en: "Choose a situation" },
   vcallObjective: { es: "Objetivo", en: "Objective" },
@@ -589,19 +589,19 @@ const STRINGS = {
   vcallElapsed: { es: "Tiempo de llamada", en: "Call time" },
   vcallTimeLeft: { es: "restante", en: "left" },
   vcallStatusLabel: { es: "Estado de la llamada", en: "Call status" },
-  vcallConnecting: { es: "Conectando con Clara…", en: "Connecting to Clara…" },
-  vcallSpeaking: { es: "Clara está hablando", en: "Clara is speaking" },
+  vcallConnecting: { es: "Conectando con Lumi…", en: "Connecting to Lumi…" },
+  vcallSpeaking: { es: "Lumi está hablando", en: "Lumi is speaking" },
   vcallYourTurn: { es: "Tu turno — toca y habla", en: "Your turn — tap and speak" },
   vcallListening: {
     es: "Grabando: te escucho. Toca detener cuando termines.",
     en: "Recording: I can hear you. Tap stop when you finish.",
   },
-  vcallProcessing: { es: "Clara está pensando…", en: "Clara is thinking…" },
+  vcallProcessing: { es: "Lumi está pensando…", en: "Lumi is thinking…" },
   vcallAwaitingRetry: {
-    es: "Clara espera la frase corregida",
-    en: "Clara is waiting for the corrected sentence",
+    es: "Lumi espera la frase corregida",
+    en: "Lumi is waiting for the corrected sentence",
   },
-  vcallCorrectionState: { es: "Clara te dejó una corrección", en: "Clara left you a correction" },
+  vcallCorrectionState: { es: "Lumi te dejó una corrección", en: "Lumi left you a correction" },
   vcallEnded: { es: "Llamada terminada", en: "Call ended" },
   vcallOffline: { es: "Sin conexión", en: "You're offline" },
   vcallOfflineBody: {
@@ -616,8 +616,8 @@ const STRINGS = {
   vcallTryAgain: { es: "Intentar de nuevo", en: "Try again" },
   vcallDismiss: { es: "Cerrar el aviso", en: "Dismiss this notice" },
   vcallAudioFailed: {
-    es: "No pudimos reproducir la voz de Clara. Lo que dijo está escrito abajo.",
-    en: "We couldn't play Clara's voice. What she said is written below.",
+    es: "No pudimos reproducir la voz de Lumi. Lo que dijo está escrito abajo.",
+    en: "We couldn't play Lumi's voice. What she said is written below.",
   },
   vcallTimeUp: { es: "Se acabó el tiempo de esta llamada.", en: "This call reached its time limit." },
   vcallRecordingOn: { es: "Grabación activada", en: "Recording on" },
@@ -631,11 +631,11 @@ const STRINGS = {
   vcallSpeak: { es: "Hablar", en: "Speak" },
   vcallStop: { es: "Detener grabación", en: "Stop recording" },
   vcallRetryBtn: { es: "Repetir la frase", en: "Say it again" },
-  vcallMute: { es: "Silenciar a Clara", en: "Mute Clara" },
-  vcallUnmute: { es: "Activar el audio de Clara", en: "Unmute Clara" },
+  vcallMute: { es: "Silenciar a Lumi", en: "Mute Lumi" },
+  vcallUnmute: { es: "Activar el audio de Lumi", en: "Unmute Lumi" },
   vcallMutedNote: {
-    es: "El audio de Clara está silenciado. Puedes leer todo lo que dice.",
-    en: "Clara's audio is muted. You can read everything she says.",
+    es: "El audio de Lumi está silenciado. Puedes leer todo lo que dice.",
+    en: "Lumi's audio is muted. You can read everything she says.",
   },
   vcallEnd: { es: "Terminar llamada", en: "End call" },
   vcallReplay: { es: "Escuchar otra vez", en: "Play it again" },
@@ -643,7 +643,7 @@ const STRINGS = {
   // Transcript.
   vcallTranscriptLabel: { es: "Transcripción de la llamada", en: "Call transcript" },
   vcallYouSaid: { es: "Tú", en: "You" },
-  vcallClara: { es: "Clara", en: "Clara" },
+  vcallGuideName: { es: "Lumi", en: "Lumi" },
   vcallSuggestions: { es: "Puedes decir…", en: "You could say…" },
   vcallTranscriptEmpty: {
     es: "Aquí aparece todo lo que se dice en la llamada.",
@@ -671,9 +671,9 @@ const STRINGS = {
   },
   vcallRetryHeard: { es: "Escuché", en: "Heard" },
 
-  // Clara's call-state artwork. The approved illustrations do not exist yet, so
+  // The guide's call-state artwork.
   // the stage renders a state medallion instead of temporary art.
-  vcallClaraAlt: { es: "Clara, tu guía de práctica con IA", en: "Clara, your AI practice guide" },
+  vcallGuideAlt: { es: "Lumi, tu guía de práctica con IA", en: "Lumi, your AI practice guide" },
   vcallArtPending: { es: "Ilustración pendiente de aprobación", en: "Artwork pending approval" },
 
   // End-of-call report.

@@ -1,14 +1,20 @@
 # Virtual Call
 
-A spoken practice call between an adult learner and **Clara**, the AI practice
-guide. The learner talks, Clara answers, useful corrections surface according to
+A spoken practice call between an adult learner and **Lumi**, the AI practice
+guide. The learner talks, Lumi answers, useful corrections surface according to
 the chosen mode, and the call ends with a short review.
 
-**Joel is the real instructor and the author of the learning program. Clara is an
+**Joel is the real instructor and the author of the learning program. Lumi is an
 AI character who helps the learner rehearse it.** That distinction is not
-decoration: it is disclosed persistently in the call header, Clara admits it if
+decoration: it is disclosed persistently in the call header, Lumi admits it if
 asked, and no line is ever attributed to Joel unless he has approved it (see
 [Humor](#humor-content)).
+
+> **Naming.** The app is called Clara; the guide is called Lumi. Keeping those
+> apart matters — an earlier version named the guide Clara too, which made
+> "Llamada con Clara" ambiguous and had the model introducing itself as the
+> product. In code the guide's role is `"guide"`, not her name, so changing the
+> character again touches the prompt, the copy and the artwork, but no types.
 
 This is a different feature from `/call`, which is the BPO customer-service
 simulator where Joel plays an impatient American customer and the learner is a
@@ -54,7 +60,7 @@ the call runs, and a crashed tab cannot strand a server session.
 2. **Privacy and mic.** The existing one-time voice-consent sheet
    (`lib/speech/consent.ts`) gates the first capture anywhere in the app,
    including here. Nothing records before an affirmative action.
-3. **Clara opens.** `openingPrompt` renders locally and is spoken, so the call
+3. **Lumi opens.** `openingPrompt` renders locally and is spoken, so the call
    starts instantly with no model round trip.
 4. **The learner records one answer.** Press to record, press to stop. Capped at
    `MAX_RECORDING_MS` (30s).
@@ -109,7 +115,7 @@ Two implementations:
 
 Speech in and out reuses what already exists rather than adding providers:
 transcription through `lib/speech/recognition.ts` (Web Speech → cloud transcribe
-→ Azure, already consent-gated), and Clara's voice through `/api/tts`.
+→ Azure, already consent-gated), and the guide's voice through `/api/tts`.
 
 ### Pronunciation is evidence-based
 
@@ -131,9 +137,9 @@ By name only; all server-side, none exposed to the client.
 
 | Name | Used for | Absent |
 | --- | --- | --- |
-| `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` | Clara's replies and report prose | Falls back to `OPENAI_API_KEY` |
+| `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` | the guide's replies and report prose | Falls back to `OPENAI_API_KEY` |
 | `OPENAI_API_KEY` | Same, non-Azure | Dev: mock brain. Prod: `503` |
-| `ELEVENLABS_API_KEY` | Clara's spoken voice | Call runs text-only |
+| `ELEVENLABS_API_KEY` | the guide's spoken voice | Call runs text-only |
 | `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` | Retry pronunciation scoring | Retries still verified by transcript; no pronunciation reported |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Auth on the API routes | Dev: auth disabled. Prod: routes fail **closed** |
 
@@ -177,7 +183,7 @@ By name only; all server-side, none exposed to the client.
 | Same-origin only | required | existing `guardApi` |
 
 Cost drivers, in rough order: the chat model (one call per learner turn, plus one
-per report), speech synthesis (one per Clara reply), and transcription (one per
+per report), speech synthesis (one per guide reply), and transcription (one per
 learner turn). Windowing is what keeps a long call from growing quadratically.
 
 ---
@@ -282,18 +288,16 @@ when she is still talking?), and a much tighter per-minute cost ceiling.
 
 ## 11. Known limitations
 
-- Turn-based, not full duplex. Clara cannot be interrupted mid-sentence.
+- Turn-based, not full duplex. The guide cannot be interrupted mid-sentence.
 - Pronunciation is only ever scored on retries, and only when Azure Speech is
   configured. Free-speech turns are transcript-only by design.
 - The mock brain recognizes two mistake patterns, not a grammar model. It exists
   to make the flow runnable and testable without keys, not to teach.
 - `metCriteria` is the model's judgment of the scenario's completion criteria; it
   is not independently verified against the transcript.
-- Clara's approved character artwork does not exist yet (pending approval), so the
-  call renders a neutral monogram placeholder rather than temporary AI art.
-  `CLARA_ARTWORK_AVAILABLE` in `lib/character.ts` is the single flag: it is
-  `false`, so no request is made for assets known to be missing. Flip it in the
-  same commit that adds the files and the stage starts using them.
+- The guide's artwork is Lumi's existing pose set, resolved from whatever outfit
+  the learner has equipped in the store, so the guide on a call is the same
+  character she has been dressing.
 - The report's aggregate row is stored on-device only. It is deliberately not
   synced (documented in `lib/sync/coverage.test.mjs`), so it does not survive an
   iOS storage eviction the way exam history does. Syncing it needs a

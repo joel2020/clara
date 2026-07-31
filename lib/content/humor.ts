@@ -14,7 +14,7 @@
 //   the gate is per line, not per file, and a draft is never presented as an
 //   authentic Joel quote.
 
-export type HumorSpeaker = "clara" | "joel";
+export type HumorSpeaker = "guide" | "joel";
 export type HumorStrength = "light" | "strong";
 export type HumorApproval = "reviewed" | "draft" | "joel-approved";
 /** What the joke is about. Deliberately no "learner" member. */
@@ -59,7 +59,7 @@ export interface HumorReaction {
 const CLARA: HumorReaction[] = [
   {
     id: "clara-complete-1",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["session-complete"],
     strength: "light",
     approval: "reviewed",
@@ -71,7 +71,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-complete-2",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["session-complete"],
     strength: "light",
     approval: "reviewed",
@@ -83,7 +83,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-complete-3",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["session-complete"],
     strength: "light",
     approval: "reviewed",
@@ -100,7 +100,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-complete-4",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["session-complete"],
     strength: "strong",
     approval: "reviewed",
@@ -112,7 +112,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-streak-1",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["streak"],
     strength: "light",
     approval: "reviewed",
@@ -129,7 +129,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-streak-2",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["streak"],
     strength: "strong",
     approval: "reviewed",
@@ -146,7 +146,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-mastery-1",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["mastery"],
     strength: "strong",
     approval: "reviewed",
@@ -158,7 +158,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-mastery-2",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["mastery"],
     strength: "light",
     approval: "reviewed",
@@ -175,7 +175,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-comeback-1",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["comeback"],
     strength: "light",
     approval: "reviewed",
@@ -187,7 +187,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-comeback-2",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["comeback"],
     strength: "strong",
     approval: "reviewed",
@@ -204,7 +204,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-speed-1",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["speed-round"],
     strength: "light",
     approval: "reviewed",
@@ -216,7 +216,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-recovery-1",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["recovery"],
     strength: "light",
     approval: "reviewed",
@@ -228,7 +228,7 @@ const CLARA: HumorReaction[] = [
   },
   {
     id: "clara-perfect-1",
-    speaker: "clara",
+    speaker: "guide",
     contexts: ["perfect"],
     strength: "light",
     approval: "reviewed",

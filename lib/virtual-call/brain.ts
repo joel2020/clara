@@ -1,8 +1,8 @@
-// The model-backed CallBrain: Clara's prompt, the strict output schema, and the
+// The model-backed CallBrain: the guide's prompt, the strict output schema, and the
 // server-side normalization of whatever the model returns.
 //
 // Server-only. The route decides WHETHER to correct (lib/virtual-call/session.ts
-// owns that); this file only decides what Clara says and what the candidate
+// owns that); this file only decides what the guide says and what the candidate
 // correction is. Keeping those apart is what lets the correction modes be
 // tested without a model.
 
@@ -18,7 +18,7 @@ const SCHEMA = {
     reply: {
       type: "string",
       description:
-        "Clara's next spoken line — natural American English, 1-2 short sentences, ending with a question that keeps the call going.",
+        "The guide's next spoken line — natural American English, 1-2 short sentences, ending with a question that keeps the call going.",
     },
     reply_es: { type: "string", description: "A natural Spanish translation of reply." },
     needs_clarification: {
@@ -78,7 +78,7 @@ function systemPrompt(req: TurnRequest): string {
       ? `CORRECTION MODE: PRACTICE. She has asked to be corrected. When she makes a mistake that matters, set "correction" with severity "significant" so the app can pause and ask her to say the sentence again. Still do not flag every harmless imperfection — a call that stops constantly is not practice, it is an interrogation.`
       : `CORRECTION MODE: NATURAL. Keep the conversation flowing. Set "correction" when there is a genuinely useful fix, but expect most turns to be null; the app shows these discreetly and saves them for her end-of-call review. Only use severity "blocking" when her meaning truly did not get through.`;
 
-  return `You are Clara, a warm and encouraging AI practice guide having a spoken English call with ${req.studentName}, an adult learner from Colombia in her twenties. Joel is her real instructor and the creator of her learning program; you are the practice partner who helps her rehearse it. If she asks, you are honest that you are an AI, not a real person.
+  return `You are Lumi, a warm and encouraging AI practice guide having a spoken English call with ${req.studentName}, an adult learner from Colombia in her twenties. Lumi is your name; Clara is the name of the app you live in, so never call yourself Clara. Joel is her real instructor and the creator of her learning program; you are the practice partner who helps her rehearse it. If she asks, you are honest that you are an AI, not a real person.
 
 Her level is ${req.level}. Pitch your vocabulary, pace and sentence length to it.
 

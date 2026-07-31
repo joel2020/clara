@@ -1,15 +1,15 @@
 // The Virtual Call state machine and correction policy.
 //
 // Pure and plain-node testable on purpose: what the learner experiences on a
-// call — when Clara interrupts, when a retry is demanded, when the call ends —
+// call — when the guide interrupts, when a retry is demanded, when the call ends —
 // is decided here, not inside a React component or a model prompt. The model
 // proposes an analysis; this module decides what actually happens with it.
 //
 // The two modes are genuinely different products, not a severity slider:
 //   natural  — the conversation is the point. Corrections are collected and
 //              shown discreetly, and surface properly in the end report.
-//              Clara only interrupts when meaning did not get through.
-//   practice — a correction that matters stops the call: Clara explains it in
+//              The guide only interrupts when meaning did not get through.
+//   practice — a correction that matters stops the call: the guide explains it in
 //              one line and asks for the sentence again, then verifies.
 
 import type { Level } from "../placement.ts";
@@ -20,7 +20,7 @@ export type CorrectionMode = "natural" | "practice";
 export type CallPhase =
   | "idle"
   | "connecting"
-  | "clara-speaking"
+  | "guide-speaking"
   | "listening"
   | "processing"
   | "awaiting-retry"
@@ -45,13 +45,13 @@ export type CorrectionKind = "grammar" | "vocabulary" | "phrasing";
 
 /** What the model returned for one learner turn, after server-side validation. */
 export interface TurnAnalysis {
-  /** Clara's spoken reply. */
+  /** The guide's spoken reply. */
   reply: string;
   /** Spanish rendering of the reply, so she can always follow. */
   replyEs: string;
   /** The single correction worth making, or null when the turn was fine. */
   correction: TurnCorrection | null;
-  /** True when Clara genuinely could not tell what she meant. */
+  /** True when the guide genuinely could not tell what she meant. */
   needsClarification: boolean;
   /** Short phrases she could say next. */
   suggestions: string[];
@@ -98,7 +98,7 @@ export interface CallState {
   startedAt: number;
   endedAt: number | null;
   turns: LearnerTurn[];
-  /** Set in practice mode while Clara waits for the sentence again. */
+  /** Set in practice mode while the guide waits for the sentence again. */
   pendingRetry: TurnCorrection | null;
   /** Turn index the pending retry belongs to. */
   pendingRetryTurn: number | null;
@@ -129,7 +129,7 @@ export function createCallState(input: {
     scenarioId: input.scenarioId,
     mode: input.mode,
     level: input.level,
-    phase: "clara-speaking",
+    phase: "guide-speaking",
     startedAt: input.startedAt,
     endedAt: null,
     turns: [],
@@ -244,7 +244,7 @@ export function applyTurn(
     turns,
     pendingRetry: pending,
     pendingRetryTurn: pending ? turn.index : null,
-    phase: pending ? "awaiting-retry" : "clara-speaking",
+    phase: pending ? "awaiting-retry" : "guide-speaking",
   };
 }
 
@@ -267,7 +267,7 @@ export function applyRetry(
     turns,
     pendingRetry: null,
     pendingRetryTurn: null,
-    phase: "clara-speaking",
+    phase: "guide-speaking",
   };
 }
 

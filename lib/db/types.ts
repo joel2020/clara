@@ -143,7 +143,7 @@ export interface CallScore {
 
 /** One line of a Virtual Call conversation, in the order it was spoken. */
 export interface VirtualCallLine {
-  role: "clara" | "learner";
+  role: "guide" | "learner";
   /** Clara's spoken line, or what the recognizer transcribed from the learner. */
   text: string;
   at: number; // epoch ms

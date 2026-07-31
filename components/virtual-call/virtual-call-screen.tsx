@@ -16,7 +16,7 @@ import { CallControls } from "./call-controls";
 import { CallHeader } from "./call-header";
 import { CallReportView } from "./call-report";
 import { CallStatus } from "./call-status";
-import { ClaraStage } from "./clara-stage";
+import { GuideStage } from "./guide-stage";
 import { ScenarioPicker } from "./scenario-picker";
 import { Transcript } from "./transcript";
 import { RetryOutcomeNote, RetryPrompt } from "./retry-prompt";
@@ -154,11 +154,11 @@ export function VirtualCallScreen() {
           remainingMs={call.remainingMs}
         />
 
-        {/* Clara sits beside the status line, not above the conversation: the
+        {/* The guide sits beside the status line, not above the conversation: the
             instruction is the status text and the transcript, and the artwork is
             the smaller of the two by design. */}
         <div className="flex items-center gap-3 py-3">
-          <ClaraStage uiState={call.uiState} lang={lang} />
+          <GuideStage uiState={call.uiState} />
           <CallStatus uiState={call.uiState} lang={lang} className="flex-1" />
         </div>
       </div>

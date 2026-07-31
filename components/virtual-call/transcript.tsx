@@ -9,7 +9,7 @@ import type { CallEntry } from "./use-virtual-call";
 
 // The running conversation.
 //
-// Clara's reply is ALWAYS rendered as text, whether or not the audio played,
+// The guide's reply is ALWAYS rendered as text, whether or not the audio played,
 // so a learner on a muted phone, a failed TTS call, or a screen reader loses
 // nothing. The replay button is an extra, never the only way to receive a line.
 
@@ -47,11 +47,11 @@ export function Transcript({
     <ol className="space-y-4" aria-label={t("vcallTranscriptLabel", lang)}>
       {entries.map((entry, index) => {
         const last = index === entries.length - 1;
-        if (entry.kind === "clara") {
+        if (entry.kind === "guide") {
           return (
             <li key={entry.id} ref={last ? endRef : undefined} className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-                {t("vcallClara", lang)}
+                {t("vcallGuideName", lang)}
               </p>
               <div className="mt-1 rounded-2xl rounded-tl-md border border-hairline bg-card px-3.5 py-3">
                 <p lang="en" className="break-words font-medium leading-relaxed">

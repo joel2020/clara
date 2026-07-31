@@ -15,7 +15,7 @@ import type { CallUiState } from "./use-virtual-call";
 const STATE_TEXT: Record<CallUiState, StringKey> = {
   idle: "vcallLoading",
   connecting: "vcallConnecting",
-  "clara-speaking": "vcallSpeaking",
+  "guide-speaking": "vcallSpeaking",
   "your-turn": "vcallYourTurn",
   listening: "vcallListening",
   processing: "vcallProcessing",
@@ -29,7 +29,7 @@ const STATE_TEXT: Record<CallUiState, StringKey> = {
 const STATE_STYLE: Record<CallUiState, string> = {
   idle: "border-hairline bg-card text-muted-foreground",
   connecting: "border-primary/30 bg-primary/[0.06] text-primary",
-  "clara-speaking": "border-primary/45 bg-primary/[0.09] text-primary",
+  "guide-speaking": "border-primary/45 bg-primary/[0.09] text-primary",
   "your-turn": "border-foreground/20 bg-secondary text-foreground",
   listening: "border-destructive/55 bg-destructive/[0.09] text-destructive",
   processing: "border-primary/30 bg-primary/[0.06] text-primary",
@@ -46,7 +46,7 @@ function StateIcon({ uiState }: { uiState: CallUiState }) {
     case "processing":
       // Spinner only where motion is welcome; reduced motion gets a static dial.
       return <Loader2 className="size-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden />;
-    case "clara-speaking":
+    case "guide-speaking":
       return <Volume2 className="size-4 shrink-0" aria-hidden />;
     case "your-turn":
       return <Ear className="size-4 shrink-0" aria-hidden />;

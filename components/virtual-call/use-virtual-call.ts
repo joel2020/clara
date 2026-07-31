@@ -32,7 +32,7 @@ import { virtualCallTurnProvider, type VirtualCallTurnProvider } from "./turn-pr
 // Everything the screen renders comes from here, and every rule about what a
 // call DOES lives in lib/virtual-call/session.ts — this hook only sequences
 // the browser work around it (speech capture, audio playback, clocks,
-// connectivity) and never re-decides when Clara interrupts or whether a retry
+// connectivity) and never re-decides when the guide interrupts or whether a retry
 // passed. The model call goes through one injectable provider (see
 // ./turn-provider.ts), so swapping the mock for the real endpoint touches no
 // component.
@@ -41,13 +41,13 @@ import { virtualCallTurnProvider, type VirtualCallTurnProvider } from "./turn-pr
  * What the screen shows. These are the session phases plus the three states a
  * phase cannot express: whether the mic is open, whether the browser lost the
  * network, and whether the last request failed. `your-turn` is the settled
- * state between Clara finishing a line and the learner tapping record — saying
- * "Clara is speaking" while she is silent would be a lie to a screen reader.
+ * state between the guide finishing a line and the learner tapping record — saying
+ * "the guide is speaking" while she is silent would be a lie to a screen reader.
  */
 export type CallUiState =
   | "idle"
   | "connecting"
-  | "clara-speaking"
+  | "guide-speaking"
   | "your-turn"
   | "listening"
   | "processing"
@@ -59,7 +59,7 @@ export type CallUiState =
 
 /** One line of the running conversation, in the order it was said. */
 export type CallEntry =
-  | { id: string; kind: "clara"; text: string; textEs: string }
+  | { id: string; kind: "guide"; text: string; textEs: string }
   /** `turnIndex` addresses the recorded LearnerTurn once it has been applied;
    *  `text` is kept here so her words appear the instant she stops recording,
    *  before (and even if) the turn analysis comes back. */
@@ -93,7 +93,7 @@ export interface VirtualCallController {
   elapsedMs: number;
   remainingMs: number;
   error: CallError | null;
-  /** Set when TTS failed or was blocked. Clara's words stay readable regardless. */
+  /** Set when TTS failed or was blocked. The guide's words stay readable regardless. */
   audioFailed: boolean;
   online: boolean;
   muted: boolean;
@@ -136,7 +136,7 @@ function toPronunciation(assessment: Assessment | undefined, target: string): Pr
 export function useVirtualCall(options: {
   lang: CoachLang;
   level: Level;
-  /** Passed straight through so Clara can address her by name. */
+  /** Passed straight through so the guide can address her by name. */
   studentName: string;
   /** Injected in tests and when the real endpoint replaces the mock. */
   provider?: VirtualCallTurnProvider;
@@ -162,7 +162,7 @@ export function useVirtualCall(options: {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recRef = useRef<RecognitionHandle | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  /** The reply Clara is holding back while she waits for a corrected sentence. */
+  /** The reply the guide is holding back while she waits for a corrected sentence. */
   const heldReply = useRef<{ en: string; es: string } | null>(null);
   /** The turn in flight, kept so a failed send can be retried unchanged. */
   const inFlight = useRef<{ transcript: string; turnIndex: number } | null>(null);
@@ -258,14 +258,14 @@ export function useVirtualCall(options: {
       setScenario(next);
       setMode(nextMode);
       setState(createCallState({ scenarioId: next.id, mode: nextMode, level, startedAt, targetTurns: next.targetTurns }));
-      setEntries([{ id: nextEntryId("clara"), kind: "clara", text: next.openingPrompt, textEs: "" }]);
+      setEntries([{ id: nextEntryId("guide"), kind: "guide", text: next.openingPrompt, textEs: "" }]);
       setSuggestions([]);
       setError(null);
       setAudioFailed(false);
       setMetCriteria(false);
       setRetriedTurnIndex(null);
       setNow(startedAt);
-      // "Connecting" is the honest name for fetching and starting Clara's
+      // "Connecting" is the honest name for fetching and starting the guide's
       // opening line; it clears whether the audio played or not.
       setConnecting(true);
       void speak(next.openingPrompt).finally(() => setConnecting(false));
@@ -273,7 +273,7 @@ export function useVirtualCall(options: {
     [level, speak],
   );
 
-  /** Ask the provider for Clara's response to one learner turn. */
+  /** Ask the provider for the guide's response to one learner turn. */
   const send = useCallback(
     async (transcript: string, turnIndex: number) => {
       const current = state;
@@ -296,7 +296,7 @@ export function useVirtualCall(options: {
           // session module's own constant so the client and the route agree on
           // how much history a turn is allowed to cost.
           history: entries
-            .map((e) => ({ role: e.kind === "clara" ? ("clara" as const) : ("learner" as const), text: e.text }))
+            .map((e) => ({ role: e.kind === "guide" ? ("guide" as const) : ("learner" as const), text: e.text }))
             .slice(-CONTEXT_WINDOW_TURNS * 2),
           signal: controller.signal,
         });
@@ -319,7 +319,7 @@ export function useVirtualCall(options: {
           };
           setEntries((prev) => [
             ...prev,
-            { id: nextEntryId("clara"), kind: "clara", text: ask.en, textEs: ask.es },
+            { id: nextEntryId("guide"), kind: "guide", text: ask.en, textEs: ask.es },
           ]);
           setSuggestions([]);
           void speak(ask.en);
@@ -327,14 +327,14 @@ export function useVirtualCall(options: {
         }
         setEntries((prev) => [
           ...prev,
-          { id: nextEntryId("clara"), kind: "clara", text: analysis.reply, textEs: analysis.replyEs },
+          { id: nextEntryId("guide"), kind: "guide", text: analysis.reply, textEs: analysis.replyEs },
         ]);
         setSuggestions(analysis.suggestions ?? []);
         void speak(analysis.reply);
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return;
         // The turn is kept in `inFlight` so "try again" resends it unchanged.
-        setState((s) => (s ? { ...s, phase: "clara-speaking" } : s));
+        setState((s) => (s ? { ...s, phase: "guide-speaking" } : s));
         setError({ kind: "turn", message: t("vcallTurnError", lang) });
       }
     },
@@ -365,7 +365,7 @@ export function useVirtualCall(options: {
       if (!reply) return;
       setEntries((prev) => [
         ...prev,
-        { id: nextEntryId("clara"), kind: "clara", text: reply.en, textEs: reply.es },
+        { id: nextEntryId("guide"), kind: "guide", text: reply.en, textEs: reply.es },
       ]);
       void speak(reply.en);
     },
@@ -512,7 +512,7 @@ export function useVirtualCall(options: {
         retriedAcceptedCount: report.retriedAcceptedCount,
         // Offered in full; the repository strips it unless she opted in.
         transcript: entries.map((e) => ({
-          role: e.kind === "clara" ? ("clara" as const) : ("learner" as const),
+          role: e.kind === "guide" ? ("guide" as const) : ("learner" as const),
           text: e.text,
           at:
             e.kind === "learner"
@@ -572,7 +572,7 @@ export function useVirtualCall(options: {
     if (connecting) return "connecting";
     if (state.phase === "processing") return "processing";
     if (state.phase === "awaiting-retry") return "awaiting-retry";
-    if (speaking) return "clara-speaking";
+    if (speaking) return "guide-speaking";
     const last = state.turns[state.turns.length - 1];
     if (last && !last.retry && shouldShowInline(last.correction)) return "correction";
     return "your-turn";

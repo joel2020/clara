@@ -40,7 +40,7 @@ export function SessionComplete({
   const humor = skipped
     ? null
     : selectHumorReaction({
-        speaker: "clara",
+        speaker: "guide",
         context: "session-complete",
         day: session.day,
         sessionId: session.id,
@@ -60,7 +60,7 @@ export function SessionComplete({
           {session.objective[lang]}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-          {t("todayCompletionClara", lang)}
+          {t("todayCompletionGuide", lang)}
         </p>
         {humor && (
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground/90">
