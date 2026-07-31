@@ -19,25 +19,30 @@ the Clara character design system and typed asset manifest.
 Evidence: `docs/verification/2026-07-29-results.md`, the requirement matrix
 beside it, and 61 before/after screenshots across six widths.
 
-**Four things need Joel and are the only blockers:**
+### Resolved 2026-07-30
 
-1. **Approve the Clara master character sheet.** Candidates are in
-   `docs/character/master-sheet-candidates/` (candidate 2 is recommended).
-   Nothing else about Clara's artwork can proceed until one is approved — the
-   spec forbids pose or outfit expansion before the gate. Until then the old
-   Lumi artwork still renders, even though her learner-facing name and copy are
-   gone.
-2. **Approve or rewrite the Joel humor lines.** Every Joel line in
-   `lib/content/humor.ts` is marked `approval: "draft"` and is excluded at
-   runtime, so none of them can reach a learner. They are proposals in his
-   register, not quotes.
-3. **Authenticated production smoke tests**, which need an owner account on the
+- **Joel approved his six humor lines.** They now carry `joel-approved` in
+  `lib/content/humor.ts` and can render in his voice. Any NEW line still starts
+  as `draft` and is excluded at runtime — the gate is per line, not per file.
+- **Joel approved the Clara master sheet**, and the seven production states were
+  produced from it and committed to `public/character/clara/`.
+- **Joel then decided Lumi is the better character**, so the learner-facing
+  guide was reverted to Lumi across the app. Clara's artwork and manifest stay
+  in the repo, unused, behind `CLARA_ARTWORK_AVAILABLE` — restoring her is a
+  flag flip plus reverting one commit, not a regeneration.
+- **The Virtual Call still uses Clara**, because that feature was built around
+  her as a named AI practice guide and never had Lumi to revert to. Changing it
+  means rewriting the system prompt, the on-screen AI disclosure, and
+  `VIRTUAL_CALL_SYSTEM.md` — a real change, not a swap. Open question for Joel.
+
+**Still needs Joel — owner-only:**
+
+1. **Authenticated production smoke tests**, which need an owner account on the
    allowlist.
-4. **Physical iPhone checks**: microphone capture, Safari PWA install, OAuth
+2. **Physical iPhone checks**: microphone capture, Safari PWA install, OAuth
    redirect, and push delivery.
-
-Next up after those: the seven Clara production states, retiring the Lumi
-artwork, and running `docs/PILOT_PLAN_7_DAYS.md`.
+3. **Safari and Firefox** rendering; everything verified so far was Chromium.
+4. **Run `docs/PILOT_PLAN_7_DAYS.md`** with the former students.
 
 ---
 
