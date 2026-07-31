@@ -389,13 +389,16 @@ function TalkContent() {
 
   // ── Conversation ─────────────────────────────────────────────────────────
   return (
-    // Clear the fixed tab bar, or it sits on top of the mic button — the one
-    // control this screen exists for. Other nav-visible screens use a flat
-    // pb-24, but they scroll; here the button is pinned to the bottom edge, and
-    // 96px leaves only 6px over a notched iPhone's 56px bar + 34px inset. So
-    // measure the bar instead: its height, its inset, plus room to breathe.
-    // Dropped at lg, where the bar itself hides.
-    <div className="mx-auto flex min-h-[100dvh] max-w-2xl flex-col px-5 pb-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)] sm:px-6 lg:pb-0">
+    // This column fills exactly the gap between the site header and the fixed
+    // tab bar, so the page itself never scrolls and the mic button sits above
+    // the bar at all times. Padding the bottom instead does NOT work: the
+    // controls are sticky, so they pin to the VIEWPORT edge (under the bar) and
+    // only drop into the padded box once you scroll to the very end — the
+    // button appears covered until you scroll, then jumps into place.
+    // svh, not dvh: dvh is the tall value while Safari's toolbar is expanded,
+    // which pushes the button back under the bar. At lg the tab bar is hidden,
+    // so only the header is subtracted.
+    <div className="mx-auto flex h-[calc(100svh-4rem-3px-3.5rem-env(safe-area-inset-bottom,0px))] max-w-2xl flex-col px-5 sm:px-6 lg:h-[calc(100svh-4rem-3px)]">
       {/* Immersive scene backdrop — a dim cinematic loop that matches the
           roleplay, so it feels like she's really in the moment. */}
       <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
