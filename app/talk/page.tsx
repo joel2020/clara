@@ -389,7 +389,13 @@ function TalkContent() {
 
   // ── Conversation ─────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-2xl flex-col px-5 sm:px-6">
+    // Clear the fixed tab bar, or it sits on top of the mic button — the one
+    // control this screen exists for. Other nav-visible screens use a flat
+    // pb-24, but they scroll; here the button is pinned to the bottom edge, and
+    // 96px leaves only 6px over a notched iPhone's 56px bar + 34px inset. So
+    // measure the bar instead: its height, its inset, plus room to breathe.
+    // Dropped at lg, where the bar itself hides.
+    <div className="mx-auto flex min-h-[100dvh] max-w-2xl flex-col px-5 pb-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)] sm:px-6 lg:pb-0">
       {/* Immersive scene backdrop — a dim cinematic loop that matches the
           roleplay, so it feels like she's really in the moment. */}
       <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
@@ -468,10 +474,12 @@ function TalkContent() {
       <div className="sticky bottom-0 space-y-3 border-t border-hairline bg-background/95 py-4 backdrop-blur">
         {suggestions.length > 0 && phase === "idle" && (
           <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {/* Centred to sit with the mic button and the listening line
+                below it — left-aligned it read as hanging off to one side. */}
+            <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               {t("talkTrySaying", lang)}
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               {suggestions.map((s, i) => (
                 <button
                   key={i}
