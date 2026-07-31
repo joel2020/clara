@@ -292,6 +292,7 @@ export const COSMETICS: Cosmetic[] = [
   { id: "pet-cloe", type: "pet", name: { es: "Cloe", en: "Cloe" }, cost: 90, image: "/pets/cloe.png" },
   { id: "pet-golden", type: "pet", name: { es: "Golden retriever", en: "Golden retriever" }, cost: 150, image: "/pets/golden.png" },
   { id: "pet-dalmatian", type: "pet", name: { es: "Dálmata", en: "Dalmatian" }, cost: 150, image: "/pets/dalmatian.png" },
+  { id: "pet-pandora", type: "pet", name: { es: "Pandora", en: "Pandora" }, cost: 150, image: "/pets/pandora.png" },
   { id: "pet-persian", type: "pet", name: { es: "Gata persa real", en: "Royal Persian cat" }, cost: 220, rarity: "legendary", image: "/pets/persian.png" },
   // More classics (emoji companions).
   { id: "pet-rabbit", type: "pet", name: { es: "Conejito", en: "Bunny" }, cost: 70, emoji: "🐰" },
