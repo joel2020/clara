@@ -287,6 +287,9 @@ export const COSMETICS: Cosmetic[] = [
   { id: "pet-none", type: "pet", name: { es: "Ninguna", en: "None" }, cost: 0, free: true },
   // Classic companions — real artwork in the app's anime sticker style.
   { id: "pet-tabby", type: "pet", name: { es: "Gatico naranja", en: "Tabby kitten" }, cost: 80, image: "/pets/tabby.png" },
+  // A proper name, not a breed: Cloe is a specific cat, so the label is the
+  // same in both languages.
+  { id: "pet-cloe", type: "pet", name: { es: "Cloe", en: "Cloe" }, cost: 90, image: "/pets/cloe.png" },
   { id: "pet-golden", type: "pet", name: { es: "Golden retriever", en: "Golden retriever" }, cost: 150, image: "/pets/golden.png" },
   { id: "pet-dalmatian", type: "pet", name: { es: "Dálmata", en: "Dalmatian" }, cost: 150, image: "/pets/dalmatian.png" },
   { id: "pet-persian", type: "pet", name: { es: "Gata persa real", en: "Royal Persian cat" }, cost: 220, rarity: "legendary", image: "/pets/persian.png" },
