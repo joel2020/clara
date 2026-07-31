@@ -146,12 +146,15 @@ export function VirtualCallScreen() {
     // screen for the whole call instead of scrolling away mid-conversation.
     <div
       className="mx-auto flex w-full max-w-2xl flex-col px-4 sm:px-6"
-      // The column is exactly the visible area, so the controls never scroll
-      // away mid-call. env(safe-area-inset-bottom) is load-bearing: without it
-      // the record, mute and end buttons sit under an iPhone's home indicator.
-      // Headless Chromium does not emulate safe areas, so this is invisible in
-      // automated testing and only shows up on a real notched device.
-      style={{ height: "calc(100dvh - 4rem - 3px - env(safe-area-inset-bottom, 0px))" }}
+      // svh, NOT dvh. The dynamic viewport is the TALL value while Safari's
+      // bottom toolbar is expanded, so a fixed-height column sized in dvh runs
+      // under the toolbar and hides whatever is last — here, the mic button.
+      // svh is defined as the smallest possible viewport, so the column always
+      // fits with the browser chrome showing. The safe-area inset covers the
+      // home indicator in an installed PWA, where there is no toolbar.
+      // Headless Chromium emulates neither, so this is invisible to automated
+      // testing and only shows up on a real device.
+      style={{ height: "calc(100svh - 4rem - 3px - env(safe-area-inset-bottom, 0px))" }}
     >
       <div className="shrink-0 pt-4">
         <CallHeader

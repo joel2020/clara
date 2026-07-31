@@ -29,7 +29,14 @@ export function CallControls({
   onEnd: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div
+      className="flex shrink-0 items-center gap-2 pt-2"
+      // Breathing room under the primary control. Flush against the bottom edge
+      // is where every phone puts its own chrome — a toolbar, a home indicator,
+      // a gesture bar — so the mic button reserves space rather than trusting
+      // the viewport maths alone.
+      style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+    >
       <button
         type="button"
         onClick={recording ? onStop : onRecord}
