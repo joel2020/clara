@@ -1,4 +1,7 @@
 -- Clara v3 — custom_lessons: writes are teacher-only.
+-- HISTORICAL / NON-AUTHORITATIVE: retained as audit history only. Do not replay
+-- this file for rebuild or recovery; use current-schema.sql. Migration v5
+-- replaces this email-based policy with the server-controlled admin claim.
 --
 -- Why: signup is open at the Supabase level, so "authenticated" is NOT the same
 -- as "allowlisted student" — any self-registered account could previously
@@ -6,7 +9,8 @@
 -- security advisor flagged the USING(true) policy). Lessons are shared content:
 -- everyone signed in may READ them, only the teacher's accounts may WRITE.
 --
--- The email list mirrors ADMIN_EMAILS in lib/allowlist.ts — keep them in sync.
+-- Historical context: v3 embedded the teacher email list directly in this JWT
+-- predicate. V5 replaced that design with a server-controlled role claim.
 
 alter table public.custom_lessons enable row level security;
 drop policy if exists authenticated_only on public.custom_lessons;

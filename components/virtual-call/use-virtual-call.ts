@@ -3,12 +3,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { authHeaders } from "@/lib/auth-client";
 import type { VirtualCallScenario } from "@/lib/content/virtual-call-scenarios";
-import { t, type CoachLang } from "@/lib/i18n";
+import { pronunciationCue, t, type CoachLang } from "@/lib/i18n";
 import type { Level } from "@/lib/placement";
-import { createRecognition, recognitionErrorKey, type RecognitionHandle } from "@/lib/speech/recognition";
+import {
+  createRecognition,
+  isTechnicalRecognitionError,
+  recognitionErrorKey,
+  VIRTUAL_CALL_CAPTURE_MS,
+  type RecognitionHandle,
+} from "@/lib/speech/recognition";
 import type { Assessment } from "@/lib/speech/azure";
 import { repo } from "@/lib/db";
-import { buildReport, type CallReport } from "@/lib/virtual-call/report";
+import type { PracticePersistenceBinding } from "@/lib/db/repository";
+import { buildReport, sanitizePersistedPronunciationSummary, sanitizePronunciationFacts, type CallReport } from "@/lib/virtual-call/report";
 import {
   applyRetry,
   applyTurn,
@@ -16,14 +23,16 @@ import {
   callTimeRemainingMs,
   CONTEXT_WINDOW_TURNS,
   createCallState,
+  diagnoseFreeCallPronunciation,
   endCall as endCallState,
-  MAX_RECORDING_MS,
+  gradeScriptedCallPronunciation,
   mustEnd,
   shouldInterrupt,
+  shouldCancelCaptureOnMute,
   shouldShowInline,
+  retryReferenceSentence,
   type CallState,
   type CorrectionMode,
-  type PronunciationEvidence,
 } from "@/lib/virtual-call/session";
 import { virtualCallTurnProvider, type VirtualCallTurnProvider } from "./turn-provider";
 
@@ -111,26 +120,13 @@ export interface VirtualCallController {
   /** Resend the turn that failed. */
   resend: () => void;
   dismissError: () => void;
-  replay: (text: string) => void;
+  replay: (text: string, rate?: 0.65 | 1) => void;
 }
 
 let entrySeq = 0;
 function nextEntryId(prefix: string): string {
   entrySeq += 1;
   return `${prefix}-${entrySeq}`;
-}
-
-/** The one place an Azure assessment becomes report-grade evidence. */
-function toPronunciation(assessment: Assessment | undefined, target?: string): PronunciationEvidence | undefined {
-  if (!assessment) return undefined;
-  const missed = assessment.words
-    .filter((w) => w.errorType !== "None")
-    .sort((a, b) => a.accuracy - b.accuracy)[0];
-  return {
-    score: Math.round(assessment.pronScore),
-    ...(target ? { target } : {}),
-    ...(missed ? { worstWord: missed.word } : {}),
-  };
 }
 
 export function useVirtualCall(options: {
@@ -160,23 +156,58 @@ export function useVirtualCall(options: {
   const [now, setNow] = useState(() => Date.now());
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+  const ttsAbortRef = useRef<AbortController | null>(null);
+  const ttsGenerationRef = useRef(0);
   const recRef = useRef<RecognitionHandle | null>(null);
+  /** Invalidates results from a microphone that was cancelled or outlived this hook. */
+  const captureGenerationRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   /** The reply the guide is holding back while she waits for a corrected sentence. */
   const heldReply = useRef<{ en: string; es: string } | null>(null);
   /** The turn in flight, kept so a failed send can be retried unchanged. */
   const inFlight = useRef<{ transcript: string; turnIndex: number } | null>(null);
+  /** Captured before the first microphone opens and retained for the whole call. */
+  const callBindingRef = useRef<PracticePersistenceBinding | null>(null);
+
+  const releaseAudio = useCallback(() => {
+    const el = audioRef.current;
+    if (el) {
+      el.onended = null;
+      el.onpause = null;
+      el.pause();
+      el.src = "";
+    }
+    const url = audioUrlRef.current;
+    if (url) {
+      audioUrlRef.current = null;
+      URL.revokeObjectURL(url);
+    }
+  }, []);
+
+  const disposeTts = useCallback(() => {
+    ttsGenerationRef.current += 1;
+    ttsAbortRef.current?.abort();
+    ttsAbortRef.current = null;
+    releaseAudio();
+  }, [releaseAudio]);
+
+  const stopTts = useCallback(() => {
+    disposeTts();
+    setSpeaking(false);
+  }, [disposeTts]);
 
   // One reusable <audio>, created on the client.
   useEffect(() => {
     audioRef.current = new Audio();
-    const el = audioRef.current;
     return () => {
-      el?.pause();
+      captureGenerationRef.current += 1;
+      disposeTts();
       recRef.current?.cancel();
       abortRef.current?.abort();
+      audioRef.current = null;
     };
-  }, []);
+  }, [disposeTts]);
 
   // Connectivity. The call pauses rather than failing: nothing is lost, and the
   // learner is told why the controls went quiet.
@@ -211,49 +242,69 @@ export function useVirtualCall(options: {
   // the mic, the audio, and any request in flight stop with it.
   useEffect(() => {
     if (state?.phase !== "ended") return;
+    captureGenerationRef.current += 1;
     recRef.current?.cancel();
     abortRef.current?.abort();
-    audioRef.current?.pause();
-  }, [state?.phase]);
+    disposeTts();
+  }, [state?.phase, disposeTts]);
 
   const speak = useCallback(
-    async (text: string) => {
+    async (text: string, rate: 0.65 | 1 = 1) => {
       const el = audioRef.current;
       if (!el || muted) return;
+      disposeTts();
+      const generation = ttsGenerationRef.current;
+      const controller = new AbortController();
+      ttsAbortRef.current = controller;
       setAudioFailed(false);
       setSpeaking(true);
       try {
+        const headers = await authHeaders();
+        if (controller.signal.aborted || generation !== ttsGenerationRef.current) return;
         const res = await fetch("/api/tts", {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+          headers: { "Content-Type": "application/json", ...headers },
           body: JSON.stringify({ text }),
+          signal: controller.signal,
         });
         if (!res.ok) throw new Error(String(res.status));
         const blob = await res.blob();
+        if (controller.signal.aborted || generation !== ttsGenerationRef.current) return;
         const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
         el.src = url;
+        el.playbackRate = rate;
         el.onended = () => {
-          URL.revokeObjectURL(url);
+          if (generation !== ttsGenerationRef.current) return;
+          releaseAudio();
           setSpeaking(false);
         };
-        el.onpause = () => setSpeaking(false);
+        el.onpause = () => {
+          if (generation === ttsGenerationRef.current) setSpeaking(false);
+        };
         await el.play();
+        if (controller.signal.aborted || generation !== ttsGenerationRef.current) return;
       } catch {
+        if (controller.signal.aborted || generation !== ttsGenerationRef.current) return;
         // Voice is an enhancement: her words are always on screen, so a failed
         // or autoplay-blocked playback is a notice, never a blocked call.
+        releaseAudio();
         setSpeaking(false);
         setAudioFailed(true);
       }
     },
-    [muted],
+    [muted, disposeTts, releaseAudio],
   );
 
   const start = useCallback(
     (next: VirtualCallScenario, nextMode: CorrectionMode) => {
+      captureGenerationRef.current += 1;
       abortRef.current?.abort();
       recRef.current?.cancel();
+      recRef.current = null;
       heldReply.current = null;
       inFlight.current = null;
+      callBindingRef.current = null;
       const startedAt = Date.now();
       setScenario(next);
       setMode(nextMode);
@@ -268,7 +319,11 @@ export function useVirtualCall(options: {
       // "Connecting" is the honest name for fetching and starting the guide's
       // opening line; it clears whether the audio played or not.
       setConnecting(true);
-      void speak(next.openingPrompt).finally(() => setConnecting(false));
+      const opening = speak(next.openingPrompt);
+      const openingGeneration = ttsGenerationRef.current;
+      void opening.finally(() => {
+        if (openingGeneration === ttsGenerationRef.current) setConnecting(false);
+      });
     },
     [level, speak],
   );
@@ -300,25 +355,43 @@ export function useVirtualCall(options: {
             .slice(-CONTEXT_WINDOW_TURNS * 2),
           signal: controller.signal,
         });
+        if (controller.signal.aborted) return;
         inFlight.current = null;
         if (analysis.metCriteria) setMetCriteria(true);
         // The session module decides whether this interrupts — not the UI. Asked
         // BEFORE the state update rather than read back out of it, because a
         // state updater must stay pure (StrictMode invokes it twice in dev).
-        const correction = analysis.correction;
+        const diagnostic = assessment ? diagnoseFreeCallPronunciation({
+          evidence: assessment,
+          sentence: transcript,
+          ...(analysis.correction?.corrected ? { canonicalCorrection: analysis.correction.corrected } : {}),
+          cefr: current.level,
+        }) : null;
+        const correction = diagnostic
+          ? analysis.correction
+            ? { ...analysis.correction, pronunciation: diagnostic }
+            : {
+                original: transcript,
+                corrected: diagnostic.referenceSentence,
+                explanation: pronunciationCue(diagnostic.cueKey, lang),
+                severity: "significant" as const,
+                kind: "pronunciation" as const,
+                pronunciation: diagnostic,
+              }
+          : analysis.correction;
+        const analyzedTurn = correction === analysis.correction ? analysis : { ...analysis, correction };
         const interrupted =
           shouldInterrupt(current.mode, correction, analysis.needsClarification) && correction !== null;
-        const turnPronunciation = toPronunciation(assessment);
         setState((s) =>
-          s ? applyTurn(s, { transcript, analysis, at: Date.now(), pronunciation: turnPronunciation }) : s,
+          s ? applyTurn(s, { transcript, analysis: analyzedTurn, at: Date.now(), ...(diagnostic ? { pronunciation: { diagnostic } } : {}) }) : s,
         );
         if (interrupted && correction) {
           // Hold the real reply until she has said the fixed sentence, so the
           // conversation does not run away from the correction.
           heldReply.current = { en: analysis.reply, es: analysis.replyEs };
           const ask = {
-            en: `One quick fix — try saying: "${correction.corrected}"`,
-            es: `Una corrección rápida: intenta decir "${correction.corrected}"`,
+            en: `One quick fix — try saying: "${retryReferenceSentence(correction)}"`,
+            es: `Una corrección rápida: intenta decir "${retryReferenceSentence(correction)}"`,
           };
           setEntries((prev) => [
             ...prev,
@@ -335,7 +408,7 @@ export function useVirtualCall(options: {
         setSuggestions(analysis.suggestions ?? []);
         void speak(analysis.reply);
       } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (controller.signal.aborted || (e instanceof DOMException && e.name === "AbortError")) return;
         // The turn is kept in `inFlight` so "try again" resends it unchanged.
         setState((s) => (s ? { ...s, phase: "guide-speaking" } : s));
         setError({ kind: "turn", message: t("vcallTurnError", lang) });
@@ -346,20 +419,25 @@ export function useVirtualCall(options: {
 
   /** Score a retry against the pending correction and release the held reply. */
   const finishRetry = useCallback(
-    (transcript: string, assessment: Assessment | undefined) => {
+    (transcript: string, assessment: Assessment | undefined, transcriptStatus?: "unavailable") => {
       const pending = state?.pendingRetry;
       const pendingIndex = state?.pendingRetryTurn ?? null;
       if (!pending || pendingIndex === null) return;
       setRetriedTurnIndex(pendingIndex);
-      // Pronunciation evidence exists only here, where the target sentence is
-      // known. Absent evidence stays absent — it is never inferred.
-      const pronunciation = toPronunciation(assessment, pending.corrected);
+      const diagnostic = pending.pronunciation;
+      const scripted = diagnostic ? gradeScriptedCallPronunciation({
+        evidence: assessment,
+        referenceSentence: diagnostic.referenceSentence,
+        targetWord: diagnostic.targetWord,
+        cefr: state.level,
+      }) : null;
       setState((s) =>
         s
           ? applyRetry(s, {
               transcript,
               at: Date.now(),
-              ...(pronunciation ? { pronunciation } : {}),
+              ...(transcriptStatus ? { transcriptStatus } : {}),
+              ...(diagnostic ? { pronunciation: { diagnostic, ...(scripted ? { scripted } : {}) } } : {}),
             })
           : s,
       );
@@ -379,28 +457,42 @@ export function useVirtualCall(options: {
   const capture = useCallback(
     (target?: string) => {
       if (!state || recording || !online) return;
-      audioRef.current?.pause();
+      // A microphone and guide playback must never own audio at the same time.
+      // Dispose the whole TTS generation synchronously before any recognition
+      // handle can open: this also makes a deferred fetch permanently stale.
+      stopTts();
+      if (!callBindingRef.current) {
+        const binding = repo.capturePracticeBinding();
+        if (!binding) {
+          setError({ kind: "mic", message: t("recGeneric", lang) });
+          return;
+        }
+        callBindingRef.current = binding;
+      }
       setError(null);
       const turnIndex = state.turns.length;
-      // assess: true grades free conversation too — Azure scores unscripted
-      // speech, so she gets pronunciation feedback on what she actually chose to
-      // say, not only on a sentence we handed her to repeat.
+      // Free conversation requests acoustic evidence for diagnosis only. The
+      // exact reference-text retry below is the only graded call evidence.
       const handle = createRecognition({
         lang: "en-US",
         assess: true,
         // The call listens continuously: silence hands the turn back, so she
         // never taps to stop mid-conversation.
         autoEnd: true,
+        maxDurationMs: VIRTUAL_CALL_CAPTURE_MS,
+        assessmentKind: target ? "phrase" : "free",
         ...(target ? { target } : {}),
       });
+      const captureGeneration = ++captureGenerationRef.current;
       recRef.current = handle;
       setRecording(true);
-      // MAX_RECORDING_MS is a cost control as much as a UX one: stop rather
+      // VIRTUAL_CALL_CAPTURE_MS is a cost control as much as a UX one: stop rather
       // than let an open mic run.
-      const cap = setTimeout(() => handle.stop(), MAX_RECORDING_MS);
+      const cap = setTimeout(() => handle.stop(), VIRTUAL_CALL_CAPTURE_MS);
       handle.result
         .then((result) => {
           clearTimeout(cap);
+          if (captureGeneration !== captureGenerationRef.current) return;
           recRef.current = null;
           setRecording(false);
           const said = result.transcript.trim();
@@ -418,14 +510,19 @@ export function useVirtualCall(options: {
         })
         .catch((e: unknown) => {
           clearTimeout(cap);
+          if (captureGeneration !== captureGenerationRef.current) return;
           recRef.current = null;
           setRecording(false);
           const code = (e as { code?: string } | null)?.code;
           if (code === "cancelled") return;
+          if (target && isTechnicalRecognitionError(e)) {
+            finishRetry("", undefined, "unavailable");
+            return;
+          }
           setError({ kind: "mic", message: t(recognitionErrorKey(e), lang) });
         });
     },
-    [state, recording, online, lang, send, finishRetry],
+    [state, recording, online, lang, send, finishRetry, stopTts],
   );
 
   // Continuous conversation: when the guide stops talking, the learner's turn
@@ -456,43 +553,50 @@ export function useVirtualCall(options: {
   }, [speaking, state, recording, online, error, capture, muted, entries]);
 
   const record = useCallback(() => capture(), [capture]);
-  const retry = useCallback(() => capture(state?.pendingRetry?.corrected), [capture, state]);
+  const retry = useCallback(() => capture(state?.pendingRetry ? retryReferenceSentence(state.pendingRetry) : undefined), [capture, state]);
   const stopRecording = useCallback(() => recRef.current?.stop(), []);
 
   const toggleMute = useCallback(() => {
     setMuted((was) => {
-      if (!was) {
-        audioRef.current?.pause();
+      if (shouldCancelCaptureOnMute(was)) {
+        // Muting is a stop condition for an open learner turn. Do this only
+        // while entering mute: unmuting must not discard a new reply.
+        captureGenerationRef.current += 1;
+        recRef.current?.cancel();
+        recRef.current = null;
+        setRecording(false);
+        stopTts();
         setSpeaking(false);
       }
       return !was;
     });
-  }, []);
+  }, [stopTts]);
 
   const end = useCallback(() => {
+    captureGenerationRef.current += 1;
     recRef.current?.cancel();
     abortRef.current?.abort();
-    audioRef.current?.pause();
+    stopTts();
     setRecording(false);
-    setSpeaking(false);
     setState((s) => (s && s.phase !== "ended" ? endCallState(s, Date.now()) : s));
-  }, []);
+  }, [stopTts]);
 
   const reset = useCallback(() => {
+    captureGenerationRef.current += 1;
     recRef.current?.cancel();
     abortRef.current?.abort();
-    audioRef.current?.pause();
+    stopTts();
     heldReply.current = null;
     inFlight.current = null;
+    callBindingRef.current = null;
     setScenario(null);
     setState(null);
     setEntries([]);
     setSuggestions([]);
     setError(null);
     setRecording(false);
-    setSpeaking(false);
     setRetriedTurnIndex(null);
-  }, []);
+  }, [stopTts]);
 
   const resend = useCallback(() => {
     const pending = inFlight.current;
@@ -506,7 +610,7 @@ export function useVirtualCall(options: {
   }, [send]);
 
   const dismissError = useCallback(() => setError(null), []);
-  const replay = useCallback((text: string) => void speak(text), [speak]);
+  const replay = useCallback((text: string, rate: 0.65 | 1 = 1) => void speak(text, rate), [speak]);
 
   // The report is derived from the ended call, not stored: every number in it
   // is already recorded in CallState, so a copy could only ever drift.
@@ -534,8 +638,9 @@ export function useVirtualCall(options: {
     if (savedRef.current === key) return;
     savedRef.current = key;
 
-    void repo
-      .saveVirtualCall({
+    const binding = callBindingRef.current;
+    if (binding) void repo
+      .saveVirtualCallForPracticeBinding(binding, {
         scenarioId: report.scenarioId,
         mode: state.mode,
         level: state.level,
@@ -546,10 +651,13 @@ export function useVirtualCall(options: {
         learnerTurns: report.learnerTurns,
         cleanTurns: report.cleanTurns,
         metCriteria: report.metCriteria,
-        corrections: report.corrections,
-        priorities: report.priorities,
-        vocabularyUsed: report.vocabularyUsed,
-        ...(report.pronunciation ? { pronunciation: report.pronunciation } : {}),
+        corrections: report.corrections.map(({ kind, fixedOnRetry }) => ({ kind, fixedOnRetry })),
+        priorities: report.priorities.map(({ kind, fixedOnRetry }) => ({ kind, fixedOnRetry })),
+        vocabularyUsedCount: report.vocabularyUsed.length,
+        ...(() => {
+          const pronunciation = sanitizePersistedPronunciationSummary(report.pronunciation);
+          return pronunciation ? { pronunciation } : {};
+        })(),
         retriedCount: report.retriedCount,
         retriedAcceptedCount: report.retriedAcceptedCount,
         // Offered in full; the repository strips it unless she opted in.
@@ -580,11 +688,9 @@ export function useVirtualCall(options: {
               durationMs: report.durationMs,
               metCriteria: report.metCriteria,
               retriedAcceptedCount: report.retriedAcceptedCount,
-              vocabularyUsed: report.vocabularyUsed,
-              priorities: report.priorities.map((p) => ({
-                corrected: p.corrected,
-                explanation: p.explanation,
-              })),
+              vocabularyUsedCount: report.vocabularyUsed.length,
+              priorityKinds: report.priorities.map((priority) => priority.kind),
+              pronunciation: sanitizePronunciationFacts(report.pronunciation),
             },
           }),
         });

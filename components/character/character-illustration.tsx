@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { equippedOutfitBase } from "@/lib/cosmetics";
 import {
   artFor,
+  BASE_LUMI_ART_BASE,
   BUST_FOCAL,
   CHARACTER,
   type CharacterMood,
@@ -19,14 +21,7 @@ import {
 // where she carries information; otherwise she is aria-hidden so screen
 // readers hear the content, not the decoration.
 
-export function CharacterIllustration({
-  mood = "idle",
-  mode = "full",
-  alt,
-  outfit,
-  priority,
-  className,
-}: {
+interface CharacterIllustrationProps {
   mood?: CharacterMood;
   mode?: CharacterMode;
   /** Meaningful description. Omit for decorative placements (the default). */
@@ -35,11 +30,42 @@ export function CharacterIllustration({
   outfit?: string;
   priority?: boolean;
   className?: string;
-}) {
+  /** Reports a one-time switch from missing equipped art to base Lumi art. */
+  onArtFallback?: () => void;
+}
+
+export function CharacterIllustration(props: CharacterIllustrationProps) {
   const player = usePlayer();
-  const base = outfit ?? equippedOutfitBase(player);
-  const art = artFor(base, mood);
+  const base = props.outfit ?? equippedOutfitBase(player);
+  const requestKey = `${base}:${props.mood ?? "idle"}`;
+
+  return <CharacterArtwork key={requestKey} {...props} base={base} />;
+}
+
+function CharacterArtwork({
+  mood = "idle",
+  mode = "full",
+  alt,
+  priority,
+  className,
+  onArtFallback,
+  base,
+}: Omit<CharacterIllustrationProps, "outfit"> & { base: string }) {
+  const [phase, setPhase] = useState<"primary" | "base-fallback" | "terminal">("primary");
+  const usingBaseFallback = phase === "base-fallback";
+  const terminalFailure = phase === "terminal";
+  const art = artFor(usingBaseFallback ? BASE_LUMI_ART_BASE : base, mood);
   const decorative = !alt;
+
+  function handleArtError() {
+    if (terminalFailure) return;
+    if (usingBaseFallback || base === BASE_LUMI_ART_BASE) {
+      setPhase("terminal");
+      return;
+    }
+    setPhase("base-fallback");
+    onArtFallback?.();
+  }
 
   if (mode === "bust" || mode === "avatar") {
     const focal = BUST_FOCAL[mood];
@@ -54,23 +80,28 @@ export function CharacterIllustration({
           className,
         )}
         aria-hidden={decorative || undefined}
+        role={terminalFailure && !decorative ? "img" : undefined}
+        aria-label={terminalFailure && !decorative ? alt : undefined}
       >
         <div className="absolute inset-0" style={{ background: "var(--surface-wash)" }} aria-hidden />
         {/* The ONE deliberate crop in the character system: cover + the
             central focal table frames her face per pose. Every other mode is
             contain-fit (enforced by lib/character.test.mjs). */}
-        <Image
-          src={art}
-          alt={alt ?? ""}
-          fill
-          sizes={mode === "avatar" ? "48px" : "160px"}
-          priority={priority}
-          className="object-cover"
-          style={{
-            transform: `scale(${focal.scale})`,
-            objectPosition: `center ${focal.y}%`,
-          }}
-        />
+        {!terminalFailure && (
+          <Image
+            src={art}
+            alt={alt ?? ""}
+            fill
+            sizes={mode === "avatar" ? "48px" : "160px"}
+            priority={priority}
+            className="object-cover"
+            onError={handleArtError}
+            style={{
+              transform: `scale(${focal.scale})`,
+              objectPosition: `center ${focal.y}%`,
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -85,15 +116,20 @@ export function CharacterIllustration({
         className,
       )}
       aria-hidden={decorative || undefined}
+      role={terminalFailure && !decorative ? "img" : undefined}
+      aria-label={terminalFailure && !decorative ? alt : undefined}
     >
-      <Image
-        src={art}
-        alt={alt ?? ""}
-        fill
-        sizes="(max-width: 640px) 45vw, 320px"
-        priority={priority}
-        className="object-contain drop-shadow-[0_14px_30px_rgba(0,0,0,0.14)]"
-      />
+      {!terminalFailure && (
+        <Image
+          src={art}
+          alt={alt ?? ""}
+          fill
+          sizes="(max-width: 640px) 45vw, 320px"
+          priority={priority}
+          className="object-contain drop-shadow-[0_14px_30px_rgba(0,0,0,0.14)]"
+          onError={handleArtError}
+        />
+      )}
     </div>
   );
 }

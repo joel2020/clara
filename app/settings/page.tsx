@@ -35,7 +35,7 @@ export default function SettingsPage() {
   const [pendingSync, setPendingSync] = useState(0);
   const [flushingSync, setFlushingSync] = useState(false);
 
-  const { settings, update, ready } = useSettings();
+  const { settings, update, ready, saveError, retryLastUpdate, revokeVoiceConsent } = useSettings();
   const { required: authOn, user, signOut } = useAuth();
   const { admin } = useAccess();
   const lang = settings.coachLanguage;
@@ -139,6 +139,30 @@ export default function SettingsPage() {
       <h1 className="mt-5 font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{t("settingsTitle", lang)}</h1>
 
       <div className="mt-8 space-y-6">
+        {saveError && (
+          <section role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 px-5 py-4">
+            <p className="text-sm font-medium">{saveError}</p>
+            <button type="button" onClick={() => void retryLastUpdate()} className="mt-3 rounded-full border border-hairline px-4 py-2 text-xs font-medium">
+              Reintentar · Retry
+            </button>
+          </section>
+        )}
+
+        <section className="rounded-2xl border border-hairline bg-card px-5 py-4" aria-labelledby="voice-privacy-title">
+          <p id="voice-privacy-title" className="text-sm font-medium">Privacidad de voz · Voice privacy</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Puedes retirar el permiso cuando quieras. La app detendrá cualquier grabación activa y bloqueará nuevas capturas.
+            {" · "}You can withdraw permission anytime. Active recording stops and future capture is blocked.
+          </p>
+          <button
+            type="button"
+            onClick={() => void revokeVoiceConsent()}
+            disabled={!settings.voiceConsent}
+            className="mt-3 rounded-full border border-hairline px-4 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Retirar permiso de voz · Withdraw voice permission
+          </button>
+        </section>
         {pendingSync > 0 && (
           <section className="rounded-2xl border border-hairline bg-card px-5 py-4">
             <p className="text-sm font-medium">

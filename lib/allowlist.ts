@@ -9,11 +9,13 @@
 // The lists live in SERVER environment variables, not in code: student emails
 // are personal data and used to ship in the repository AND the client bundle
 // (audit P0). Client UI never sees the lists — it asks /api/me. Server-side
-// enforcement (lib/auth-server.ts) is unchanged and fails closed: with the
-// variables unset in production, nobody is allowed.
+// enforcement (lib/auth-server.ts) fails closed: with the learner list unset in
+// production, every non-admin identity is denied.
 //
-//   ALLOWED_EMAILS  comma-separated student+teacher emails
-//   ADMIN_EMAILS    comma-separated teacher emails (coach/instructor tools)
+//   ALLOWED_EMAILS  comma-separated learner emails
+//
+// Administrator capability comes from the Supabase JWT's
+// app_metadata.clara_role claim, not from a client-supplied value.
 //
 // To add a student: add their email to ALLOWED_EMAILS in the deployment env
 // and redeploy. Local dev without Supabase env bypasses auth entirely, so
@@ -35,13 +37,16 @@ export function isAllowed(email: string | null | undefined): boolean {
   return allowedEmails().includes(email.trim().toLowerCase());
 }
 
-// The teacher(s) who can see the whole roster in the coach cockpit. A strict
-// subset of the allowlist — students can use the app but never see each other.
-export function adminEmails(): string[] {
-  return parseList(process.env.ADMIN_EMAILS);
+export interface AccessIdentity {
+  email?: string | null;
+  app_metadata?: Record<string, unknown>;
 }
 
-export function isAdmin(email: string | null | undefined): boolean {
-  if (!email) return false;
-  return adminEmails().includes(email.trim().toLowerCase());
+export function isAdminIdentity(user: AccessIdentity): boolean {
+  return user.app_metadata?.clara_role === "admin";
+}
+
+export function accessFlags(user: AccessIdentity): { allowed: boolean; admin: boolean } {
+  const admin = isAdminIdentity(user);
+  return { admin, allowed: admin || isAllowed(user.email) };
 }

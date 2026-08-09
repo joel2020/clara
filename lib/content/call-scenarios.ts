@@ -1,6 +1,6 @@
 // The call simulator's scenarios.
 //
-// This is the differentiator: Joel stops being a patient tutor and plays an
+// This is the differentiator: Lumi stops being a patient tutor and plays an
 // American customer with a problem, at natural speed, mildly impatient. She has to
 // run the call — open it, verify, empathise, read details back, resolve, close.
 //

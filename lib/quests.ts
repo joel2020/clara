@@ -1,6 +1,7 @@
 import { repo } from "@/lib/db";
 import { dayKey } from "@/lib/gamification";
 import type { DailyQuestState } from "@/lib/db/types";
+import { QUEST_BONUS_XP, QUEST_TARGETS, allQuestTargetsMet, emptyQuestState, type QuestKind } from "@/lib/quest-rules";
 
 // Daily quests: three tiny missions that make the everyday habit concrete —
 // talk once, review a few words, learn a few new ones. Consistency is the single
@@ -8,7 +9,7 @@ import type { DailyQuestState } from "@/lib/db/types";
 // and do a little, every day", not big numbers. Completing all three banks a
 // small XP bonus. State rolls over automatically each local day.
 
-export type QuestKind = "talk" | "review" | "learn";
+export type { QuestKind } from "@/lib/quest-rules";
 
 export interface QuestDef {
   kind: QuestKind;
@@ -16,15 +17,15 @@ export interface QuestDef {
 }
 
 export const QUESTS: QuestDef[] = [
-  { kind: "talk", target: 1 }, // have one conversation exchange with Joel
-  { kind: "review", target: 5 }, // refresh 5 words that came due
-  { kind: "learn", target: 5 }, // practice 5 new words
+  { kind: "talk", target: QUEST_TARGETS.talk }, // have one conversation exchange with Joel
+  { kind: "review", target: QUEST_TARGETS.review }, // refresh 5 words that came due
+  { kind: "learn", target: QUEST_TARGETS.learn }, // practice 5 new words
 ];
 
-export const QUEST_BONUS_XP = 30;
+export { QUEST_BONUS_XP } from "@/lib/quest-rules";
 
 export function emptyQuests(day: string): DailyQuestState {
-  return { day, talk: 0, review: 0, learn: 0, claimed: false };
+  return emptyQuestState(day);
 }
 
 export function questTarget(kind: QuestKind): number {
@@ -36,7 +37,7 @@ export function questDone(state: DailyQuestState, kind: QuestKind): boolean {
 }
 
 export function allQuestsDone(state: DailyQuestState): boolean {
-  return QUESTS.every((q) => state[q.kind] >= q.target);
+  return allQuestTargetsMet(state);
 }
 
 export function questsCompleted(state: DailyQuestState): number {

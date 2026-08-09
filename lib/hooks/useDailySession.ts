@@ -14,15 +14,18 @@ import {
 import {
   claimSessionCompletion,
   checkpointActivity,
+  checkpointPronunciationGame,
   getDailySession,
   saveDailySession,
 } from "@/lib/daily-session-store";
-import { loadOrCreateDailySession } from "@/lib/daily-session-loader";
+import type { DailyPronunciationGameState } from "@/lib/speech/daily-pronunciation-game";
+import { dailyPronunciationEvidence, loadOrCreateDailySession } from "@/lib/daily-session-loader";
 import { repo } from "@/lib/db";
 import { dayKey } from "@/lib/gamification";
 import { levelLessonPool } from "@/lib/onboarding";
 import { pathOf } from "@/lib/paths";
 import type { Level } from "@/lib/placement";
+import type { PracticePersistenceBinding } from "@/lib/db/repository";
 
 type CheckpointStatus = Extract<
   ActivityStatus,
@@ -37,6 +40,7 @@ export interface DailySessionHook {
     activityId: string,
     status: CheckpointStatus,
   ) => Promise<DailySession>;
+  checkpointPronunciation: (activityId: string, state: DailyPronunciationGameState, binding: PracticePersistenceBinding) => Promise<DailySession>;
   claimCompletion: () => Promise<SessionCompletionResult | null>;
 }
 
@@ -104,12 +108,7 @@ export function useDailySession(): DailySessionHook {
               lessons: [...LESSONS, ...customLessons],
               scenarios: SCENARIOS,
               progress,
-              attempts: attempts.map((attempt) => ({
-                itemId: attempt.itemId,
-                passed: attempt.passed,
-                at: attempt.at,
-                evidence: "valid" as const,
-              })),
+              attempts: attempts.map(dailyPronunciationEvidence),
               pathLessonIds,
               recentMinutes: estimatedRecentMinutes(quests),
               lastActiveDay: stats.lastActiveDay,
@@ -210,5 +209,19 @@ export function useDailySession(): DailySessionHook {
     return claim;
   }, [day, publish]);
 
-  return { session, loading, start, checkpoint, claimCompletion };
+  const checkpointPronunciation = useCallback(async (activityId: string, state: DailyPronunciationGameState, binding: PracticePersistenceBinding) => {
+    const persisted = await checkpointPronunciationGame(binding, {
+      day,
+      activityId,
+      contentHash: state.contentHash,
+      state,
+      at: Date.now(),
+    });
+    publish(persisted);
+    const activity = persisted.activities.find((entry) => entry.id === activityId);
+    if (state.terminal) trackDailySession("checkpoint", persisted, activity);
+    return persisted;
+  }, [day, publish]);
+
+  return { session, loading, start, checkpoint, checkpointPronunciation, claimCompletion };
 }

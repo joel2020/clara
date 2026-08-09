@@ -33,6 +33,7 @@ function TodaySessionRunner() {
     loading,
     start,
     checkpoint,
+    checkpointPronunciation,
     claimCompletion,
   } = useDailySession();
   const lang = settings.coachLanguage;
@@ -241,6 +242,9 @@ function TodaySessionRunner() {
           transitioning={transitioning}
           onComplete={() => {
             void completeActivity(current.id);
+          }}
+          onPronunciationStateChange={async (state, binding) => {
+            await checkpointPronunciation(current.id, state, binding);
           }}
         />
       ) : (

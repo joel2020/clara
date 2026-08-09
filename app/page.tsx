@@ -167,7 +167,7 @@ export default function HomePage() {
 
       <InstallNudge />
 
-      {/* The one high-value secondary action: talk to Joel — the thing that
+      {/* The one high-value secondary action: talk to Lumi — the thing that
           actually builds conversation. On the job path it is framed as a call,
           because that is the moment she is training for. */}
       <Link
@@ -185,11 +185,11 @@ export default function HomePage() {
           <p className="text-sm text-muted-foreground">
             {path === "job"
               ? lang === "es"
-                ? "Atiende a un cliente en inglés, con Joel."
-                : "Handle a customer in English, with Joel."
+                ? "Atiende a un cliente en inglés, con Lumi."
+                : "Handle a customer in English, with Lumi."
               : lang === "es"
-                ? "Practica una conversación real con Joel."
-                : "Practice a real conversation with Joel."}
+                ? "Practica una conversación real con Lumi, tu guía de IA."
+                : "Practice a real conversation with Lumi, your AI guide."}
           </p>
         </div>
         <span className="text-muted-foreground transition-transform group-hover:translate-x-0.5">→</span>

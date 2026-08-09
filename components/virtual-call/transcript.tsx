@@ -93,7 +93,9 @@ export function Transcript({
               <CorrectionCard
                 correction={correction}
                 lang={lang}
-                fixed={Boolean(turn?.retry?.accepted)}
+                fixed={correction.kind === "pronunciation"
+                  ? turn?.pronunciation?.scripted?.outcome === "mastered"
+                  : Boolean(turn?.retry?.accepted)}
                 className="mt-2"
               />
             )}

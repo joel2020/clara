@@ -1,29 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Square, Loader2, Volume2, Check, X, Star } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2, Mic, Square, Star, Volume2 } from "lucide-react";
 import type { PracticeItem } from "@/lib/db/types";
-import { repo } from "@/lib/db";
-import { createRecognition, recognitionErrorKey, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
-import { recordPracticeAttempt } from "@/lib/practice";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
-import { sfx } from "@/lib/sfx";
-import { popConfetti, celebrate } from "@/lib/fx";
-import { juice } from "@/components/juice";
 import { playPronunciation, stopPronunciation, pickDrillVoice } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
+import { sfx } from "@/lib/sfx";
+import { juice } from "@/components/juice";
 import { Lumi } from "@/components/lumi";
-import { StarRating } from "@/components/star-reward";
-
-// Shadowing: hear Joel say a phrase, then echo it back right away. This trains
-// two things at once — the ear (understanding natural American speech) and
-// automaticity (saying whole chunks without assembling them word by word).
-// Uses full conversation phrases and always plays Joel (the American model).
+import { gradedAccuracy, shouldCelebrateGradedCompletion } from "@/lib/speech/graded-round";
+import { PronunciationFeedback } from "./pronunciation-feedback";
+import { usePronunciationCoach, type PronunciationCoachPhase } from "./use-pronunciation-coach";
 
 const ROUND_LENGTH = 8;
-type Phase = "listen" | "ready" | "recording" | "scoring" | "flash";
+const EMPTY_ITEM: PracticeItem = {
+  id: "empty",
+  text: "",
+  ipa: "",
+  mouthHint: "",
+  kind: "phrase",
+  categoryId: "empty",
+  phoneme: "",
+};
 
 export function ShadowRound({
   items,
@@ -41,118 +41,89 @@ export function ShadowRound({
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
   const support = useSpeechSupport();
-
   const round = useMemo(() => shuffle(items).slice(0, Math.min(ROUND_LENGTH, items.length)), [items]);
+  const voices = useMemo(() => round.map(() => pickDrillVoice().slug), [round]);
   const [idx, setIdx] = useState(0);
-  const [phase, setPhase] = useState<Phase>("listen");
-  const [flash, setFlash] = useState<{ passed: boolean; stars: number } | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [listening, setListening] = useState(true);
+  const [done, setDone] = useState(false);
   const [totalStars, setTotalStars] = useState(0);
   const [clears, setClears] = useState(0);
-  const [done, setDone] = useState(false);
-  const handleRef = useRef<ReturnType<typeof createRecognition> | null>(null);
-
-  const current = round[idx];
-  // A different American voice per phrase, so her ear trains across speakers.
-  // Fixed per item so replay matches.
-  const voices = useMemo(() => round.map(() => pickDrillVoice().slug), [round]);
+  const [gradedAttempts, setGradedAttempts] = useState(0);
+  const [hadUngradedSkip, setHadUngradedSkip] = useState(false);
+  const current = round[idx] ?? EMPTY_ITEM;
   const voiceSlug = voices[idx];
 
-  const playModel = useCallback(() => {
-    if (!current) return;
-    setPhase("listen");
+  const coach = usePronunciationCoach({
+    item: current,
+    lessonId: current.id.split(":")[0] || "shadow",
+    itemPool: items,
+    combo: clears,
+    recognitionLang: settings.recognitionLang,
+    cefr: settings.onboarding?.level ?? "A1",
+    onOutcome: (outcome) => {
+      if (!outcome.recorded) return;
+      setGradedAttempts((value) => value + 1);
+      if (outcome.score.passed) {
+        setClears((value) => value + 1);
+        setTotalStars((value) => value + outcome.rewards.starsEarned);
+        sfx.correct(outcome.rewards.combo);
+        juice.centerBurst(outcome.rewards.starsEarned > 0 ? `+${outcome.rewards.starsEarned} ★` : undefined);
+      } else {
+        sfx.wrong();
+      }
+    },
+  });
+  const cancelCapture = coach.cancel;
+
+  const playModel = useCallback((rate: 0.65 | 1 = 1) => {
+    if (!current.text) return;
+    setListening(true);
     playPronunciation({
       id: current.id,
       text: current.text,
       voice: voiceSlug,
-      rate: settings.speechRate,
+      rate,
       voiceURI: settings.voiceURI,
-      onEnd: () => setPhase((p) => (p === "listen" ? "ready" : p)),
+      onEnd: () => setListening(false),
     });
-  }, [current, voiceSlug, settings.speechRate, settings.voiceURI]);
+  }, [current, voiceSlug, settings.voiceURI]);
 
-  // Auto-play Joel when a new phrase appears.
+  const stopAllAudio = useCallback(() => {
+    stopPronunciation();
+    cancelCapture();
+  }, [cancelCapture]);
+
   useEffect(() => {
-    if (current && !done) {
-      const timer = setTimeout(playModel, 250);
-      return () => clearTimeout(timer);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, done]);
+    if (!current.text || done) return;
+    const timer = setTimeout(() => playModel(), 250);
+    return () => {
+      clearTimeout(timer);
+      stopPronunciation();
+    };
+  }, [current.id, current.text, done, playModel]);
+  useEffect(() => () => stopAllAudio(), [stopAllAudio]);
 
-  useEffect(() => () => stopPronunciation(), []);
-
-  const advance = () => {
-    setFlash(null);
-    setNotice(null);
+  const advance = (gradedCompletion: boolean) => {
+    stopAllAudio();
+    if (!gradedCompletion) setHadUngradedSkip(true);
+    coach.resetSession();
     if (idx + 1 >= round.length) {
       setDone(true);
-      sfx.finish();
-      celebrate();
-    } else {
-      setIdx((i) => i + 1);
-      setPhase("listen");
-    }
-  };
-
-  const echo = async () => {
-    if (phase !== "ready") return;
-    stopPronunciation();
-    setFlash(null);
-    setNotice(null);
-    setPhase("recording");
-    sfx.tap();
-    const h = createRecognition({ lang: settings.recognitionLang, target: current.text });
-    handleRef.current = h;
-    try {
-      const r = await h.result;
-      setPhase("scoring");
-      const out = await recordPracticeAttempt({
-        item: current,
-        lessonId: current.id.split(":")[0],
-        transcript: r.transcript,
-        alternatives: r.alternatives,
-        combo: clears + 1,
-        itemPool: items,
-        assessment: r.assessment,
-      });
-      const passed = out.score.passed;
-      const stars = out.rewards.starsEarned;
-      setFlash({ passed, stars });
-      setTotalStars((v) => v + stars);
-      if (passed) {
-        // Voice journal: keep her first and best passing take.
-        if (r.audio) void repo.saveAttemptRecording(current.id, r.audio, out.score.score).catch(() => {});
-        setClears((c) => c + 1);
-        sfx.correct(out.rewards.combo);
-        popConfetti({ x: 0.5, y: 0.42 });
-        juice.centerBurst(out.rewards.starsEarned > 0 ? `+${out.rewards.starsEarned} ★` : undefined);
-        setPhase("flash");
-        setTimeout(advance, 1100);
-      } else {
-        // A miss keeps her on the phrase — mic ready to try again, skip optional.
-        sfx.wrong();
-        setPhase("ready");
+      if (shouldCelebrateGradedCompletion({ gradedAttempts, completedWithGradedResult: gradedCompletion, hadUngradedSkip: hadUngradedSkip || !gradedCompletion })) {
+        sfx.finish();
       }
-    } catch (e) {
-      if (e instanceof RecognitionError && (e.code === "cancelled" || e.code === "consent")) {
-        setPhase("ready");
-        return;
-      }
-      // A technical failure is not a miss: nothing was scored, so say what went
-      // wrong instead of showing her the miss badge.
-      setNotice(t(recognitionErrorKey(e), lang));
-      setPhase("ready");
-    } finally {
-      handleRef.current = null;
+      return;
     }
+    setIdx((value) => value + 1);
+    setListening(true);
   };
 
   if (support && !support.recognition) {
     return (
       <div className="mx-auto max-w-md px-5 py-24 text-center">
-        <p className="font-display text-2xl font-medium tracking-[-0.01em]">{t("shadowNeedsMic", lang)}</p>
-        <button onClick={onTechnicalExit} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
+        <Lumi frame="bust" mood="think" className="mx-auto size-28" />
+        <p className="mt-4 font-display text-2xl font-medium">{t("shadowNeedsMic", lang)}</p>
+        <button type="button" onClick={() => { stopAllAudio(); onTechnicalExit(); }} className="mt-6 min-h-11 rounded-xl bg-foreground px-5 text-sm font-medium text-background outline-none focus-visible:ring-3 focus-visible:ring-ring">
           {technicalExitLabel ?? t("navLessons", lang)}
         </button>
       </div>
@@ -160,166 +131,176 @@ export function ShadowRound({
   }
 
   if (done) {
-    const acc = round.length ? Math.round((clears / round.length) * 100) : 0;
+    const accuracy = gradedAccuracy(clears, gradedAttempts);
+    const neutral = accuracy === null || hadUngradedSkip;
     return (
-      <div className="animate-scale-in px-5 py-14 text-center">
-        <div className="relative mx-auto w-fit">
-          <Lumi frame="bust" mood="cheer" className="mx-auto size-28" />
-        </div>
+      <div className="px-5 py-14 text-center">
+        <Lumi frame="bust" mood={neutral ? "think" : "cheer"} className="mx-auto size-28" />
         <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("shadowTitle", lang)}</p>
-        <h1 className="mt-3 inline-flex items-center gap-2 font-display text-5xl font-medium tracking-[-0.03em]">
-          {totalStars}
-          <Star className="size-9 text-co-yellow" style={{ fill: "currentColor" }} strokeWidth={0} />
+        <h1 className="mt-3 inline-flex items-center gap-2 font-display text-5xl font-medium">
+          {accuracy === null ? t("pronTechnicalTitle", lang) : totalStars}
+          {accuracy !== null && <Star className="size-9 text-co-yellow" fill="currentColor" strokeWidth={0} aria-hidden="true" />}
         </h1>
-        <div className="mx-auto mt-8 flex max-w-sm items-stretch divide-x divide-hairline border-y border-hairline">
-          <Cell value={`${clears}/${round.length}`} label={t("clear", lang)} />
-          <Cell value={`${acc}%`} label={t("accuracy", lang)} />
+        <div className="mx-auto mt-8 flex max-w-sm divide-x divide-hairline border-y border-hairline">
+          <Cell value={`${clears}/${gradedAttempts}`} label={t("clear", lang)} />
+          <Cell value={accuracy === null ? "—" : `${accuracy}%`} label={t("accuracy", lang)} />
           <Cell value={`${totalStars} ★`} label={t("stars", lang)} />
         </div>
-        <div className="mt-9 flex items-center justify-center gap-3">
-          <button
-            onClick={onComplete}
-            className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground/80 transition-all hover:border-foreground/30 active:scale-[0.98]"
-          >
-            {t("finish", lang)}
-          </button>
-          <button
-            onClick={() => window.location.reload()}
-            className="rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-all hover:opacity-90 active:scale-[0.98]"
-          >
-            {t("again", lang)}
-          </button>
+        <button type="button" onClick={() => { stopAllAudio(); onComplete(); }} className="mt-8 min-h-11 rounded-xl bg-foreground px-5 text-sm font-medium text-background outline-none focus-visible:ring-3 focus-visible:ring-ring">
+          {t("finish", lang)}
+        </button>
+      </div>
+    );
+  }
+
+  if (!current.text) return null;
+
+  if ((coach.phase === "feedback" || coach.phase === "save-recovery") && coach.feedback) {
+    return (
+      <div className="mx-auto max-w-3xl px-5 py-8">
+        <PronunciationFeedback
+          target={current.text}
+          heard={coach.feedback.heard}
+          verdict={coach.feedback.verdict}
+          diagnosis={coach.feedback.diagnosis}
+          contrast={coach.feedback.contrast}
+          transition={coach.feedback.transition}
+          currentScore={coach.feedback.currentScore}
+          scores={coach.feedback.scores}
+          lang={lang}
+          onListen={(rate) => playModel(rate)}
+          onRetry={() => void coach.start()}
+          onContinue={() => advance(true)}
+          onTranscriptPractice={() => void coach.practiceWithoutGrade()}
+          onTechnicalSkip={() => {
+            coach.skipTechnical();
+            advance(false);
+          }}
+          saveFailure={coach.phase === "save-recovery"
+            ? coach.recovery === "account-changed" ? "account-changed" : "storage"
+            : undefined}
+          onRetrySave={() => void coach.retrySave()}
+          onAccountChanged={() => { stopAllAudio(); onExit(); }}
+        />
+      </div>
+    );
+  }
+
+  if (coach.phase === "ungraded-practice") {
+    return (
+      <div className="mx-auto max-w-md px-5 py-14 text-center" role="status" aria-live="polite">
+        <Lumi frame="bust" mood="encourage" className="mx-auto size-24" />
+        <h2 className="mt-3 font-display text-2xl font-semibold">{t("pronUngraded", lang)}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t("pronUngradedBody", lang)}</p>
+        <div className="mt-5 flex justify-center gap-2">
+          <button type="button" onClick={() => void coach.start()} className="min-h-11 rounded-xl border border-hairline px-4 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring">{t("pronRetryScoring", lang)}</button>
+          <button type="button" onClick={() => advance(false)} className="min-h-11 rounded-xl bg-foreground px-4 text-sm font-medium text-background outline-none focus-visible:ring-3 focus-visible:ring-ring">{t("pronContinue", lang)}</button>
         </div>
       </div>
     );
   }
 
-  if (!current) return null;
-
-  const isRecording = phase === "recording";
-
+  const accountChanged = coach.recovery === "account-changed";
+  const recoveryText = coach.recovery === "permission"
+    ? t("pronMicPermission", lang)
+    : coach.recovery === "no-speech"
+      ? t("pronNoSpeech", lang)
+      : accountChanged
+        ? t("pronAccountChangedBody", lang)
+        : null;
   return (
     <div className="mx-auto max-w-xl px-5 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <button onClick={onExit} className="text-sm font-medium text-muted-foreground hover:text-foreground">
-          {t("shadowExit", lang)}
-        </button>
-        <span className="inline-flex items-center gap-1 font-mono text-sm tabular-nums text-muted-foreground">
-          {totalStars}
-          <Star className="size-3.5 text-co-yellow" style={{ fill: "currentColor" }} strokeWidth={0} />
-        </span>
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={() => { stopAllAudio(); onExit(); }} className="min-h-11 rounded-lg px-2 text-sm font-medium text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring">{t("shadowExit", lang)}</button>
+        <span className="font-mono text-sm text-muted-foreground">{idx + 1} / {round.length}</span>
       </div>
-
-      <div className="mb-8 h-px w-full bg-hairline">
-        <div className="h-px bg-foreground transition-all duration-300" style={{ width: `${(idx / round.length) * 100}%` }} />
-      </div>
-
-      <div className="flex flex-col items-center text-center">
-        <span className="font-mono text-xs uppercase tracking-[0.14em] text-muted-foreground">
-          {idx + 1} / {round.length}
-        </span>
-
-        <h1
-          className={cn(
-            "mt-6 font-display text-3xl font-medium leading-tight tracking-[-0.02em] transition-colors sm:text-4xl",
-            flash?.passed && "text-success",
-            flash && !flash.passed && "text-destructive",
-          )}
-        >
-          {current.text}
-        </h1>
-        {current.meaning && lang === "es" && <p className="mt-3 text-muted-foreground">{current.meaning}</p>}
-
-        {/* Replay Joel */}
-        <button
-          onClick={playModel}
-          className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-hairline px-4 py-2 text-sm text-foreground/80 transition-colors hover:border-primary/40"
-        >
-          <Volume2 className={cn("size-4", phase === "listen" && "text-primary")} />
-          {t("shadowReplay", lang)}
-        </button>
-
-        {/* Star / miss flash */}
-        <div className="mt-6 flex h-10 items-center justify-center">
-          {flash && (
-            flash.passed ? (
-              <StarRating rating={flash.stars} size={28} />
-            ) : (
-              <span className="inline-flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground">
-                  <X className="size-4" /> {t("tryAgain", lang)}
-                </span>
-                <button
-                  type="button"
-                  onClick={advance}
-                  className="rounded-full border border-hairline px-3 py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {t("skipToNext", lang)}
-                </button>
-              </span>
-            )
-          )}
-          {!flash && notice && (
-            <span role="status" className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-              {notice}
-            </span>
-          )}
-          {!flash && !notice && phase === "flash" && <Check className="size-5 text-success" />}
-        </div>
-
-        {/* Mic */}
-        <div className="mt-2">
-          {isRecording ? (
-            <button
-              onClick={() => {
-                if (recognitionMode() === "record") setPhase("scoring");
-                handleRef.current?.stop();
-              }}
-              aria-label={t("talkStop", lang)}
-              className="relative grid size-20 place-items-center rounded-full bg-card text-destructive ring-1 ring-destructive/40 active:scale-95"
-            >
-              <span className="absolute inset-0 animate-ping rounded-full bg-destructive/15" />
-              <Square className="size-6 fill-current" />
+      <div className="mt-6 grid gap-5 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
+        <Lumi frame="bust" mood={listening ? "think" : "point"} className="mx-auto size-24 shrink-0" />
+        <div className="min-w-0 rounded-3xl border border-hairline bg-card p-6 text-center">
+          <h1 lang="en" className="font-display text-3xl font-medium leading-tight tracking-[-0.02em] sm:text-4xl">{current.text}</h1>
+          {current.meaning && lang === "es" && <p className="mt-2 text-muted-foreground">{current.meaning}</p>}
+          <button type="button" onClick={() => playModel()} disabled={coach.phase === "capturing" || coach.phase === "assessing"} className="mt-5 min-h-11 rounded-xl border border-hairline px-4 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring disabled:opacity-40">
+            <Volume2 className="mr-2 inline size-4" aria-hidden="true" />{t("shadowReplay", lang)}
+          </button>
+          {recoveryText && <p role="status" aria-live="polite" className="mt-4 rounded-xl border border-warn/30 bg-warn/[0.08] p-3 text-sm text-foreground">{recoveryText}</p>}
+          {accountChanged ? (
+            <button type="button" onClick={() => { stopAllAudio(); onExit(); }} className="mt-5 min-h-11 rounded-xl bg-foreground px-5 text-sm font-semibold text-background outline-none focus-visible:ring-3 focus-visible:ring-ring">
+              {t("pronAccountChangedAction", lang)}
             </button>
           ) : (
-            <button
-              onClick={echo}
-              disabled={phase !== "ready"}
-              aria-label={t("shadowRepeat", lang)}
-              className="grid size-20 place-items-center rounded-full bg-foreground text-background shadow-sm transition-all hover:scale-[1.04] active:scale-95 disabled:opacity-40"
-            >
-              {phase === "scoring" ? <Loader2 className="size-7 animate-spin" /> : <Mic className="size-7" />}
-            </button>
+            <ShadowCaptureControl
+              phase={coach.phase}
+              mode={coach.mode}
+              listening={listening}
+              lang={lang}
+              onStop={coach.stop}
+              onStart={() => {
+                stopPronunciation();
+                void coach.start();
+              }}
+            />
           )}
         </div>
-        <p className="mt-3 h-5 text-sm font-medium text-muted-foreground">
-          {phase === "listen"
-            ? t("shadowListen", lang)
-            : phase === "recording"
-              ? t("talkListening", lang)
-              : phase === "ready"
-                ? t("shadowRepeat", lang)
-                : ""}
-        </p>
       </div>
     </div>
+  );
+}
+
+export function ShadowCaptureControl({
+  phase,
+  mode,
+  listening,
+  lang,
+  onStart,
+  onStop,
+}: {
+  phase: PronunciationCoachPhase;
+  mode: string;
+  listening: boolean;
+  lang: "en" | "es";
+  onStart: () => void;
+  onStop: () => void;
+}) {
+  const capturing = phase === "capturing";
+  return (
+    <>
+      {capturing ? (
+        <button
+          type="button"
+          onClick={onStop}
+          aria-label={t("stopRecording", lang)}
+          className="relative mx-auto mt-5 grid size-20 place-items-center rounded-full bg-card text-destructive ring-1 ring-destructive/40 outline-none focus-visible:ring-3 focus-visible:ring-ring"
+        >
+          <span className="absolute inset-0 animate-ping rounded-full bg-destructive/15 motion-reduce:animate-none" aria-hidden="true" />
+          <Square className="size-6 fill-current" aria-hidden="true" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={listening || phase === "assessing"}
+          aria-label={t("shadowRepeat", lang)}
+          className="mx-auto mt-5 grid size-20 place-items-center rounded-full bg-foreground text-background shadow-sm outline-none transition-transform hover:scale-[1.04] focus-visible:ring-3 focus-visible:ring-ring disabled:opacity-40 motion-reduce:transition-none"
+        >
+          {phase === "assessing" ? <Loader2 className="size-7 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Mic className="size-7" aria-hidden="true" />}
+        </button>
+      )}
+      <p role="status" aria-live="polite" className="mt-3 text-sm font-medium text-muted-foreground">
+        {capturing ? t(mode === "record" ? "recording" : "listening", lang) : phase === "assessing" ? t("checking", lang) : listening ? t("shadowListen", lang) : t("shadowRepeat", lang)}
+      </p>
+    </>
   );
 }
 
 function Cell({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex-1 px-3 py-4">
-      <div className="font-display text-2xl font-medium tabular-nums">{value}</div>
-      <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-    </div>
-  );
+  return <div className="flex-1 px-3 py-4"><div className="font-display text-2xl font-medium tabular-nums">{value}</div><div className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div></div>;
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const other = Math.floor(Math.random() * (index + 1));
+    [result[index], result[other]] = [result[other], result[index]];
   }
-  return a;
+  return result;
 }

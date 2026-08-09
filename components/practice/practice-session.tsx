@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, Flame, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import { sfx } from "@/lib/sfx";
 import { celebrate, levelUpBurst } from "@/lib/fx";
 import type { PracticeOutcome } from "@/lib/practice";
 import { t, type CoachLang } from "@/lib/i18n";
-import { hintFor, introFor, achievementText } from "@/lib/content/es";
+import { hintFor, achievementText } from "@/lib/content/es";
 import { meaningFor } from "@/lib/content/word-es";
 import { ListenButton } from "./listen-button";
 import { ProducePanel } from "./produce-panel";
@@ -30,27 +30,73 @@ import { juice } from "@/components/juice";
 import { cinematic } from "@/components/cinematic";
 import { track } from "@/lib/analytics";
 import { SceneVideo } from "@/components/scene-video";
+import { ContextPhraseScene } from "@/components/visual-learning/context-phrase-scene";
+import { ContextStoryIntro } from "@/components/visual-learning/context-story-intro";
+import { ObjectDiscoveryGrid } from "@/components/visual-learning/object-discovery-grid";
+import { VISUAL_TOPIC_PACKS } from "@/lib/visual-learning/manifest";
+import { orderEntryPhraseFirst, resolveTopicPack, resolveVisualObject } from "@/lib/visual-learning/resolve";
+import type { VisualTopicPack } from "@/lib/visual-learning/types";
+import { stopPronunciation } from "@/lib/speech/player";
+import { VOICE_CONSENT_VERSION } from "@/lib/speech/consent";
 
-// A full lesson runs in stages: Learn (mini-class) → Ear (minimal pairs) →
-// Words (speak each one) → Sentences (the sound in connected speech) → Done.
-// Stages a lesson doesn't have are skipped automatically.
+// A resolved visual lesson opens with Story → Discover. Otherwise the established
+// Learn → Ear → Words → Sentences sequence stays intact. Empty stages are skipped.
 
-type Stage = "loading" | "learn" | "distinguish" | "produce" | "phrases" | "done";
+type Stage = "loading" | "story" | "discover" | "learn" | "distinguish" | "produce" | "phrases" | "done";
+
+interface LessonSequence {
+  hasVisualTopic: boolean;
+  hasLearn: boolean;
+  hasEar: boolean;
+  wordCount: number;
+  phraseCount: number;
+}
+
+function firstDrillStageForLesson(sequence: LessonSequence): Stage {
+  if (sequence.hasEar) return "distinguish";
+  if (sequence.wordCount > 0) return "produce";
+  if (sequence.phraseCount > 0) return "phrases";
+  return "done";
+}
+
+function startStageForLesson(sequence: LessonSequence): Stage {
+  if (sequence.hasVisualTopic) return "story";
+  return sequence.hasLearn ? "learn" : firstDrillStageForLesson(sequence);
+}
+
+function stageAfterStory(sequence: LessonSequence): Stage {
+  return sequence.hasVisualTopic ? "discover" : startStageForLesson(sequence);
+}
+
+function stageAfterDiscovery(sequence: LessonSequence): Stage {
+  return firstDrillStageForLesson(sequence);
+}
 
 export function PracticeSession({
   lesson,
   exitHref = "/",
   completionHref,
+  focusItemId,
 }: {
   lesson: Lesson;
   exitHref?: string;
   completionHref?: string | null;
+  focusItemId?: string;
 }) {
   const support = useSpeechSupport();
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
+  const voiceConsentGranted = (settings.voiceConsent?.version ?? 0) >= VOICE_CONSENT_VERSION;
+  const visualPack = useMemo(
+    () => resolveTopicPack(VISUAL_TOPIC_PACKS, lesson.visualTopicId),
+    [lesson.visualTopicId],
+  );
 
   const [stage, setStage] = useState<Stage>("loading");
+  const sessionRef = useRef<HTMLDivElement>(null);
+  const focusNextStage = useRef(false);
+  const visualTopicShown = useRef(false);
+  const visualToSpeaking = useRef(false);
 
   // Funnel instrumentation: start on mount, complete when the session finishes,
   // abandon if she leaves before finishing (the drop-off signal).
@@ -70,8 +116,34 @@ export function PracticeSession({
       track("lesson_complete", { lesson: lesson.id });
     }
   }, [stage, lesson.id]);
-  const [wordQueue, setWordQueue] = useState<PracticeItem[]>([]);
+  useEffect(() => {
+    if (stage !== "story" || !visualPack || visualTopicShown.current) return;
+    visualTopicShown.current = true;
+    track("visual_topic_shown", { topicId: visualPack.id, lessonId: lesson.id });
+  }, [lesson.id, stage, visualPack]);
+  useEffect(() => {
+    if (
+      (stage !== "produce" && stage !== "phrases")
+      || !visualPack
+      || visualToSpeaking.current
+    ) return;
+    visualToSpeaking.current = true;
+    track("visual_to_speaking", { topicId: visualPack.id, lessonId: lesson.id });
+  }, [lesson.id, stage, visualPack]);
   const [index, setIndex] = useState(0);
+  useLayoutEffect(() => {
+    if (stage === "loading" || !focusNextStage.current) return;
+    focusNextStage.current = false;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const heading = sessionRef.current?.querySelector<HTMLElement>("h1, h2");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    } else {
+      sessionRef.current?.focus({ preventScroll: true });
+    }
+  }, [index, stage]);
+  const [wordQueue, setWordQueue] = useState<PracticeItem[]>([]);
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [combo, setCombo] = useState(0);
   const [sessionBestCombo, setSessionBestCombo] = useState(0);
@@ -80,13 +152,26 @@ export function PracticeSession({
   const [levelUp, setLevelUp] = useState<number | null>(null);
 
   const pairs = useMemo(() => buildPairs(lesson.items), [lesson.items]);
-  // Sentences keep their authored order — they build on each other.
-  const phraseQueue = useMemo(() => lesson.items.filter((i) => i.kind === "phrase"), [lesson.items]);
+  // Visual lessons promote their entry phrase; every other phrase keeps its
+  // authored relative order. Nonvisual lessons retain the authored list exactly.
+  const phraseQueue = useMemo(
+    () => orderEntryPhraseFirst(
+      lesson.items.filter((i) => i.kind === "phrase"),
+      visualPack?.entryPhraseItemId,
+    ),
+    [lesson.items, visualPack],
+  );
 
   const hasLearn = Boolean(lesson.intro);
   const hasEar = pairs.length > 0;
-
-  const firstDrillStage: Stage = hasEar ? "distinguish" : wordQueue.length > 0 ? "produce" : "phrases";
+  const sequence: LessonSequence = {
+    hasVisualTopic: Boolean(visualPack),
+    hasLearn,
+    hasEar,
+    wordCount: wordQueue.length,
+    phraseCount: phraseQueue.length,
+  };
+  const firstDrillStage = stageAfterDiscovery(sequence);
 
   // Snapshot SRS order for the words once at mount so the queue doesn't reshuffle.
   useEffect(() => {
@@ -97,22 +182,41 @@ export function PracticeSession({
       const words = lesson.items.filter((i) => i.kind === "word");
       const ordered = orderForSession(words, map, Date.now());
       setWordQueue(ordered);
-      const start: Stage = lesson.intro
-        ? "learn"
-        : buildPairs(lesson.items).length > 0
-          ? "distinguish"
-          : ordered.length > 0
-            ? "produce"
-            : "phrases";
-      setStage(start);
+      const focused = focusItemId ? lesson.items.find((item) => item.id === focusItemId) : undefined;
+      if (focused) {
+        setIndex(focused.kind === "phrase" ? phraseQueue.findIndex((item) => item.id === focused.id) : ordered.findIndex((item) => item.id === focused.id));
+        setStage(focused.kind === "phrase" ? "phrases" : "produce");
+        return;
+      }
+      setStage(startStageForLesson({
+        hasVisualTopic: Boolean(visualPack),
+        hasLearn: Boolean(lesson.intro),
+        hasEar: buildPairs(lesson.items).length > 0,
+        wordCount: ordered.length,
+        phraseCount: phraseQueue.length,
+      }));
     });
     return () => {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lesson.id]);
+  }, [lesson.id, focusItemId]);
+
+  const transitionTo = (nextStage: Stage) => {
+    focusNextStage.current = true;
+    stopPronunciation();
+    setIndex(0);
+    setStage(nextStage);
+  };
+
+  const transitionToItem = (nextIndex: number) => {
+    focusNextStage.current = true;
+    stopPronunciation();
+    setIndex(nextIndex);
+  };
 
   const handleOutcome = (item: PracticeItem, o: PracticeOutcome) => {
+    if (!o.recorded) return;
     setResults((prev) => ({ ...prev, [item.id]: o.score.passed }));
     setCombo(o.rewards.combo);
     setSessionBestCombo((b) => Math.max(b, o.rewards.combo));
@@ -156,27 +260,33 @@ export function PracticeSession({
 
   const afterWords = () => {
     if (phraseQueue.length > 0) {
-      setIndex(0);
-      setStage("phrases");
+      transitionTo("phrases");
       sfx.tap();
     } else {
-      setStage("done");
+      transitionTo("done");
     }
   };
 
   const advance = () => {
-    if (index + 1 < speakQueue.length) setIndex((i) => i + 1);
+    if (index + 1 < speakQueue.length) transitionToItem(index + 1);
     else if (stage === "produce") afterWords();
-    else setStage("done");
+    else transitionTo("done");
   };
 
   const afterEar = () => {
-    setIndex(0);
-    setStage(wordQueue.length > 0 ? "produce" : phraseQueue.length > 0 ? "phrases" : "done");
+    transitionTo(firstDrillStageForLesson({ ...sequence, hasEar: false }));
+  };
+
+  const afterStory = () => {
+    transitionTo(stageAfterStory(sequence));
+  };
+
+  const afterDiscovery = () => {
+    transitionTo(stageAfterDiscovery(sequence));
   };
 
   return (
-    <div className="mx-auto max-w-xl px-5 pb-24 pt-8 sm:px-6">
+    <div ref={sessionRef} tabIndex={-1} className="mx-auto max-w-xl px-5 pb-24 pt-8 sm:px-6">
       {levelUp !== null && <LevelUpOverlay level={levelUp} onClose={() => setLevelUp(null)} />}
 
       <div className="mb-6 flex items-center justify-between">
@@ -192,7 +302,14 @@ export function PracticeSession({
 
       <Stepper
         steps={[
-          ...(hasLearn ? [{ key: "learn", label: t("stageLearn", lang) }] : []),
+          ...(visualPack
+            ? [
+                { key: "story", label: t("stageStory", lang) },
+                { key: "discover", label: t("stageDiscover", lang) },
+              ]
+            : hasLearn
+              ? [{ key: "learn", label: t("stageLearn", lang) }]
+              : []),
           ...(hasEar ? [{ key: "distinguish", label: t("stageEar", lang) }] : []),
           ...(wordQueue.length > 0 ? [{ key: "produce", label: t("stageWords", lang) }] : []),
           ...(phraseQueue.length > 0 ? [{ key: "phrases", label: t("stageSentences", lang) }] : []),
@@ -202,10 +319,33 @@ export function PracticeSession({
 
       <SpeechSupportNotice support={support} />
 
+      {focusItemId && current?.id === focusItemId && (
+        <div role="status" data-targeted-focus={focusItemId} className="mb-5 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm font-semibold">
+          {lang === "es" ? `Práctica enfocada: ${current.text}` : `Focused practice: ${current.text}`}
+        </div>
+      )}
+
+      {stage === "story" && visualPack && (
+        <div className="animate-fade-up">
+          <ContextStoryIntro pack={visualPack} language={lang} onStart={afterStory} />
+        </div>
+      )}
+
+      {stage === "discover" && visualPack && (
+        <div className="animate-fade-up">
+          <ObjectDiscoveryGrid
+            pack={visualPack}
+            language={lang}
+            synthesisSupported={support.synthesis}
+            onComplete={afterDiscovery}
+          />
+        </div>
+      )}
+
       {stage === "learn" && (
         <section className="animate-fade-up">
           <Header eyebrow={t("learnEyebrow", lang)} title={lesson.title} />
-          <LearnIntro lesson={lesson} onStart={() => setStage(firstDrillStage)} />
+          <LearnIntro lesson={lesson} onStart={() => transitionTo(firstDrillStage)} />
         </section>
       )}
 
@@ -257,6 +397,7 @@ export function PracticeSession({
             partner={partnerOf(current, lesson.items)}
             synthesisSupported={support.synthesis}
             lang={lang}
+            visualPack={visualPack}
           />
 
           <div className="my-10 flex items-center gap-4">
@@ -279,10 +420,11 @@ export function PracticeSession({
             onNext={advance}
           />
 
-          {!support.recognition && (
+          {(!support.recognition || !voiceConsentGranted) && (
             <div className="mt-8 text-center">
               <button
-                className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                type="button"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 onClick={advance}
               >
                 {index + 1 < speakQueue.length ? t("skipToNext", lang) : t("continue", lang)}
@@ -310,13 +452,12 @@ export function PracticeSession({
   );
 
   function restart() {
-    setIndex(0);
     setResults({});
     setCombo(0);
     setSessionBestCombo(0);
     setSessionXp(0);
     setSessionStars(0);
-    setStage(hasLearn ? "learn" : firstDrillStage);
+    transitionTo(startStageForLesson(sequence));
   }
 }
 
@@ -325,15 +466,15 @@ function Stepper({ steps, current }: { steps: { key: string; label: string }[]; 
   const activeIdx = current === "done" ? steps.length : steps.findIndex((s) => s.key === current);
   return (
     <nav aria-label="Lesson stages" className="mb-8">
-      <ol className="flex items-center justify-center gap-2">
+      <ol className="flex w-full items-center justify-between gap-1 sm:w-auto sm:justify-center sm:gap-2">
         {steps.map((s, i) => {
           const state = i < activeIdx ? "done" : i === activeIdx ? "active" : "todo";
           return (
             <li key={s.key} className="flex items-center gap-2">
-              {i > 0 && <span className="h-px w-6 bg-hairline" aria-hidden />}
+              {i > 0 && <span className="hidden h-px w-6 bg-hairline sm:block" aria-hidden />}
               <span
                 className={cn(
-                  "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors",
+                  "whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors sm:px-3",
                   state === "active" && "bg-foreground text-background",
                   state === "done" && "text-primary",
                   state === "todo" && "text-muted-foreground/60",
@@ -364,12 +505,18 @@ function ProduceItemCard({
   partner,
   synthesisSupported,
   lang,
+  visualPack,
 }: {
   item: PracticeItem;
   partner?: PracticeItem;
   synthesisSupported: boolean;
   lang: CoachLang;
+  visualPack: VisualTopicPack | null;
 }) {
+  const visualObject = visualPack
+    ? resolveVisualObject(visualPack, item.visualObjectId)
+    : null;
+
   return (
     <div className="flex flex-col items-center text-center">
       {item.note && (
@@ -377,17 +524,23 @@ function ProduceItemCard({
           {item.note}
         </span>
       )}
-      <h1
-        className={cn(
-          "font-display font-medium tracking-[-0.03em] text-foreground",
-          item.kind === "phrase" ? "text-4xl leading-[1.1] sm:text-5xl" : "text-7xl sm:text-8xl",
-        )}
-      >
-        {item.text}
-      </h1>
-      <p className="mt-5 font-ipa text-base text-muted-foreground">{item.ipa}</p>
-      {meaningFor(item.text, item.meaning) && (
-        <p className="mt-3 max-w-md text-base italic text-primary/90">{meaningFor(item.text, item.meaning)}</p>
+      {visualPack && visualObject ? (
+        <ContextPhraseScene pack={visualPack} item={item} language={lang} />
+      ) : (
+        <>
+          <h1
+            className={cn(
+              "font-display font-medium tracking-[-0.03em] text-foreground",
+              item.kind === "phrase" ? "text-4xl leading-[1.1] sm:text-5xl" : "text-7xl sm:text-8xl",
+            )}
+          >
+            {item.text}
+          </h1>
+          <p className="mt-5 font-ipa text-base text-muted-foreground">{item.ipa}</p>
+          {meaningFor(item.text, item.meaning) && (
+            <p className="mt-3 max-w-md text-base italic text-primary/90">{meaningFor(item.text, item.meaning)}</p>
+          )}
+        </>
       )}
       {partner && (
         <p className="mt-3 text-sm text-muted-foreground">

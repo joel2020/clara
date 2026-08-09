@@ -1,10 +1,16 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Check, Circle, Clock3, Headphones, ShieldCheck } from "lucide-react";
 import type { DailyActivity, DailySession } from "@/lib/daily-session";
 import { sessionProgress } from "@/lib/daily-session";
 import { t, type CoachLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
+import { PronunciationGame } from "@/components/practice/pronunciation-game";
+import type { DailyPronunciationGameState } from "@/lib/speech/daily-pronunciation-game";
 import { activityHref } from "./navigation";
+import type { PracticePersistenceBinding } from "@/lib/db/repository";
 
 export function ActivityShell({
   session,
@@ -12,13 +18,16 @@ export function ActivityShell({
   lang,
   transitioning,
   onComplete,
+  onPronunciationStateChange,
 }: {
   session: DailySession;
   activity: DailyActivity;
   lang: CoachLang;
   transitioning: boolean;
   onComplete: () => void;
+  onPronunciationStateChange?: (state: DailyPronunciationGameState, binding: PracticePersistenceBinding) => Promise<void>;
 }) {
+  const speechSupport = useSpeechSupport();
   const progress = sessionProgress(session);
   const index = session.activities.findIndex((entry) => entry.id === activity.id);
   const remainingMinutes = session.activities
@@ -98,7 +107,21 @@ export function ActivityShell({
           </p>
         </div>
 
-        {href ? (
+        {activity.pronunciation ? (
+          <div className="mt-7 border-t border-hairline pt-7">
+            <PronunciationGame
+              activity={activity.pronunciation}
+              day={session.day}
+              activityId={activity.id}
+              lessonId={activity.sourceId}
+              itemPool={activity.pronunciation.itemPool ?? activity.pronunciation.targets}
+              recognitionSupported={speechSupport?.recognition ?? false}
+              combo={0}
+              onStateChange={onPronunciationStateChange}
+              onComplete={() => {}}
+            />
+          </div>
+        ) : href ? (
           <Link
             href={href}
             className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-foreground px-5 py-3 font-semibold text-background transition-opacity hover:opacity-90 active:scale-[0.995]"

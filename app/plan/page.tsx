@@ -43,7 +43,7 @@ interface Week {
 const WEEKS: Week[] = [
   // Fase 1 — Fundamentos
   { n: 1, phase: { es: "Fundamentos", en: "Foundations" }, conv: { es: "Saludos y presentaciones", en: "Greetings & introductions", href: "/lesson/conv-greetings" }, sounds: { es: "I corta vs ii larga", en: "Short i vs Long ee" }, live: { es: "Preséntate una y otra vez — nombre, origen, a qué te dedicas.", en: "Introduce yourself over and over — name, origin, what you do." } },
-  { n: 2, conv: { es: "Café y restaurante", en: "Café & restaurant", href: "/lesson/conv-cafe" }, sounds: { es: "B vs V", en: "B vs V" }, live: { es: "Con Joel: pide todo un menú, de la mesa a la cuenta.", en: "With Joel: order a whole menu, from the table to the check." } },
+  { n: 2, conv: { es: "Café y restaurante", en: "Café & restaurant", href: "/lesson/conv-cafe" }, sounds: { es: "B vs V", en: "B vs V" }, live: { es: "Con Lumi: pide todo un menú, de la mesa a la cuenta.", en: "With Lumi: order a whole menu, from the table to the check." } },
   { n: 3, conv: { es: "Direcciones", en: "Directions", href: "/lesson/conv-directions" }, sounds: { es: "Los sonidos TH", en: "The TH sounds" }, live: { es: "Pregunta y da direcciones por turnos con un mapa real.", en: "Ask for and give directions in turns with a real map." } },
   { n: 4, conv: { es: "Compras", en: "Shopping", href: "/lesson/conv-shopping" }, sounds: { es: "La H", en: "The H sound" }, live: { es: "Tienda: precios, tallas, pagar. Repasa las semanas 1–2.", en: "Store: prices, sizes, paying. Recycle weeks 1–2." } },
   // Fase 2 — El día a día
@@ -98,8 +98,8 @@ export default function PlanPage() {
         </h1>
         <p className="mt-5 max-w-lg text-muted-foreground">
           {es
-            ? `El plan${name ? ` de ${name}` : ""}: 15–30 minutos al día. Cada día haces tu sesión guiada — repaso, la unidad de la semana y una conversación con Joel. La app te enseña, te corrige y te lleva de la mano.`
-            : `The plan${name ? ` for ${name}` : ""}: 15–30 minutes a day. Each day you do your guided session — review, the week's unit, and a conversation with Joel. The app teaches, corrects, and walks you through it.`}
+            ? `El plan${name ? ` de ${name}` : ""}: 15–30 minutos al día. Cada día haces tu sesión guiada — repaso, la unidad de la semana y una conversación con Lumi, tu guía de IA. La app te enseña, te corrige y te lleva de la mano.`
+            : `The plan${name ? ` for ${name}` : ""}: 15–30 minutes a day. Each day you do your guided session — review, the week's unit, and a conversation with Lumi, your AI guide. The app teaches, corrects, and walks you through it.`}
         </p>
       </header>
 
@@ -113,19 +113,19 @@ export default function PlanPage() {
           <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-foreground/85">
             <li>{es ? "1 · Tu repaso pendiente (primero, siempre)" : "1 · Your review queue (first, always)"}</li>
             <li>{es ? "2 · La unidad de conversación de la semana" : "2 · The week's conversation unit"}</li>
-            <li>{es ? "3 · Una conversación con Joel sobre esa unidad" : "3 · A conversation with Joel about that unit"}</li>
+            <li>{es ? "3 · Una conversación con Lumi sobre esa unidad" : "3 · A conversation with Lumi about that unit"}</li>
             <li>{es ? "4 · La lección de sonidos de la semana" : "4 · The week's sound lesson"}</li>
           </ul>
         </div>
         <div className="rounded-2xl border border-hairline bg-card p-5">
           <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
             <Users className="size-4" />
-            {es ? "Conversación con Joel (IA)" : "Conversation with Joel (AI)"}
+            {es ? "Conversación con Lumi (IA)" : "Conversation with Lumi (AI)"}
           </p>
           <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-foreground/85">
             <li>{es ? "Elige un escenario: café, direcciones, planes…" : "Pick a scenario: café, directions, plans…"}</li>
-            <li>{es ? "Habla de verdad — Joel responde con su voz" : "Really talk — Joel answers in his voice"}</li>
-            <li>{es ? "Te corrige con cariño y guarda lo difícil para repasar" : "He corrects gently and saves the hard bits to review"}</li>
+            <li>{es ? "Habla de verdad — Lumi responde como guía de IA" : "Really talk — Lumi replies as an AI guide"}</li>
+            <li>{es ? "Te corrige con cariño y guarda lo difícil para repasar" : "Lumi corrects gently and saves the hard bits to review"}</li>
           </ul>
         </div>
       </div>
@@ -181,7 +181,7 @@ export default function PlanPage() {
                     {es ? w.sounds.es : w.sounds.en}
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-foreground/80">
-                    <span className="font-medium text-primary">{es ? "Con Joel: " : "With Joel: "}</span>
+                    <span className="font-medium text-primary">{es ? "Con Lumi: " : "With Lumi: "}</span>
                     {es ? w.live.es : w.live.en}
                   </p>
                 </div>

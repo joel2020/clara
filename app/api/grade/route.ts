@@ -9,7 +9,8 @@
 
 import type OpenAI from "openai";
 import { guardApi } from "@/lib/api-guard";
-import { requireUser } from "@/lib/auth-server";
+import { requireAllowedUserIdentity } from "@/lib/auth-server";
+import { enforcePaidApiQuota } from "@/lib/api-quota";
 import { getChatModel } from "@/lib/ai/chat-client";
 
 export const runtime = "nodejs";
@@ -77,8 +78,10 @@ function systemPrompt(kind: "retell" | "openResponse", level: string): string {
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
-  if (unauth) return unauth;
+  const identity = await requireAllowedUserIdentity(request);
+  if ("response" in identity) return identity.response;
+  const quota = await enforcePaidApiQuota({ userId: identity.user.id, route: "grade" });
+  if (quota) return quota;
 
   const brain = getChatModel();
   if (!brain) return Response.json({ error: "not_configured" }, { status: 503 });

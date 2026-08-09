@@ -1,0 +1,34 @@
+{
+  "RecognitionStatus": "Success",
+  "DisplayText": "Very.",
+  "NBest": [
+    {
+      "Display": "very",
+      "PronunciationAssessment": {
+        "PronScore": 84.4,
+        "AccuracyScore": 82.6,
+        "FluencyScore": 88.1,
+        "CompletenessScore": 100
+      },
+      "Words": [
+        {
+          "Word": "very",
+          "PronunciationAssessment": {
+            "AccuracyScore": 82.6,
+            "ErrorType": "Mispronunciation"
+          },
+          "Phonemes": [
+            {
+              "Phoneme": "v",
+              "PronunciationAssessment": { "AccuracyScore": 68.2 }
+            },
+            {
+              "Phoneme": "ɛ",
+              "PronunciationAssessment": { "AccuracyScore": 91.4 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

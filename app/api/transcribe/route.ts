@@ -1,10 +1,11 @@
 // Server-side speech-to-text for browsers without the Web Speech API — most
-// importantly iOS Safari, which Mariana uses. The client records audio with
-// MediaRecorder and posts it here; we forward it to ElevenLabs Scribe and return
+// importantly iOS Safari, which Mariana uses. The client records WAV audio and
+// posts it here; we forward it to ElevenLabs Scribe and return
 // the transcript. The API key stays on the server.
 
 import { guardApi } from "@/lib/api-guard";
-import { requireUser } from "@/lib/auth-server";
+import { requireAllowedUserIdentity } from "@/lib/auth-server";
+import { enforcePaidApiQuota } from "@/lib/api-quota";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -12,8 +13,10 @@ export const maxDuration = 30;
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
-  if (unauth) return unauth;
+  const identity = await requireAllowedUserIdentity(request);
+  if ("response" in identity) return identity.response;
+  const quota = await enforcePaidApiQuota({ userId: identity.user.id, route: "transcribe" });
+  if (quota) return quota;
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
@@ -36,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const out = new FormData();
-  out.append("file", file, "attempt.webm");
+  out.append("file", file, "attempt.wav");
   out.append("model_id", "scribe_v1");
   out.append("language_code", "eng");
 

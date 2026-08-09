@@ -14,7 +14,7 @@ import { createRecognition, type RecognitionHandle } from "@/lib/speech/recognit
 import { repo } from "@/lib/db";
 import { recordQuestEvent } from "@/lib/quests";
 import { weakestItems } from "@/lib/weak-items";
-import { JoelAvatar } from "@/components/joel-avatar";
+import { Lumi } from "@/components/lumi";
 import { ScenarioGlyph } from "@/components/system/scenario-glyph";
 import { Splash } from "@/components/splash";
 import { authHeaders } from "@/lib/auth-client";
@@ -45,12 +45,12 @@ function convItemId(phrase: string): string {
 }
 
 // The live conversation partner. She picks a situation, then really talks with
-// Joel: she speaks, the server transcribes + asks Claude for Joel's next line,
-// and it plays back in Joel's own voice. A gentle tip and a couple of "you
+// Lumi: she speaks, the server transcribes + asks the model for Lumi's next line,
+// and it plays back as the AI guide. A gentle tip and a couple of "you
 // could say…" prompts keep an A1–A2 beginner moving without freezing.
 
 interface Turn {
-  role: "joel" | "her";
+  role: "lumi" | "her";
   en: string;
   es?: string;
 }
@@ -88,7 +88,7 @@ function TalkContent() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recRef = useRef<RecognitionHandle | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const lastJoelLine = useRef<string>("");
+  const lastLumiLine = useRef<string>("");
   // Session tracking for the ten-minute milestone. Refs, not state: these are
   // written from audio callbacks and timeouts, where a closure would go stale.
   const sessionStart = useRef<number | null>(null);
@@ -108,9 +108,9 @@ function TalkContent() {
     };
   }, []);
 
-  // Her weakest items — Joel quietly works them into the conversation.
+  // Her weakest items — Lumi quietly works them into the conversation.
   // Conversation track ONLY: sounds-track items are isolated pronunciation
-  // targets ("vase", "base", "boat"), and asking Joel to work those into a scene
+  // targets ("vase", "base", "boat"), and asking Lumi to work those into a scene
   // produced nonsense turns. Those belong in the sound drills, not here.
   useEffect(() => {
     void repo.getAllProgress().then((all) => {
@@ -124,7 +124,7 @@ function TalkContent() {
   }, [turns, phase, correction, suggestions]);
 
   const speak = useCallback(async (text: string) => {
-    lastJoelLine.current = text;
+    lastLumiLine.current = text;
     try {
       const res = await fetch("/api/tts", {
         method: "POST",
@@ -163,7 +163,7 @@ function TalkContent() {
       setScenario(s);
       const openerEn = personalize(s.opener.en, studentName);
       const openerEs = personalize(s.opener.es, studentName);
-      setTurns([{ role: "joel", en: openerEn, es: openerEs }]);
+      setTurns([{ role: "lumi", en: openerEn, es: openerEs }]);
       setCorrection(null);
       setSuggestions(personalizeList(s.starters, studentName));
       setError(null);
@@ -219,7 +219,7 @@ function TalkContent() {
     setNotConfigured(false);
   }, [completedHref, router, saveSession]);
 
-  // Send the running conversation to Joel and handle his reply.
+  // Send the running conversation to Lumi and handle the AI guide's reply.
   const send = useCallback(
     async (herLine: string, nextTurns: Turn[]) => {
       if (!scenario) return;
@@ -260,7 +260,7 @@ function TalkContent() {
           suggestions: string[];
           practice: { phrase: string; meaning: string } | null;
         };
-        setTurns((prev) => [...prev, { role: "joel", en: data.reply, es: data.reply_es }]);
+        setTurns((prev) => [...prev, { role: "lumi", en: data.reply, es: data.reply_es }]);
         setCorrection(data.correction);
         setSuggestions(data.suggestions ?? []);
         setPhase("idle");
@@ -294,7 +294,7 @@ function TalkContent() {
     },
     // focusWords / level / goal load asynchronously after mount, so they must be
     // deps — otherwise this callback keeps the empty values it closed over and
-    // Joel never sees her level, goal, or practice phrases.
+    // Lumi never sees her level, goal, or practice phrases.
     [scenario, studentName, level, goal, focusWords, lang, speak],
   );
 
@@ -426,8 +426,8 @@ function TalkContent() {
             key={i}
             turn={turn}
             lang={lang}
-            speaking={turn.role === "joel" && i === turns.length - 1 && speaking}
-            onReplay={turn.role === "joel" ? () => void speak(turn.en) : undefined}
+            speaking={turn.role === "lumi" && i === turns.length - 1 && speaking}
+            onReplay={turn.role === "lumi" ? () => void speak(turn.en) : undefined}
             replayLabel={t("talkReplay", lang)}
           />
         ))}
@@ -551,26 +551,26 @@ function Bubble({
   onReplay?: () => void;
   replayLabel: string;
 }) {
-  const isJoel = turn.role === "joel";
+  const isLumi = turn.role === "lumi";
   return (
-    <div className={cn("flex flex-col gap-1", isJoel ? "items-start" : "items-end")}>
+    <div className={cn("flex flex-col gap-1", isLumi ? "items-start" : "items-end")}>
       <div className="flex max-w-[92%] items-end gap-2">
-        {isJoel && <JoelAvatar speaking={speaking} className="mb-1" />}
+        {isLumi && <Lumi mood={speaking ? "encourage" : "idle"} frame="bust" className="mb-1 size-8" />}
         <div
           className={cn(
             "rounded-2xl px-4 py-3 leading-relaxed",
-            isJoel ? "rounded-bl-md border border-hairline bg-card" : "bg-primary text-primary-foreground",
+            isLumi ? "rounded-bl-md border border-hairline bg-card" : "bg-primary text-primary-foreground",
           )}
         >
           <p className="font-medium">{turn.en}</p>
           {turn.es && lang === "es" && (
-            <p className={cn("mt-1 text-sm", isJoel ? "text-muted-foreground" : "text-primary-foreground/75")}>
+            <p className={cn("mt-1 text-sm", isLumi ? "text-muted-foreground" : "text-primary-foreground/75")}>
               {turn.es}
             </p>
           )}
         </div>
       </div>
-      {isJoel && onReplay && (
+      {isLumi && onReplay && (
         <button
           type="button"
           onClick={onReplay}

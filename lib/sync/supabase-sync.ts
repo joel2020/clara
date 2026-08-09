@@ -1,8 +1,25 @@
 "use client";
 
 import { supabase, syncEnabled } from "../db/supabase.ts";
-import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "../db/types.ts";
+import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ExamCompletionPayload, ItemProgress, Lesson, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "../db/types.ts";
 import type { DailySession } from "../daily-session.ts";
+import { sanitizeDailySessionPayload } from "../daily-session-sanitizer.ts";
+import {
+  attemptOutboxPayload,
+  canonicalAttemptIdentity,
+  examCompletionOutboxPayload,
+  failedExamOutboxPayload,
+  playerOutboxPayload,
+  progressOutboxPayload,
+  questOutboxPayload,
+  sanitizeAttempt,
+  sanitizeNewAttempt,
+  sanitizeOnboardingForSync,
+  sanitizeSettingsSyncPayload,
+  sanitizeVoiceConsentForSync,
+  virtualCallOutboxPayload,
+} from "../db/repository.ts";
+import { ensureProfileSingleFlight, writeProfileThenSettings, type ProfileWriteFlight } from "./profile-settings-sync.ts";
 
 // The cloud-sync layer. The app writes to Dexie first (instant, offline); these
 // helpers mirror each profile's data to Supabase in the background and can pull
@@ -72,7 +89,7 @@ function bg(p: PromiseLike<unknown> | undefined, label: string): void {
 // hands it the payload for retry. Kept as a registration to avoid an import
 // cycle, and so this module stays inert in tests and on the server.
 
-export type DurableKind = "attempt" | "exam" | "call" | "talk" | "daily-session" | "virtual-call";
+export type DurableKind = "attempt" | "progress" | "player" | "quest" | "exam" | "exam-completion" | "call" | "talk" | "daily-session" | "virtual-call" | "settings";
 
 let outboxSink: ((kind: DurableKind, profileId: string, payload: unknown) => void) | null = null;
 
@@ -99,31 +116,144 @@ function bgDurable(p: PromiseLike<unknown> | undefined, label: string, kind: Dur
     });
 }
 
+function progressRow(profileId: string, p: ItemProgress) {
+  return {
+    profile_id: profileId,
+    item_id: p.itemId,
+    lesson_id: p.lessonId,
+    category_id: p.categoryId,
+    phoneme: p.phoneme,
+    attempts: p.attempts,
+    passes: p.passes,
+    box: p.box,
+    due_at: p.dueAt,
+    last_result: p.lastResult,
+    last_score: p.lastScore,
+    updated_at: p.updatedAt,
+  };
+}
+
+function playerRows(profileId: string, s: PlayerStats) {
+  const base = {
+    profile_id: profileId,
+    xp: s.xp,
+    current_streak: s.currentStreak,
+    longest_streak: s.longestStreak,
+    last_active_day: s.lastActiveDay,
+    today_key: s.todayKey,
+    today_xp: s.todayXp,
+    total_attempts: s.totalAttempts,
+    total_passes: s.totalPasses,
+    best_combo: s.bestCombo,
+    achievements: s.achievements,
+    updated_at: s.updatedAt,
+  };
+  const economy = {
+    stars: s.stars ?? 0,
+    owned_cosmetics: s.ownedCosmetics ?? [],
+    equipped_bg: s.equippedBg ?? "bg-default",
+    equipped_accessory: s.equippedAccessory ?? "acc-none",
+    equipped_effect: s.equippedEffect ?? "fx-none",
+    last_chest_day: s.lastChestDay ?? null,
+    streak_freezes: s.streakFreezes ?? 0,
+    freeze_used_day: s.freezeUsedDay ?? null,
+  };
+  return [
+    { ...base, ...economy, equipped_pet: s.equippedPet ?? "pet-none", equipped_outfit: s.equippedOutfit ?? "outfit-default" },
+    { ...base, ...economy, equipped_pet: s.equippedPet ?? "pet-none" },
+    { ...base, ...economy },
+    base,
+  ];
+}
+
+function questRow(profileId: string, q: DailyQuestState) {
+  return { profile_id: profileId, day: q.day, state: q, updated_at: Date.now() };
+}
+
 /**
- * Deliver one queued row, idempotently. Exam/call/talk land on their natural
- * unique keys; `attempts` has no unique constraint, so replay checks for the
- * (profile_id, at) pair before inserting — a duplicate practice rep in the
- * mirror would double-count history. Returns true when the cloud definitely
- * has the row (delivered now or already there); false = try again later.
+ * Deliver one queued row idempotently. Modern attempts use their unique client
+ * UUID; historical UUID-less retries compare the complete canonical evidence
+ * identity among same-timestamp rows before inserting.
  */
 export async function deliverQueued(kind: DurableKind, profileId: string, payload: unknown): Promise<boolean> {
   const sb = supabase();
   if (!ok() || !sb) return false;
   try {
     if (kind === "attempt") {
-      const a = payload as Attempt;
-      const { data, error: selErr } = await sb.from("attempts").select("at").eq("profile_id", profileId).eq("at", a.at).limit(1);
-      if (selErr) return false;
-      if (data && data.length > 0) return true; // already mirrored
+      const a = sanitizeAttempt(payload);
+      if (!a) return true;
+      if (a.clientAttemptId) {
+        const { data, error: selErr } = await sb
+          .from("attempts")
+          .select("id")
+          .eq("profile_id", profileId)
+          .eq("client_attempt_id", a.clientAttemptId)
+          .limit(1);
+        if (selErr) return false;
+        if (data && data.length > 0) return true;
+      } else {
+        const { data, error: selErr } = await sb
+          .from("attempts")
+          .select(ATTEMPT_IDENTITY_SELECT)
+          .eq("profile_id", profileId)
+          .eq("at", a.at);
+        if (selErr) return false;
+        if (hasCanonicalLegacyAttempt(profileId, a, data ?? [])) return true;
+      }
+      // A historical UUID-less outbox row is still deliverable. Malformed
+      // explicit UUIDs were rejected by sanitizeAttempt above.
       const { error } = await sb.from("attempts").insert(attemptRow(profileId, a));
       return !error;
     }
+    if (kind === "progress") {
+      const progress = progressOutboxPayload(payload);
+      if (!progress) return true;
+      const { error } = await sb.from("progress").upsert(progressRow(profileId, progress), { onConflict: "profile_id,item_id" });
+      return !error;
+    }
+    if (kind === "player") {
+      const player = playerOutboxPayload(payload);
+      if (!player) return true;
+      for (const row of playerRows(profileId, player)) {
+        const { error } = await sb.from("player_stats").upsert(row, { onConflict: "profile_id" });
+        if (!error) return true;
+      }
+      return false;
+    }
+    if (kind === "quest") {
+      const quest = questOutboxPayload(payload);
+      if (!quest) return true;
+      const { error } = await sb.from("quests").upsert(questRow(profileId, quest), { onConflict: "profile_id,day" });
+      return !error;
+    }
     if (kind === "exam") {
-      const { error } = await sb.from("exam_attempts").upsert(examRow(profileId, payload as ExamAttempt), { onConflict: "profile_id,day", ignoreDuplicates: true });
+      const failed = failedExamOutboxPayload(payload);
+      if (!failed) return true;
+      const { error } = await sb.from("exam_attempts").upsert(examRow(profileId, failed), { onConflict: "profile_id,day", ignoreDuplicates: true });
+      return !error;
+    }
+    if (kind === "exam-completion") {
+      const completion = examCompletionOutboxPayload(payload);
+      const e = completion?.attempt;
+      if (!e || !/^\d{4}-\d{2}-\d{2}$/.test(e.day) || !["A0", "A1", "A2", "B1", "B2", "C1", "C2"].includes(e.level)
+        || !Number.isSafeInteger(e.at) || !Number.isFinite(e.score) || e.score < 0 || e.score > 100
+        || typeof e.passed !== "boolean" || !e.sections || typeof e.sections !== "object") return true;
+      const { error } = await sb.rpc("complete_stage_exam", {
+        p_day: e.day,
+        p_at: e.at,
+        p_level: e.level,
+        p_score: e.score,
+        p_passed: e.passed,
+        p_sections: e.sections,
+        p_weakest: e.weakest,
+        p_target_level: completion.targetLevel,
+      });
       return !error;
     }
     if (kind === "virtual-call") {
-      const { error } = await sb.from("virtual_calls").upsert(virtualCallRow(profileId, payload as VirtualCallRecord), { onConflict: "profile_id,at", ignoreDuplicates: true });
+      const row = virtualCallRow(profileId, payload as VirtualCallRecord);
+      if (!row) return true;
+      const { error } = await sb.from("virtual_calls").upsert(row, { onConflict: "profile_id,at", ignoreDuplicates: true });
       return !error;
     }
     if (kind === "call") {
@@ -136,6 +266,20 @@ export async function deliverQueued(kind: DurableKind, profileId: string, payloa
       const { error } = await sb.rpc("merge_daily_session", dailySessionArgs(session));
       return !error;
     }
+    if (kind === "settings") {
+      const safe = sanitizeSettingsSyncPayload(payload);
+      if (!safe || safe.profile.id !== profileId) return true;
+      return writeProfileThenSettings(safe, {
+        writeProfile: async (profile) => {
+          const { error } = await sb.from("profiles").upsert(profileRow(profile), { onConflict: "id" });
+          return !error;
+        },
+        writeSettings: async (settings) => {
+          const { error } = await sb.from("settings").upsert(settingsRow(settings), { onConflict: "profile_id" });
+          return !error;
+        },
+      }, profileWriteFlights);
+    }
     const { error } = await sb.from("talk_sessions").upsert(talkRow(profileId, payload as TalkSession), { onConflict: "profile_id,at", ignoreDuplicates: true });
     return !error;
   } catch {
@@ -145,18 +289,20 @@ export async function deliverQueued(kind: DurableKind, profileId: string, payloa
 
 // ── Profiles ─────────────────────────────────────────────────────────────────
 
+const profileWriteFlights = new Map<string, ProfileWriteFlight>();
+
+function profileRow(profile: Profile) {
+  return { id: profile.id, name: profile.name, coach_language: profile.coachLanguage, updated_at: Date.now() };
+}
+
 export async function ensureProfile(profile: Profile): Promise<void> {
   const sb = supabase();
   if (!sb) return;
-  await sb.from("profiles").upsert(
-    {
-      id: profile.id,
-      name: profile.name,
-      coach_language: profile.coachLanguage,
-      updated_at: Date.now(),
-    },
-    { onConflict: "id" },
-  );
+  const written = await ensureProfileSingleFlight(profile, async (candidate) => {
+    const { error } = await sb.from("profiles").upsert(profileRow(candidate), { onConflict: "id" });
+    return !error;
+  }, profileWriteFlights);
+  if (!written) throw new Error("Profile sync failed");
 }
 
 export async function getProfile(id: string): Promise<Profile | null> {
@@ -183,86 +329,93 @@ export async function listProfiles(): Promise<Profile[]> {
 function attemptRow(profileId: string, a: Attempt) {
   return {
     profile_id: profileId,
+    client_attempt_id: a.clientAttemptId ?? null,
     item_id: a.itemId,
     lesson_id: a.lessonId,
     category_id: a.categoryId,
     phoneme: a.phoneme,
     target: a.target,
-    heard: a.heard,
     score: a.score,
     passed: a.passed,
-    heard_partner: a.heardPartner ?? false,
+    heard_partner: a.heardPartner ?? null,
     fluency: a.fluency ?? null,
+    policy_version: a.policyVersion ?? null,
+    provider_status: a.providerStatus ?? null,
+    pronunciation_score: a.pronunciationScore ?? null,
+    accuracy_score: a.accuracyScore ?? null,
+    completeness_score: a.completenessScore ?? null,
+    prosody_score: a.prosodyScore ?? null,
+    target_phoneme_score: a.targetPhonemeScore ?? null,
+    weakest_phoneme: a.weakestPhoneme ?? null,
+    weakest_word: a.weakestWord ?? null,
+    attempt_ordinal: a.attemptOrdinal ?? null,
+    pronunciation_outcome: a.pronunciationOutcome ?? null,
     at: a.at,
   };
+}
+
+const ATTEMPT_IDENTITY_SELECT = [
+  "profile_id", "client_attempt_id", "item_id", "lesson_id", "category_id",
+  "phoneme", "target", "score", "passed", "heard_partner", "at", "fluency",
+  "policy_version", "provider_status", "pronunciation_score", "accuracy_score",
+  "completeness_score", "prosody_score", "target_phoneme_score",
+  "weakest_phoneme", "weakest_word", "attempt_ordinal", "pronunciation_outcome",
+].join(",");
+
+/** Shared canonical comparison used by historical outbox replay. */
+export function hasCanonicalLegacyAttempt(
+  profileId: string,
+  value: unknown,
+  cloudRows: readonly unknown[],
+): boolean {
+  const attempt = sanitizeAttempt(value);
+  if (!attempt || attempt.clientAttemptId) return false;
+  const expected = canonicalAttemptIdentity(attempt);
+  if (!expected) return false;
+  return cloudRows.some((row) => {
+    const restored = restoreAttemptFromCloud(row, profileId);
+    return restored !== null && canonicalAttemptIdentity(restored) === expected;
+  });
+}
+
+/** Explicit privacy boundary for every live and retry attempt write. */
+export function serializeAttemptForCloud(profileId: string, value: unknown) {
+  const attempt = sanitizeNewAttempt(value);
+  return attempt ? attemptRow(profileId, attempt) : null;
 }
 
 export function pushAttempt(profileId: string, a: Attempt): void {
   const sb = supabase();
   if (!ok() || !sb) return;
-  bgDurable(sb.from("attempts").insert(attemptRow(profileId, a)), "attempts", "attempt", profileId, a);
+  const safe = sanitizeNewAttempt(a);
+  if (!safe) return;
+  const row = serializeAttemptForCloud(profileId, safe);
+  const retryPayload = attemptOutboxPayload(safe);
+  if (!row || !retryPayload) return;
+  bgDurable(
+    sb.from("attempts").insert(row),
+    "attempts",
+    "attempt",
+    profileId,
+    retryPayload,
+  );
 }
 
 export function pushProgress(profileId: string, p: ItemProgress): void {
   const sb = supabase();
   if (!ok() || !sb) return;
   bg(
-    sb.from("progress").upsert(
-      {
-        profile_id: profileId,
-        item_id: p.itemId,
-        lesson_id: p.lessonId,
-        category_id: p.categoryId,
-        phoneme: p.phoneme,
-        attempts: p.attempts,
-        passes: p.passes,
-        box: p.box,
-        due_at: p.dueAt,
-        last_result: p.lastResult,
-        last_score: p.lastScore,
-        updated_at: p.updatedAt,
-      },
-      { onConflict: "profile_id,item_id" },
-    ), "progress");
+    sb.from("progress").upsert(progressRow(profileId, p), { onConflict: "profile_id,item_id" }),
+    "progress");
 }
 
 export function pushPlayer(profileId: string, s: PlayerStats): void {
   const sb = supabase();
   if (!ok() || !sb) return;
-  const base = {
-    profile_id: profileId,
-    xp: s.xp,
-    current_streak: s.currentStreak,
-    longest_streak: s.longestStreak,
-    last_active_day: s.lastActiveDay,
-    today_key: s.todayKey,
-    today_xp: s.todayXp,
-    total_attempts: s.totalAttempts,
-    total_passes: s.totalPasses,
-    best_combo: s.bestCombo,
-    achievements: s.achievements,
-    updated_at: s.updatedAt,
-  };
-  // The game economy — stars, wardrobe, chest, freezes — is progress too.
-  const economy = {
-    stars: s.stars ?? 0,
-    owned_cosmetics: s.ownedCosmetics ?? [],
-    equipped_bg: s.equippedBg ?? "bg-default",
-    equipped_accessory: s.equippedAccessory ?? "acc-none",
-    equipped_effect: s.equippedEffect ?? "fx-none",
-    last_chest_day: s.lastChestDay ?? null,
-    streak_freezes: s.streakFreezes ?? 0,
-    freeze_used_day: s.freezeUsedDay ?? null,
-  };
   // Cascade from richest payload to safest: a cloud schema missing a newer
   // column rejects the whole row, so drop back a tier instead of losing the
   // rest of her progress. (equipped_pet is the newest column.)
-  const payloads = [
-    { ...base, ...economy, equipped_pet: s.equippedPet ?? "pet-none", equipped_outfit: s.equippedOutfit ?? "outfit-default" },
-    { ...base, ...economy, equipped_pet: s.equippedPet ?? "pet-none" },
-    { ...base, ...economy },
-    base,
-  ];
+  const payloads = playerRows(profileId, s);
   bg(
     (async () => {
       for (const payload of payloads) {
@@ -272,32 +425,22 @@ export function pushPlayer(profileId: string, s: PlayerStats): void {
     })(), "player_stats");
 }
 
-export function pushSettings(profileId: string, s: Settings): void {
-  const sb = supabase();
-  if (!ok() || !sb) return;
-  bg(
-    sb.from("settings").upsert(
-      {
-        profile_id: profileId,
-        daily_goal: s.dailyGoal,
-        speech_rate: s.speechRate,
-        voice_uri: s.voiceURI ?? null,
-        recognition_lang: s.recognitionLang,
-        // Persist identity + placement so a fresh device restores them instead
-        // of re-running onboarding as if she were brand new.
-        student_name: s.studentName ?? null,
-        onboarding: s.onboarding ?? null,
-        // Preferences that were device-only before: without them a student
-        // signing in elsewhere loses her coaching language, her difficulty mode
-        // and her sound choice, and the app stops feeling like hers.
-        coach_language: s.coachLanguage,
-        difficulty: s.difficulty,
-        sound_enabled: s.soundEnabled,
-        instructor_mode: s.instructorMode,
-        updated_at: Date.now(),
-      },
-      { onConflict: "profile_id" },
-    ), "settings");
+function settingsRow(s: NonNullable<ReturnType<typeof sanitizeSettingsSyncPayload>>["settings"]) {
+  return {
+    profile_id: s.profileId,
+    daily_goal: s.dailyGoal,
+    speech_rate: s.speechRate,
+    voice_uri: s.voiceURI,
+    recognition_lang: s.recognitionLang,
+    student_name: s.studentName,
+    onboarding: s.onboarding,
+    coach_language: s.coachLanguage,
+    difficulty: s.difficulty,
+    sound_enabled: s.soundEnabled,
+    instructor_mode: s.instructorMode,
+    voice_consent: s.voiceConsent,
+    updated_at: Date.now(),
+  };
 }
 
 export function pushCustomLesson(lesson: Lesson): void {
@@ -348,6 +491,7 @@ export interface PulledSettings {
   difficulty?: Settings["difficulty"];
   soundEnabled?: boolean;
   instructorMode?: boolean;
+  voiceConsent?: Settings["voiceConsent"];
 }
 
 export async function pullSettings(profileId: string): Promise<PulledSettings | null> {
@@ -355,21 +499,24 @@ export async function pullSettings(profileId: string): Promise<PulledSettings | 
   if (!sb) return null;
   const { data } = await sb
     .from("settings")
-    .select("daily_goal,speech_rate,voice_uri,recognition_lang,student_name,onboarding,coach_language,difficulty,sound_enabled,instructor_mode")
+    .select("daily_goal,speech_rate,voice_uri,recognition_lang,student_name,onboarding,coach_language,difficulty,sound_enabled,instructor_mode,voice_consent")
     .eq("profile_id", profileId)
     .maybeSingle();
   if (!data) return null;
+  const onboarding = sanitizeOnboardingForSync(data.onboarding ?? null);
+  const voiceConsent = sanitizeVoiceConsentForSync(data.voice_consent);
   return {
     dailyGoal: data.daily_goal ?? undefined,
     speechRate: data.speech_rate ?? undefined,
     voiceURI: data.voice_uri ?? undefined,
     recognitionLang: data.recognition_lang ?? undefined,
     studentName: data.student_name ?? undefined,
-    onboarding: (data.onboarding as Settings["onboarding"]) ?? undefined,
+    onboarding: onboarding ?? undefined,
     coachLanguage: (data.coach_language as Settings["coachLanguage"]) ?? undefined,
     difficulty: (data.difficulty as Settings["difficulty"]) ?? undefined,
     soundEnabled: data.sound_enabled ?? undefined,
     instructorMode: data.instructor_mode ?? undefined,
+    voiceConsent: voiceConsent === undefined ? undefined : voiceConsent,
   };
 }
 
@@ -405,21 +552,53 @@ export async function pullProfileData(profileId: string): Promise<PulledData | n
     sb.from("player_stats").select("*").eq("profile_id", profileId).maybeSingle(),
   ]);
 
-  const attempts: Attempt[] = (attemptsRes.data ?? []).map((r) => ({
-    itemId: r.item_id,
-    lessonId: r.lesson_id,
-    categoryId: r.category_id,
-    phoneme: r.phoneme,
-    target: r.target,
-    heard: r.heard,
-    score: r.score,
-    passed: r.passed,
-    heardPartner: r.heard_partner,
-    at: r.at,
-    fluency: r.fluency ?? undefined,
-  }));
+  const attempts: Attempt[] = (attemptsRes.data ?? [])
+    .map((row) => restoreAttemptFromCloud(row, profileId))
+    .filter((attempt): attempt is Attempt => attempt !== null);
 
   return { attempts, progress: mapProgress(progressRes.data ?? []), player: mapPlayer(playerRes.data) };
+}
+
+/**
+ * Restore a bounded row only when its RLS owner also matches the requested
+ * account. The historical `heard` column is intentionally not repopulated.
+ */
+export function restoreAttemptFromCloud(value: unknown, expectedProfileId: string): Attempt | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Row;
+  if (
+    typeof row.profile_id !== "string"
+    || row.profile_id.trim().toLowerCase() !== expectedProfileId.trim().toLowerCase()
+    || typeof row.item_id !== "string"
+    || typeof row.at !== "number"
+    || !Number.isFinite(row.at)
+  ) {
+    return null;
+  }
+  return sanitizeAttempt({
+    clientAttemptId: row.client_attempt_id ?? undefined,
+    itemId: row.item_id,
+    lessonId: typeof row.lesson_id === "string" ? row.lesson_id : "",
+    categoryId: typeof row.category_id === "string" ? row.category_id : "",
+    phoneme: typeof row.phoneme === "string" ? row.phoneme : "",
+    target: typeof row.target === "string" ? row.target : "",
+    score: row.score,
+    passed: row.passed,
+    heardPartner: row.heard_partner,
+    at: row.at,
+    fluency: row.fluency ?? undefined,
+    policyVersion: row.policy_version ?? undefined,
+    providerStatus: row.provider_status ?? undefined,
+    pronunciationScore: row.pronunciation_score ?? undefined,
+    accuracyScore: row.accuracy_score ?? undefined,
+    completenessScore: row.completeness_score ?? undefined,
+    prosodyScore: row.prosody_score ?? undefined,
+    targetPhonemeScore: row.target_phoneme_score ?? undefined,
+    weakestPhoneme: row.weakest_phoneme ?? undefined,
+    weakestWord: row.weakest_word ?? undefined,
+    attemptOrdinal: row.attempt_ordinal ?? undefined,
+    pronunciationOutcome: row.pronunciation_outcome ?? undefined,
+  });
 }
 
 // Row → domain mappers shared by the launch-time and cold-cache pulls, so the
@@ -496,10 +675,11 @@ function examRow(profileId: string, e: ExamAttempt) {
 
 export function pushExamAttempt(profileId: string, e: ExamAttempt): void {
   const sb = supabase();
-  if (!ok() || !sb) return;
+  const failed = failedExamOutboxPayload(e);
+  if (!ok() || !sb || !failed) return;
   bgDurable(
-    sb.from("exam_attempts").upsert(examRow(profileId, e), { onConflict: "profile_id,day", ignoreDuplicates: true }),
-    "exam_attempts", "exam", profileId, e);
+    sb.from("exam_attempts").upsert(examRow(profileId, failed), { onConflict: "profile_id,day", ignoreDuplicates: true }),
+    "exam_attempts", "exam", profileId, failed);
 }
 
 function callRow(profileId: string, c: CallScore) {
@@ -520,34 +700,40 @@ function callRow(profileId: string, c: CallScore) {
  * device, so this function names every column explicitly instead of spreading
  * the record. A new field on VirtualCallRecord cannot leak by being added.
  */
-function virtualCallRow(profileId: string, v: VirtualCallRecord) {
+export function virtualCallRow(profileId: string, v: unknown) {
+  const safe = virtualCallOutboxPayload(v);
+  if (!safe) return null;
   return {
     profile_id: profileId,
-    at: v.at,
-    scenario_id: v.scenarioId,
-    mode: v.mode,
-    level: v.level,
-    started_at: v.startedAt,
-    ended_at: v.endedAt,
-    duration_ms: v.durationMs,
-    learner_turns: v.learnerTurns,
-    clean_turns: v.cleanTurns,
-    met_criteria: v.metCriteria,
-    corrections: v.corrections,
-    priorities: v.priorities,
-    vocabulary_used: v.vocabularyUsed,
-    pronunciation: v.pronunciation ?? null,
-    retried_count: v.retriedCount,
-    retried_accepted_count: v.retriedAcceptedCount,
+    at: safe.at,
+    scenario_id: safe.scenarioId,
+    mode: safe.mode,
+    level: safe.level,
+    started_at: safe.startedAt,
+    ended_at: safe.endedAt,
+    duration_ms: safe.durationMs,
+    learner_turns: safe.learnerTurns,
+    clean_turns: safe.cleanTurns,
+    met_criteria: safe.metCriteria,
+    corrections: safe.corrections,
+    priorities: safe.priorities,
+    vocabulary_used: { count: safe.vocabularyUsedCount },
+    pronunciation: safe.pronunciation ?? null,
+    retried_count: safe.retriedCount,
+    retried_accepted_count: safe.retriedAcceptedCount,
   };
 }
 
 export function pushVirtualCall(profileId: string, v: VirtualCallRecord): void {
   const sb = supabase();
   if (!ok() || !sb) return;
+  const safe = virtualCallOutboxPayload(v);
+  if (!safe) return;
+  const row = virtualCallRow(profileId, safe);
+  if (!row) return;
   bgDurable(
-    sb.from("virtual_calls").upsert(virtualCallRow(profileId, v), { onConflict: "profile_id,at", ignoreDuplicates: true }),
-    "virtual_calls", "virtual-call", profileId, v);
+    sb.from("virtual_calls").upsert(row, { onConflict: "profile_id,at", ignoreDuplicates: true }),
+    "virtual_calls", "virtual-call", profileId, safe);
 }
 
 export function pushCallScore(profileId: string, c: CallScore): void {
@@ -653,10 +839,8 @@ export function pushQuests(profileId: string, q: DailyQuestState): void {
   const sb = supabase();
   if (!ok() || !sb) return;
   bg(
-    sb.from("quests").upsert(
-      { profile_id: profileId, day: q.day, state: q, updated_at: Date.now() },
-      { onConflict: "profile_id,day" },
-    ), "quests");
+    sb.from("quests").upsert(questRow(profileId, q), { onConflict: "profile_id,day" }),
+    "quests");
 }
 
 function dailySessionArgs(session: DailySession) {
@@ -699,9 +883,10 @@ export async function pullDailySession(profileId: string, day: string): Promise<
     .eq("day", day)
     .maybeSingle();
   if (!data) return null;
-  const payload = data.payload as DailySession;
-  if (!payload || payload.profileId !== profileId || payload.day !== day || payload.version !== 1) return null;
-  return { ...payload, updatedAt: Math.max(payload.updatedAt, Number(data.updated_at) || 0) };
+  const payload = sanitizeDailySessionPayload(data.payload, profileId, day, data.version);
+  if (!payload) return null;
+  const remoteUpdatedAt = Number(data.updated_at);
+  return { ...payload, updatedAt: Number.isSafeInteger(remoteUpdatedAt) && remoteUpdatedAt >= 0 ? Math.max(payload.updatedAt, remoteUpdatedAt) : payload.updatedAt };
 }
 
 export async function pullConvItemsAndQuests(

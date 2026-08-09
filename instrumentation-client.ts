@@ -1,0 +1,7 @@
+import * as Sentry from "@sentry/nextjs";
+import { createSentryOptions } from "./lib/observability";
+
+const options = createSentryOptions(process.env.NEXT_PUBLIC_SENTRY_DSN);
+if (options) Sentry.init(options);
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

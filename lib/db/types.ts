@@ -5,7 +5,9 @@
 import type { AnalyticsEventType } from "@/lib/analytics-schema";
 import type { Level } from "@/lib/placement";
 import type { CorrectionMode } from "@/lib/virtual-call/session";
-import type { PronunciationSummary, ReportCorrection } from "@/lib/virtual-call/report";
+import type { PersistedPronunciationSummary, PersistedReportCorrection } from "@/lib/virtual-call/report";
+import type { VisualObjectId, VisualTopicId } from "@/lib/visual-learning/types";
+import type { ProviderStatus } from "@/lib/speech/pronunciation-policy";
 
 export type ItemKind = "word" | "phrase";
 
@@ -40,6 +42,8 @@ export interface PracticeItem {
   note?: string;
   /** Spanish meaning — shown prominently on conversation chunks so a beginner always knows what she's saying. */
   meaning?: string;
+  /** Optional contextual visual object shown alongside this practice item. */
+  visualObjectId?: VisualObjectId;
 }
 
 export interface Lesson {
@@ -59,6 +63,8 @@ export interface Lesson {
   intro?: LessonIntro;
   /** Custom lessons authored in Instructor mode are flagged so we can edit them. */
   custom?: boolean;
+  /** Optional contextual visual topic used to enrich this lesson. */
+  visualTopicId?: VisualTopicId;
   order: number;
 }
 
@@ -81,12 +87,15 @@ export interface LessonIntro {
 /** One recorded pronunciation attempt. Append-only history. */
 export interface Attempt {
   id?: number; // auto-increment (Dexie)
+  /** Stable id generated once on the client; absent on pre-v12 legacy rows. */
+  clientAttemptId?: string;
   itemId: string;
   lessonId: string;
   categoryId: string;
   phoneme: string;
   target: string; // the word/phrase she was aiming for
-  heard: string; // what SpeechRecognition transcribed
+  /** Local-only recognized speech; intentionally absent after cloud restore. */
+  heard?: string;
   score: number; // 0–100 similarity
   passed: boolean;
   /** True when the recognizer heard the minimal-pair partner instead. */
@@ -97,6 +106,20 @@ export interface Attempt {
    * consumers must treat absence as "unknown", never as zero.
    */
   fluency?: number;
+  /** Versioned decision policy used for the structured acoustic evidence. */
+  policyVersion?: "latam-v1";
+  /** Whether the provider returned evidence that is valid for learner grading. */
+  providerStatus?: ProviderStatus;
+  pronunciationScore?: number;
+  accuracyScore?: number;
+  completenessScore?: number;
+  prosodyScore?: number;
+  targetPhonemeScore?: number;
+  /** Bounded diagnostic labels only; never raw provider payloads or speech. */
+  weakestPhoneme?: string;
+  weakestWord?: string;
+  attemptOrdinal?: 1 | 2 | 3;
+  pronunciationOutcome?: "mastered" | "practiced-not-mastered" | "technical-skip";
   at: number; // epoch ms
 }
 
@@ -155,14 +178,12 @@ export interface VirtualCallLine {
  *
  * Everything above `transcript` IS the end-of-call report (built by
  * lib/virtual-call/report.ts from the recorded turns) and is always stored —
- * counts, corrections and priorities are aggregates, not recordings.
- * `transcript` is the only field carrying what she actually said, and it is
+ * counts and enum-only correction/pronunciation evidence are not recordings.
+ * `transcript` is the only field permitted to carry what she actually said, and it is
  * written ONLY when Settings.callTranscriptRetention is "keep"; the write path
  * drops it otherwise (see applyTranscriptRetention in ./repository.ts).
  *
- * These rows never leave the device: there is no cloud table for virtual calls,
- * so a kept transcript stays in this account's local database and is removed by
- * deleteVirtualCallTranscripts() without touching the report rows.
+ * Cloud sync deep-sanitizes the report again and never includes `transcript`.
  */
 export interface VirtualCallRecord {
   id?: number; // auto-increment (Dexie)
@@ -180,16 +201,15 @@ export interface VirtualCallRecord {
   /** Turns where nothing needed fixing — the "what went well" evidence. */
   cleanTurns: number;
   metCriteria: boolean;
-  corrections: ReportCorrection[];
+  corrections: PersistedReportCorrection[];
   /** The two or three worth working on, most severe first. */
-  priorities: ReportCorrection[];
-  vocabularyUsed: string[];
+  priorities: PersistedReportCorrection[];
+  vocabularyUsedCount: number;
   /**
-   * Present ONLY when at least one utterance was scored against a known target
-   * (a retry). Absent means pronunciation was not measured on this call — never
-   * that it was perfect.
+   * Bounded free-speech diagnoses plus separate scripted phrase results.
+   * Only scripted results are graded; diagnosis must never imply mastery.
    */
-  pronunciation?: PronunciationSummary;
+  pronunciation?: PersistedPronunciationSummary;
   retriedCount: number;
   retriedAcceptedCount: number;
   /** The conversation itself. Absent unless she opted into keeping it. */
@@ -218,10 +238,71 @@ export interface ExamAttempt {
   weakest: string | null;
   /**
    * Which grading machinery produced each section's score ("llm", "azure",
-   * "transcript", "mechanical") — the audit trail for a disputed band.
+   * "mechanical") — the audit trail for a disputed band. Legacy rows may
+   * still contain the retired transcript label.
    * Local-only; not mirrored to the cloud schema.
    */
   gradePaths?: Record<string, string>;
+}
+
+/**
+ * The one resumable stage-exam sitting for this account. It contains only
+ * bounded scoring state: never audio, transcripts, or provider payloads.
+ */
+export interface ExamCheckpoint {
+  id: "active";
+  version: 1;
+  sequence: number;
+  sessionId: string;
+  profileId: string;
+  day: string;
+  startedAt: number;
+  sourceLevel: string;
+  candidateLevel: string;
+  seed: string;
+  contentVersion: string;
+  contentHash: string;
+  status: "running" | "pending-advance" | "practice-required";
+  sectionIdx: number;
+  itemIdx: number;
+  scores: Record<string, number[]>;
+  gradePaths: Record<string, string[]>;
+  speaking: {
+    status: "ready" | "retry" | "mastered" | "practice-required";
+    learnerMisses: number;
+    validAcousticAttempts: number;
+  };
+  focus?: {
+    itemId: string;
+    itemText: string;
+    feature: string;
+    lessonId: string;
+    mouthHint: string;
+  };
+  pendingAdvance?: {
+    completedSectionIdx: number;
+    completedItemIdx: number;
+    nextSectionIdx: number | null;
+    nextItemIdx: number | null;
+    feedback: string | null;
+    delayMs: number;
+  };
+}
+
+export interface ExamCheckpointCas { sessionId: string; sequence: number }
+
+export interface ExamCheckpointIdentity {
+  day: string;
+  sourceLevel: string;
+  candidateLevel: string;
+  seed: string;
+  contentVersion: string;
+  contentHash: string;
+}
+
+export interface ExamCompletionPayload {
+  attempt: Omit<ExamAttempt, "id">;
+  targetLevel: string;
 }
 
 /**
@@ -268,11 +349,10 @@ export interface DailyQuestState {
 
 export interface Settings {
   /**
-   * Voice-capture consent: the notice version accepted and when. Per account,
-   * per device (this row lives in the account-scoped database). Absent =
-   * never asked; the consent sheet opens before the first capture.
+   * Voice-capture consent: the notice version accepted and when. Null records
+   * a durable withdrawal. Absent = never asked.
    */
-  voiceConsent?: { version: number; at: number };
+  voiceConsent?: { version: number; at: number } | null;
   id: string; // always "app"
   instructorMode: boolean;
   speechRate: number; // default playback rate for SpeechSynthesis
@@ -441,7 +521,7 @@ export interface OutboxRow {
   /** Kept in step with DurableKind in lib/sync/supabase-sync.ts. Duplicating
    *  the union here rather than importing it keeps this module free of sync
    *  imports; the compiler catches any drift at the enqueue call site. */
-  kind: "attempt" | "exam" | "call" | "talk" | "daily-session" | "virtual-call";
+  kind: "attempt" | "progress" | "player" | "quest" | "exam" | "exam-completion" | "call" | "talk" | "daily-session" | "virtual-call" | "settings";
   profileId: string;
   payload: unknown;
   /** When the original write happened (ms). */

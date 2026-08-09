@@ -1,70 +1,129 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Mic, Square, Loader2, Check, X, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PracticeItem } from "@/lib/db/types";
-import { createRecognition, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
+import { createRecognition, isTechnicalRecognitionError, recognitionErrorKey, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
 import { recordPracticeAttempt } from "@/lib/practice";
+import { repo } from "@/lib/db";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
 import { sfx } from "@/lib/sfx";
 import { popConfetti, celebrate } from "@/lib/fx";
 import { juice } from "@/components/juice";
-import { playPronunciation, pickDrillVoice } from "@/lib/speech/player";
+import { playPronunciation, pickDrillVoice, stopPronunciation } from "@/lib/speech/player";
 import { t } from "@/lib/i18n";
 import { meaningFor } from "@/lib/content/word-es";
+import { gradedAccuracy, shouldCelebrateGradedCompletion } from "@/lib/speech/graded-round";
 
 const ROUND_LENGTH = 15;
 
 type Phase = "ready" | "listening" | "scoring" | "flash";
 
 export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: () => void }) {
+  const round = useMemo(() => shuffle(items).slice(0, Math.min(ROUND_LENGTH, items.length)), [items]);
+  const roundIdentity = JSON.stringify(round.map(({ id, text }) => [id, text]));
+  return <SpeedRoundSession key={roundIdentity} items={items} onExit={onExit} round={round} />;
+}
+
+function SpeedRoundSession({
+  items,
+  onExit,
+  round,
+}: {
+  items: PracticeItem[];
+  onExit: () => void;
+  round: PracticeItem[];
+}) {
   const { settings } = useSettings();
   const support = useSpeechSupport();
 
-  const round = useMemo(() => shuffle(items).slice(0, Math.min(ROUND_LENGTH, items.length)), [items]);
   const [idx, setIdx] = useState(0);
   const [phase, setPhase] = useState<Phase>("ready");
   const [flash, setFlash] = useState<"pass" | "fail" | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [gain, setGain] = useState<number | null>(null);
   const [combo, setCombo] = useState(0);
   const [xp, setXp] = useState(0);
   const [clears, setClears] = useState(0);
+  const [gradedAttempts, setGradedAttempts] = useState(0);
+  const [hadUngradedSkip, setHadUngradedSkip] = useState(false);
   const [bestCombo, setBestCombo] = useState(0);
   const [done, setDone] = useState(false);
   const handleRef = useRef<ReturnType<typeof createRecognition> | null>(null);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const successAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const failureAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const captureSequenceRef = useRef(0);
 
   const current = round[idx];
+
+  const clearOwnedTimers = useCallback(() => {
+    for (const timerRef of [previewTimerRef, successAdvanceTimerRef, failureAdvanceTimerRef]) {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  }, []);
+
+  const cancelActive = useCallback(() => {
+    clearOwnedTimers();
+    captureSequenceRef.current += 1;
+    handleRef.current?.cancel();
+    handleRef.current = null;
+    stopPronunciation();
+  }, [clearOwnedTimers]);
+
+  useEffect(() => () => cancelActive(), [cancelActive, current?.id, current?.text, done, round]);
 
   // Preview each word as it appears — mostly Joel, with the supporting cast
   // mixed in to keep her ear on its toes.
   useEffect(() => {
     if (current && !done) {
-      const t = setTimeout(
-        () =>
+      previewTimerRef.current = setTimeout(
+        () => {
+          previewTimerRef.current = null;
           playPronunciation({
             id: current.id,
             text: current.text,
             voice: pickDrillVoice().slug,
             rate: settings.speechRate,
             voiceURI: settings.voiceURI,
-          }),
+          });
+        },
         200,
       );
-      return () => clearTimeout(t);
+      return () => {
+        if (previewTimerRef.current !== null) {
+          clearTimeout(previewTimerRef.current);
+          previewTimerRef.current = null;
+        }
+        stopPronunciation();
+      };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, done]);
+  }, [current?.id, current?.text, done, settings.speechRate, settings.voiceURI]);
 
   const go = async () => {
     if (phase !== "ready") return;
+    clearOwnedTimers();
+    stopPronunciation();
+    const persistenceBinding = repo.capturePracticeBinding();
+    if (!persistenceBinding) {
+      setNotice(t("pronAccountChangedBody", settings.coachLanguage));
+      return;
+    }
+    const captureSequence = captureSequenceRef.current + 1;
+    captureSequenceRef.current = captureSequence;
     setPhase("listening");
+    setNotice(null);
     sfx.tap();
-    const h = createRecognition({ lang: settings.recognitionLang, target: current.text });
+    const h = createRecognition({ lang: settings.recognitionLang, target: current.text, assessmentKind: current.kind });
     handleRef.current = h;
     try {
       const r = await h.result;
+      if (captureSequence !== captureSequenceRef.current) return;
       setPhase("scoring");
       const out = await recordPracticeAttempt({
         item: current,
@@ -74,8 +133,18 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
         combo: combo + 1,
         itemPool: items,
         assessment: r.assessment,
+        persistenceBinding,
       });
+      if (captureSequence !== captureSequenceRef.current) return;
+      if (!out.recorded) {
+        setGain(null);
+        setFlash(null);
+        setNotice(out.score.feedback);
+        setPhase("ready");
+        return;
+      }
       const passed = out.score.passed;
+      setGradedAttempts((value) => value + 1);
       setGain(out.rewards.xpGain);
       setXp((v) => v + out.rewards.xpGain);
       setFlash(passed ? "pass" : "fail");
@@ -93,9 +162,28 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
         sfx.wrong();
       }
       setPhase("flash");
-      setTimeout(advance, 850);
+      successAdvanceTimerRef.current = setTimeout(() => {
+        successAdvanceTimerRef.current = null;
+        if (captureSequence === captureSequenceRef.current) advance(true);
+      }, 850);
     } catch (e) {
+      if (captureSequence !== captureSequenceRef.current) return;
       if (e instanceof RecognitionError && (e.code === "cancelled" || e.code === "consent")) {
+        setPhase("ready");
+        return;
+      }
+      if (isTechnicalRecognitionError(e)) {
+        setGain(null);
+        setFlash(null);
+        setNotice(t(recognitionErrorKey(e), settings.coachLanguage));
+        setPhase("ready");
+        return;
+      }
+      if (e && typeof e === "object" && "code" in e && e.code === "account-changed") {
+        cancelActive();
+        setGain(null);
+        setFlash(null);
+        setNotice(t("pronAccountChangedBody", settings.coachLanguage));
         setPhase("ready");
         return;
       }
@@ -103,19 +191,32 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
       setFlash("fail");
       setCombo(0);
       setPhase("flash");
-      setTimeout(advance, 700);
+      failureAdvanceTimerRef.current = setTimeout(() => {
+        failureAdvanceTimerRef.current = null;
+        if (captureSequence === captureSequenceRef.current) advance(false);
+      }, 700);
     } finally {
-      handleRef.current = null;
+      if (captureSequence === captureSequenceRef.current) handleRef.current = null;
     }
   };
 
-  const advance = () => {
+  const advance = (completedWithGradedResult = false) => {
+    cancelActive();
     setFlash(null);
     setGain(null);
+    const nextGradedAttempts = gradedAttempts + (completedWithGradedResult ? 1 : 0);
+    const nextHadUngradedSkip = hadUngradedSkip || !completedWithGradedResult;
+    if (!completedWithGradedResult) setHadUngradedSkip(true);
     if (idx + 1 >= round.length) {
       setDone(true);
-      sfx.finish();
-      celebrate();
+      if (shouldCelebrateGradedCompletion({
+        gradedAttempts: nextGradedAttempts,
+        completedWithGradedResult,
+        hadUngradedSkip: nextHadUngradedSkip,
+      })) {
+        sfx.finish();
+        celebrate();
+      }
     } else {
       setIdx((i) => i + 1);
       setPhase("ready");
@@ -129,7 +230,7 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
       <div className="mx-auto max-w-md px-5 py-24 text-center">
         <p className="font-display text-2xl font-medium tracking-[-0.01em]">{t("srNeedsMic", lang)}</p>
         <p className="mx-auto mt-3 max-w-sm text-muted-foreground">{t("srNeedsMicSub", lang)}</p>
-        <button onClick={onExit} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
+        <button onClick={() => { cancelActive(); onExit(); }} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
           {t("backHome", lang)}
         </button>
       </div>
@@ -137,19 +238,21 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
   }
 
   if (done) {
-    const acc = round.length ? Math.round((clears / round.length) * 100) : 0;
+    const acc = gradedAccuracy(clears, gradedAttempts);
     return (
       <div className="animate-scale-in px-5 py-16 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{t("speedRound", lang)}</p>
-        <h1 className="mt-4 font-display text-5xl font-medium tracking-[-0.03em]">{xp} XP</h1>
+        <h1 className="mt-4 font-display text-5xl font-medium tracking-[-0.03em]">
+          {acc === null ? (lang === "es" ? "Sin calificar" : "Not graded") : `${xp} XP`}
+        </h1>
         <div className="mx-auto mt-8 flex max-w-sm items-stretch divide-x divide-hairline border-y border-hairline">
-          <Cell value={`${clears}/${round.length}`} label={t("clear", lang)} />
-          <Cell value={`${acc}%`} label={t("accuracy", lang)} />
+          <Cell value={`${clears}/${gradedAttempts}`} label={t("clear", lang)} />
+          <Cell value={acc === null ? "—" : `${acc}%`} label={acc === null ? (lang === "es" ? "Sin calificar" : "Not graded") : t("accuracy", lang)} />
           <Cell value={`${bestCombo}×`} label={t("bestCombo", lang)} />
         </div>
         <div className="mt-9 flex items-center justify-center gap-3">
           <button
-            onClick={onExit}
+            onClick={() => { cancelActive(); onExit(); }}
             className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground/80 transition-all hover:border-foreground/30 active:scale-[0.98]"
           >
             {t("finish", lang)}
@@ -171,7 +274,7 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
     <div className="mx-auto max-w-xl px-5 py-8">
       {/* HUD */}
       <div className="mb-10 flex items-center justify-between">
-        <button onClick={onExit} className="text-sm font-medium text-muted-foreground hover:text-foreground">
+        <button onClick={() => { cancelActive(); onExit(); }} className="text-sm font-medium text-muted-foreground hover:text-foreground">
           {t("shadowExit", lang)}
         </button>
         <div className="flex items-center gap-4">
@@ -219,6 +322,20 @@ export function SpeedRound({ items, onExit }: { items: PracticeItem[]; onExit: (
             >
               {flash === "pass" ? <Check className="size-4" /> : <X className="size-4" />}
               +{gain} XP
+            </span>
+          )}
+          {!flash && notice && (
+            <span className="inline-flex items-center gap-2">
+              <span role="status" className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+                {notice}
+              </span>
+              <button
+                type="button"
+                onClick={() => advance(false)}
+                className="rounded-full border border-hairline px-3 py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {t("skipToNext", lang)}
+              </button>
             </span>
           )}
         </div>

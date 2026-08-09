@@ -10,7 +10,7 @@
 // admin check were somehow bypassed.
 
 import { getAuthedUser } from "@/lib/auth-server";
-import { isAdmin } from "@/lib/allowlist";
+import { isAdminIdentity } from "@/lib/allowlist";
 
 export const runtime = "nodejs";
 
@@ -18,7 +18,7 @@ const has = (v: string | undefined | null): boolean => Boolean(v && v.trim());
 
 export async function GET(request: Request): Promise<Response> {
   const user = await getAuthedUser(request);
-  if (!isAdmin(user?.email)) {
+  if (!user || !isAdminIdentity(user)) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 

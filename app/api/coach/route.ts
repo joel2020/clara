@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { getAuthedUser } from "@/lib/auth-server";
-import { isAdmin } from "@/lib/allowlist";
+import { isAdminIdentity } from "@/lib/allowlist";
 import type { TechnicalFailureCategory } from "@/lib/analytics-schema";
 
 // The teacher's roster. Admin-only: returns a summary row per real student so
@@ -272,7 +272,7 @@ function score(entry: { missRate: number; dueItems: number }): number {
 
 export async function GET(request: Request): Promise<Response> {
   const user = await getAuthedUser(request);
-  if (!isAdmin(user?.email)) {
+  if (!user || !isAdminIdentity(user)) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
   const key = serviceKey || anonKey;

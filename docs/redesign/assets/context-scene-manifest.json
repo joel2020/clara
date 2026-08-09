@@ -1,0 +1,748 @@
+{
+  "version": 1,
+  "provider": "higgsfield",
+  "runtimeGeneration": false,
+  "batch": {
+    "topicId": "cafe-restaurant",
+    "estimatedCredits": 164,
+    "approvedMaximumCredits": 164,
+    "approvalStatus": "approved",
+    "activeApprovalId": "recraft-v4-1-menu-retry-1",
+    "approvals": [
+      {
+        "id": "gpt-image-2-test-1",
+        "model": "gpt_image_2",
+        "estimatedCredits": 28,
+        "approvedMaximumCredits": 28,
+        "approvalStatus": "exhausted",
+        "settings": {
+          "object": {
+            "resolution": "2k",
+            "quality": "high",
+            "aspect_ratio": "1:1",
+            "creditsPerJob": 7,
+            "jobLimit": 2,
+            "assetIds": [
+              "coffee"
+            ]
+          },
+          "environment": {
+            "resolution": "2k",
+            "quality": "high",
+            "aspect_ratio": "16:9",
+            "creditsPerJob": 7,
+            "jobLimit": 2,
+            "assetIds": [
+              "environment-mobile",
+              "environment-desktop"
+            ]
+          }
+        },
+        "prompts": {
+          "coffee": "Single isolated coffee for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "environment-mobile": "Premium anime-influenced 2.5D editorial illustration of a contemporary independent café\nin Medellín for an adult English-learning app. Warm daylight, polished wood, restrained\ncoral and teal accents, clear ordering counter, menu area, tables, payment terminal, and\ntakeaway station. Clean contours, readable silhouettes, sophisticated adult atmosphere,\ngenerous central and lower safe areas for live UI overlays. Empty of recurring characters.\nNo text, letters, numbers, logos, brands, speech bubbles, mascots, chibi proportions,\nchildren's clip art, photorealism, or imitation of another language-learning product.",
+          "environment-desktop": "Premium anime-influenced 2.5D editorial illustration of a contemporary independent café\nin Medellín for an adult English-learning app. Warm daylight, polished wood, restrained\ncoral and teal accents, clear ordering counter, menu area, tables, payment terminal, and\ntakeaway station. Clean contours, readable silhouettes, sophisticated adult atmosphere,\ngenerous central and lower safe areas for live UI overlays. Empty of recurring characters.\nNo text, letters, numbers, logos, brands, speech bubbles, mascots, chibi proportions,\nchildren's clip art, photorealism, or imitation of another language-learning product."
+        }
+      },
+      {
+        "id": "recraft-v4-1-test-2",
+        "model": "recraft_v4_1",
+        "estimatedCredits": 36,
+        "approvedMaximumCredits": 36,
+        "approvalStatus": "superseded",
+        "settings": {
+          "environment": {
+            "resolution": "2k",
+            "model_type": "standard",
+            "aspect_ratio": "16:9",
+            "count": 1,
+            "colors": [
+              "#F3B68C",
+              "#2A9D8F",
+              "#8D6E63",
+              "#F7F1E8"
+            ],
+            "background_color": null,
+            "creditsPerJob": 8,
+            "jobLimit": 2,
+            "assetIds": [
+              "environment-mobile",
+              "environment-desktop"
+            ]
+          },
+          "object": {
+            "resolution": "2k",
+            "model_type": "utility_vector",
+            "aspect_ratio": "1:1",
+            "count": 1,
+            "background_color": null,
+            "colors": [
+              "#F3B68C",
+              "#2A9D8F",
+              "#8D6E63",
+              "#F7F1E8"
+            ],
+            "creditsPerJob": 10,
+            "jobLimit": 2,
+            "assetIds": [
+              "coffee"
+            ]
+          }
+        },
+        "prompts": {
+          "environment-mobile": "Illustrated 2.5D editorial background, not a photograph and not an architectural render: a contemporary independent café in Medellín for an adult English-learning app. Clean anime-influenced contours, simplified shapes, cel-shaded modeled light, warm daylight, polished wood, restrained coral and teal palette, ordering counter, menu area, tables, payment terminal, takeaway station. Human-free. Generous central and lower safe areas for live UI. Sophisticated adult visual novel background. No text, letters, numbers, logos, brands, speech bubbles, mascots, chibi proportions, children's clip art, photorealism, lens effects, or imitation of another language-learning product.",
+          "environment-desktop": "Illustrated 2.5D editorial background, not a photograph and not an architectural render: a contemporary independent café in Medellín for an adult English-learning app. Clean anime-influenced contours, simplified shapes, cel-shaded modeled light, warm daylight, polished wood, restrained coral and teal palette, ordering counter, menu area, tables, payment terminal, takeaway station. Human-free. Generous central and lower safe areas for live UI. Sophisticated adult visual novel background. No text, letters, numbers, logos, brands, speech bubbles, mascots, chibi proportions, children's clip art, photorealism, lens effects, or imitation of another language-learning product.",
+          "coffee": "One coffee cup and saucer as a clean vector-like 2.5D editorial illustration for an adult English-learning app. Warm ceramic cup filled with coffee, three-quarter view, simple anime-influenced contour, restrained cel shading from upper left, centered, recognizable at 96 CSS pixels. Isolated subject only. No person, hand, face, text, letters, numbers, logo, brand, watermark, second object, drop-shadow background, checkerboard, colored rectangle, frame, chibi style, or photorealism. Output should contain only the object with empty transparent surroundings."
+        }
+      },
+      {
+        "id": "recraft-v4-1-remaining-objects-1",
+        "model": "recraft_v4_1",
+        "estimatedCredits": 90,
+        "approvedMaximumCredits": 90,
+        "approvalStatus": "superseded",
+        "settings": {
+          "object": {
+            "resolution": "2k",
+            "model_type": "utility_vector",
+            "aspect_ratio": "1:1",
+            "count": 1,
+            "background_color": null,
+            "colors": [
+              "#F3B68C",
+              "#2A9D8F",
+              "#8D6E63",
+              "#F7F1E8"
+            ],
+            "creditsPerJob": 10,
+            "jobLimit": 9,
+            "assetIds": [
+              "table",
+              "menu",
+              "chicken",
+              "onion",
+              "meal",
+              "check",
+              "card",
+              "takeaway-bag",
+              "change"
+            ]
+          }
+        },
+        "prompts": {
+          "table": "Single isolated table for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "menu": "Single isolated menu for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "chicken": "Single isolated plated chicken meal for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "onion": "Single isolated whole and sliced onion for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "meal": "Single isolated plated café meal for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "check": "Single isolated restaurant check/bill slip for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "card": "Single isolated payment card for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "takeaway-bag": "Single isolated takeaway paper bag for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism.",
+          "change": "Single isolated coins and small bills for a premium adult English-learning app, matching a warm\nanime-influenced 2.5D editorial café scene. Three-quarter view, clean contour, recognizable\nat 96 CSS pixels, restrained modeled light from upper left, centered with safe padding,\ntransparent background. No person, hand, face, text, letters, numbers, logo, brand,\nwatermark, extra object, cast-off frame, chibi style, or photorealism."
+        }
+      },
+      {
+        "id": "recraft-v4-1-menu-retry-1",
+        "model": "recraft_v4_1",
+        "estimatedCredits": 10,
+        "approvedMaximumCredits": 10,
+        "approvalStatus": "approved",
+        "settings": {
+          "object": {
+            "resolution": "2k",
+            "model_type": "utility_vector",
+            "aspect_ratio": "1:1",
+            "count": 1,
+            "background_color": null,
+            "colors": [
+              "#F3B68C",
+              "#2A9D8F",
+              "#8D6E63",
+              "#F7F1E8"
+            ],
+            "creditsPerJob": 10,
+            "jobLimit": 1,
+            "assetIds": [
+              "menu"
+            ]
+          }
+        },
+        "prompts": {
+          "menu": "One single analog restaurant menu booklet, standing slightly open in three-quarter view, as a clean vector-like 2.5D editorial illustration for an adult English-learning app. Dark coral bound cover, visible center spine, two cream paper pages with only a few simple horizontal line groupings and small blank image rectangles that suggest a printed food menu without forming any readable characters. Clearly a physical handheld menu booklet, not a phone, tablet, app screen, control panel, sign, table, chair, or furniture. Centered and recognizable at 96 CSS pixels, restrained cel shading from upper left, isolated subject only, true transparent surroundings. No person, hand, food, text, letters, numbers, prices, logo, brand, watermark, button grid, checkerboard, colored background, frame, chibi style, or photorealism."
+        }
+      }
+    ]
+  },
+  "assets": [
+    {
+      "id": "card",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-remaining-objects-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/card.webp",
+      "generationId": "fa7d6eb6-89d8-460b-ac07-40ce7844618d",
+      "promptSha256": "cf9d76b386ead7ea76d9e6a75deaae7a588ccad519e448d3010fabf0d6ac5705",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:26:54.026Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:29:00.602Z",
+      "creditCost": 10,
+      "sha256": "65ced483a23c4a2080bd8fa39fbadd03295624498df4c38648220865c63eff7a",
+      "sourceSha256": "1676aad09eb29b1fbdeacd8a9ba81ec144f03f13cfff96cfc94d21f04d5f0821",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 15778
+    },
+    {
+      "id": "change",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-remaining-objects-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/change.webp",
+      "generationId": "42900a5c-1aa4-4dfe-b839-705abf726cbd",
+      "promptSha256": "6c6838646b718e347edb9add8172d31df7e875f8d35143085e3bf90ff86075d9",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:27:27.279Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:29:00.858Z",
+      "creditCost": 10,
+      "sha256": "604dc3949ba4caab516eede7601a4b7b2ec9c220757bfe13c85f8f53047b4905",
+      "sourceSha256": "8aefb5cb5d0f1e546030ce9490fa1bed53af23be5b196891c4b65e65a3cb6089",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 27876
+    },
+    {
+      "id": "check",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-remaining-objects-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/check.webp",
+      "generationId": "b8cd6be9-f484-47a3-9adc-9530e7a64c6d",
+      "promptSha256": "e18e752e8d27e19f26aff3b161b178d654115b77ef7f1f8dd1f0475f571ca8f4",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:26:52.783Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:29:00.471Z",
+      "creditCost": 10,
+      "sha256": "be066cf7b5757d1c1b74eeef73d431e4d1f1d824cb9af82857986d6d27dcd50f",
+      "sourceSha256": "449037595dec65214841f9e8496a63d3af3c9fee94752fa8c174d8e1b6953dd3",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 28066
+    },
+    {
+      "id": "chicken",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-remaining-objects-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/chicken.webp",
+      "generationId": "173d85d8-e802-40bf-bd54-6873647ad2de",
+      "promptSha256": "df6129c09d0f23dbf91d75b8beb858493a760335062c2a77f75263753622c8a7",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:26:49.725Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:29:00.035Z",
+      "creditCost": 10,
+      "sha256": "929873099827b45a91344b55d54e2a773863d789c39edba2c42ae92c652bf401",
+      "sourceSha256": "d0ffbb10691cea5202937295e17b39fff1ecdae2395d7ad9c21e68756970e60e",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 36648
+    },
+    {
+      "id": "coffee",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-test-2",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/coffee.webp",
+      "generationId": "1c307662-1c4c-4db0-ab9b-1628397f65c3",
+      "promptSha256": "5181d709b1f253c43b42f7562e3b4c71fc89ec48dc1c55ed5bbc9e2becbeb387",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:03:13.990Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:04:53.624Z",
+      "creditCost": 10,
+      "sha256": "8d5edc0e0c9c857928fdf29e73ceb4eebb13b94a9351514eaa542e8ed691f6d5",
+      "sourceSha256": "3727dfc2b884532876222e2b3d43567659793ea2509cbe8699fb0aee4ab5fe0f",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 23338,
+      "rejectedAttempts": [
+        {
+          "promptSha256": "332e1195d24c7ce55aecf6f324bd7c3a406e5d4f357037f76bd48fd4a8e81378",
+          "sha256": "c619787fa1f62dd0a2ab5c36ec11f3fbb8cd65d9aa051b22c75ed0fe53f6ebc3",
+          "reviewedAt": "2026-08-09T02:52:10.726Z",
+          "reviewer": "Joel",
+          "rejectionReason": "opaque-background",
+          "generationId": "69020a1d-69ca-4535-ab7b-2364f72c87f9",
+          "model": "gpt_image_2",
+          "settings": {
+            "resolution": "2k",
+            "quality": "high",
+            "aspect_ratio": "1:1"
+          },
+          "generatedAt": "2026-08-09T02:47:00.905Z",
+          "creditCost": 7,
+          "approvalId": "gpt-image-2-test-1"
+        },
+        {
+          "promptSha256": "332e1195d24c7ce55aecf6f324bd7c3a406e5d4f357037f76bd48fd4a8e81378",
+          "sha256": "0366e6207ab7927b75fe16fdbc32298f554b889533bc95628706df9446ab9f53",
+          "reviewedAt": "2026-08-09T02:55:46.068Z",
+          "reviewer": "Joel",
+          "rejectionReason": "opaque-background",
+          "generationId": "38adb77c-5dae-4ee3-b63f-973b310efbf5",
+          "model": "gpt_image_2",
+          "settings": {
+            "resolution": "2k",
+            "quality": "high",
+            "aspect_ratio": "1:1"
+          },
+          "generatedAt": "2026-08-09T02:52:25.066Z",
+          "creditCost": 7,
+          "approvalId": "gpt-image-2-test-1"
+        }
+      ]
+    },
+    {
+      "id": "environment-desktop",
+      "type": "environment",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-test-2",
+      "runtimePath": "public/visual-learning/cafe-restaurant/environment-desktop.webp",
+      "generationId": "6ae76ed3-158e-41a2-9eeb-44b39fb52196",
+      "promptSha256": "02bb90599d6ae2dfa5fbb954c76d5a9e5c7857faf0f937655938963638d78450",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "standard",
+        "aspect_ratio": "16:9",
+        "count": 1,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ],
+        "background_color": null
+      },
+      "generatedAt": "2026-08-09T03:05:07.320Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:14:52.683Z",
+      "creditCost": 8,
+      "sha256": "738bc996414b22f69302f33b7b26c22765fb326770564aa00c87801b0ac13b47",
+      "sourceSha256": "41d51371ccf2279e3890e5818812c17379f0ab2721a07732806485a4ce32fe9d",
+      "sourceWidth": 2688,
+      "sourceHeight": 1536,
+      "width": 2880,
+      "height": 1800,
+      "bytes": 194808
+    },
+    {
+      "id": "environment-mobile",
+      "type": "environment",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-test-2",
+      "runtimePath": "public/visual-learning/cafe-restaurant/environment-mobile.webp",
+      "generationId": "6ae76ed3-158e-41a2-9eeb-44b39fb52196",
+      "promptSha256": "02bb90599d6ae2dfa5fbb954c76d5a9e5c7857faf0f937655938963638d78450",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "standard",
+        "aspect_ratio": "16:9",
+        "count": 1,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ],
+        "background_color": null
+      },
+      "generatedAt": "2026-08-09T03:05:07.320Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:14:52.526Z",
+      "creditCost": 8,
+      "sha256": "2cd5971ffda8f3d4bd30fb2a534041e3438236886804a7f8ac1091695b356130",
+      "sourceSha256": "41d51371ccf2279e3890e5818812c17379f0ab2721a07732806485a4ce32fe9d",
+      "sourceWidth": 2688,
+      "sourceHeight": 1536,
+      "width": 780,
+      "height": 1688,
+      "bytes": 49788,
+      "crop": {
+        "method": "focal-point",
+        "focalPoint": {
+          "x": 0.28,
+          "y": 0.5
+        },
+        "sourceRegion": {
+          "left": 398,
+          "top": 0,
+          "width": 710,
+          "height": 1536
+        }
+      },
+      "rejectedAttempts": [
+        {
+          "promptSha256": "bd090c63f566759aade321d59755c4378f851614fcb48219e62dfdf748d64bbe",
+          "sha256": "a977180a7bcdc3a4c7e0e15fab1b6de2b1d99d5d58df21dee9f72e81ea162be1",
+          "reviewedAt": "2026-08-09T02:52:10.685Z",
+          "reviewer": "Joel",
+          "rejectionReason": "realism-drift",
+          "generationId": "4d48d40a-4fbe-4c10-a37b-2db917124170",
+          "model": "gpt_image_2",
+          "settings": {
+            "resolution": "2k",
+            "quality": "high",
+            "aspect_ratio": "16:9"
+          },
+          "generatedAt": "2026-08-09T02:47:01.836Z",
+          "creditCost": 7,
+          "approvalId": "gpt-image-2-test-1"
+        },
+        {
+          "promptSha256": "bd090c63f566759aade321d59755c4378f851614fcb48219e62dfdf748d64bbe",
+          "sha256": "c9b807c579346089cf3feffaef77c728d4751711c77c4522ecdcb4e8387ecfab",
+          "reviewedAt": "2026-08-09T02:55:42.705Z",
+          "reviewer": "Joel",
+          "rejectionReason": "realism-drift",
+          "generationId": "773b0a44-7789-4af5-ab02-68f0e6267f68",
+          "model": "gpt_image_2",
+          "settings": {
+            "resolution": "2k",
+            "quality": "high",
+            "aspect_ratio": "16:9"
+          },
+          "generatedAt": "2026-08-09T02:52:25.981Z",
+          "creditCost": 7,
+          "approvalId": "gpt-image-2-test-1"
+        },
+        {
+          "approvalId": "recraft-v4-1-test-2",
+          "promptSha256": "02bb90599d6ae2dfa5fbb954c76d5a9e5c7857faf0f937655938963638d78450",
+          "sha256": "643b81e1b352ef86483e1852280dc15174af0d414c18ddd235da1d437c27de6c",
+          "reviewedAt": "2026-08-09T03:05:00.002Z",
+          "reviewer": "Joel",
+          "rejectionReason": "unsafe-mobile-crop",
+          "generationId": "0665bbe6-ee44-4ff6-be84-c2a9559ca8b4",
+          "model": "recraft_v4_1",
+          "settings": {
+            "resolution": "2k",
+            "model_type": "standard",
+            "aspect_ratio": "16:9",
+            "count": 1,
+            "colors": [
+              "#F3B68C",
+              "#2A9D8F",
+              "#8D6E63",
+              "#F7F1E8"
+            ],
+            "background_color": null
+          },
+          "generatedAt": "2026-08-09T03:03:13.282Z",
+          "creditCost": 8
+        },
+        {
+          "approvalId": "recraft-v4-1-test-2",
+          "promptSha256": "02bb90599d6ae2dfa5fbb954c76d5a9e5c7857faf0f937655938963638d78450",
+          "sha256": "7cb8b904124ab4812bcdb699326a6456c48c6a22a595952f6ec7119f5af050e1",
+          "reviewedAt": "2026-08-09T03:06:18.983Z",
+          "reviewer": "Joel",
+          "rejectionReason": "unsafe-mobile-crop",
+          "generationId": "6ae76ed3-158e-41a2-9eeb-44b39fb52196",
+          "model": "recraft_v4_1",
+          "settings": {
+            "resolution": "2k",
+            "model_type": "standard",
+            "aspect_ratio": "16:9",
+            "count": 1,
+            "colors": [
+              "#F3B68C",
+              "#2A9D8F",
+              "#8D6E63",
+              "#F7F1E8"
+            ],
+            "background_color": null
+          },
+          "generatedAt": "2026-08-09T03:05:07.320Z",
+          "creditCost": 8
+        }
+      ]
+    },
+    {
+      "id": "meal",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-remaining-objects-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/meal.webp",
+      "generationId": "fca26958-e04d-4c3d-b4d9-6119343b5844",
+      "promptSha256": "7464f013e4c2e6eec0f141868bf72ba6d53b4125d4b108dba8107b64e32a6143",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:26:51.748Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:29:00.291Z",
+      "creditCost": 10,
+      "sha256": "8e6e4bfb2c6a9b47bf7993a23244f2196061753a123b504fba62a2dd95ce931e",
+      "sourceSha256": "6658005d1e70578a6b062bb7dbab0766a68218fa129fbc9f87fb48ff97560882",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 42648
+    },
+    {
+      "id": "menu",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-menu-retry-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/menu.webp",
+      "generationId": "9e27a75f-2e07-4487-92a5-ce86d71970e7",
+      "promptSha256": "2949c8e9f1c3163f88521263df714117c5b36fc79c6598a83622de3c3fb82625",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:35:07.511Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:36:18.026Z",
+      "creditCost": 10,
+      "sha256": "c2c77a371538492547a59476ba4fde3729d6749dc519c662f505e6bd0e280eed",
+      "sourceSha256": "3bcecb2c1bd7bbf153167bc53a92e2235f4c9153923b4a88790c3bf5701ddf0c",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 28036,
+      "rejectedAttempts": [
+        {
+          "approvalId": "recraft-v4-1-remaining-objects-1",
+          "promptSha256": "2545d22c256b1e9aee81f6968dc9607da99c4407a28ca083d7f2a6b7eb331b7c",
+          "sha256": "4db1d47a4aa3a26262e609deefcfa0142274a69e2bba9a40264677f9b85e6368",
+          "reviewedAt": "2026-08-09T03:29:00.959Z",
+          "reviewer": "Joel",
+          "rejectionReason": "unreadable-object-shape",
+          "generationId": "a4cb8431-953e-49bf-b684-9cd60fe56e82",
+          "model": "recraft_v4_1",
+          "settings": {
+            "resolution": "2k",
+            "model_type": "utility_vector",
+            "aspect_ratio": "1:1",
+            "count": 1,
+            "background_color": null,
+            "colors": [
+              "#F3B68C",
+              "#2A9D8F",
+              "#8D6E63",
+              "#F7F1E8"
+            ]
+          },
+          "generatedAt": "2026-08-09T03:26:49.016Z",
+          "creditCost": 10
+        }
+      ]
+    },
+    {
+      "id": "onion",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-remaining-objects-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/onion.webp",
+      "generationId": "106c1d94-eff7-42b4-a295-c265943bd7df",
+      "promptSha256": "19ba060dd1382bf782a65e89e88391865895067e31ef64c3ee763a126d5891a8",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:26:50.758Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:29:00.174Z",
+      "creditCost": 10,
+      "sha256": "7ee378983cdcb45095d5468c9a408036438e2fca6f5b5560acde388ae177f280",
+      "sourceSha256": "a03459044659f0dab0236f5cebf1721fd4ce0794b44c91c6073ed2621aec0d9e",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 28324
+    },
+    {
+      "id": "table",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-remaining-objects-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/table.webp",
+      "generationId": "4a46ffea-50a8-49bb-af82-7b4e6ed34530",
+      "promptSha256": "c20536f917362a20116379130039448b585d49fb82316c17a80bf0bc764c6ee2",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:26:47.879Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:28:59.848Z",
+      "creditCost": 10,
+      "sha256": "e1b5456f8ba7fe9421070960487537925b3c204e615fa974978f21f01bee1870",
+      "sourceSha256": "619690213aab3bfb995fe4cd306087c3c4c94b23be7154f9ef9568a53a509ddd",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 23986
+    },
+    {
+      "id": "takeaway-bag",
+      "type": "object",
+      "status": "accepted",
+      "approvalId": "recraft-v4-1-remaining-objects-1",
+      "runtimePath": "public/visual-learning/cafe-restaurant/objects/takeaway-bag.webp",
+      "generationId": "b2473a82-c738-407c-8ac9-0311da0c72c6",
+      "promptSha256": "a31944962fd0611dffffc4464e5ca8c5fd91b3a08a5808b5257a81e7a93dcf0c",
+      "model": "recraft_v4_1",
+      "settings": {
+        "resolution": "2k",
+        "model_type": "utility_vector",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "background_color": null,
+        "colors": [
+          "#F3B68C",
+          "#2A9D8F",
+          "#8D6E63",
+          "#F7F1E8"
+        ]
+      },
+      "generatedAt": "2026-08-09T03:26:54.759Z",
+      "reviewer": "Joel",
+      "reviewedAt": "2026-08-09T03:29:00.729Z",
+      "creditCost": 10,
+      "sha256": "2d4bcbab66b16a20b919cf912ddcd5fdff782307a491a71ee5082ce1b727db03",
+      "sourceSha256": "c9631c10011642bef214fa0508ea32caf6893fc4aeca413bc86ef9ba4c5c5fd0",
+      "sourceWidth": 1024,
+      "sourceHeight": 1024,
+      "width": 512,
+      "height": 512,
+      "bytes": 22144
+    }
+  ]
+}

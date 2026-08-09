@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { DailySession } from "../daily-session";
-import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "./types";
+import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ExamCheckpoint, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "./types";
 import type { OutboxRow } from "./types";
 
 /**
@@ -33,6 +33,7 @@ export class ClaraDB extends Dexie {
   outbox!: Table<OutboxRow, number>;
   dailySessions!: Table<DailySession, string>;
   virtualCalls!: Table<VirtualCallRecord, number>;
+  examCheckpoints!: Table<ExamCheckpoint, string>;
 
   constructor(name = "clara") {
     super(name);
@@ -100,6 +101,16 @@ export class ClaraDB extends Dexie {
     this.version(11).stores({
       virtualCalls: "++id, at, scenarioId",
     });
+    // v12 indexes bounded pronunciation evidence for weak-sound review. There
+    // is deliberately no upgrade callback: legacy rows stay byte-for-byte
+    // intact and simply read with the new optional fields absent.
+    this.version(12).stores({
+      attempts: "++id, &clientAttemptId, itemId, lessonId, categoryId, phoneme, at, passed, weakestPhoneme, pronunciationOutcome",
+    });
+    // v13 adds one account-local, resumable stage-exam checkpoint.
+    this.version(13).stores({
+      examCheckpoints: "id, day, sourceLevel, candidateLevel, contentHash",
+    });
   }
 }
 
@@ -133,11 +144,40 @@ function isClaimableDailySession(value: unknown): value is DailySession {
 }
 
 // Guard against multiple instances during Next.js hot-reload.
-const globalForDb = globalThis as unknown as { __claraDb?: ClaraDB; __claraDbAccount?: string | null };
+const globalForDb = globalThis as unknown as {
+  __claraDb?: ClaraDB;
+  __claraDbAccount?: string | null;
+  __claraDbGeneration?: number;
+};
 
 if (typeof window !== "undefined" && !globalForDb.__claraDb) {
   globalForDb.__claraDb = new ClaraDB(dbNameFor(null));
   globalForDb.__claraDbAccount = null;
+  globalForDb.__claraDbGeneration = 1;
+}
+
+export interface DbBinding {
+  database: ClaraDB;
+  accountId: string | null;
+  generation: number;
+}
+
+/** Capture the concrete database behind the proxy for work spanning awaits. */
+export function captureDbBinding(): DbBinding | null {
+  const database = globalForDb.__claraDb;
+  if (!database) return null;
+  return {
+    database,
+    accountId: globalForDb.__claraDbAccount ?? null,
+    generation: globalForDb.__claraDbGeneration ?? 0,
+  };
+}
+
+/** True only while the exact database/account generation is still active. */
+export function isDbBindingCurrent(binding: DbBinding): boolean {
+  return globalForDb.__claraDb === binding.database
+    && (globalForDb.__claraDbAccount ?? null) === binding.accountId
+    && (globalForDb.__claraDbGeneration ?? 0) === binding.generation;
 }
 
 /**
@@ -170,7 +210,7 @@ export function boundAccountId(): string | null {
 const LEGACY_TABLES = [
   "attempts", "progress", "customLessons", "settings", "player", "convItems",
   "quests", "recordings", "events", "examAttempts", "callScores", "talkSessions",
-  "outbox", "dailySessions", "virtualCalls",
+  "outbox", "dailySessions", "virtualCalls", "examCheckpoints",
 ] as const;
 
 /** An account database with no settings row and no history is considered new. */
@@ -271,6 +311,7 @@ export async function bindLocalDb(accountId: string | null): Promise<void> {
   const prev = globalForDb.__claraDb;
   globalForDb.__claraDb = next;
   globalForDb.__claraDbAccount = id;
+  globalForDb.__claraDbGeneration = (globalForDb.__claraDbGeneration ?? 0) + 1;
   // Close after the swap so nothing new lands in the old handle; in-flight
   // live queries on the old instance error and re-subscribe on remount.
   if (prev && prev.name !== name) prev.close();

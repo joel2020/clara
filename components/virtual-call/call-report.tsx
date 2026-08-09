@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, Info, Mic, Sparkles, Volume2 } from "lucide-react";
 import Link from "next/link";
 import type { VirtualCallScenario } from "@/lib/content/virtual-call-scenarios";
-import { t, type CoachLang, type StringKey } from "@/lib/i18n";
+import { pronunciationCue, t, type CoachLang, type StringKey } from "@/lib/i18n";
 import { createRecognition, recognitionErrorKey, type RecognitionHandle } from "@/lib/speech/recognition";
 import type { CallReport, ReportCorrection } from "@/lib/virtual-call/report";
 import { evaluateRetry, MAX_RECORDING_MS, type CorrectionKind, type RetryOutcome } from "@/lib/virtual-call/session";
@@ -25,6 +25,7 @@ const KIND_LABEL: Record<CorrectionKind, StringKey> = {
   grammar: "vcallKindGrammar",
   vocabulary: "vcallKindVocabulary",
   phrasing: "vcallKindPhrasing",
+  pronunciation: "vcallKindPronunciation",
 };
 
 export function CallReportView({
@@ -188,23 +189,25 @@ export function CallReportView({
 
       <Section title={t("vcallReportPron", lang)}>
         {report.pronunciation ? (
-          <div className="space-y-2 text-sm">
-            <p className="flex items-baseline gap-2">
-              <span className="font-display text-3xl font-medium tabular-nums">
-                {report.pronunciation.averageScore}
-              </span>
-              <span className="text-muted-foreground">
-                / 100 · {report.pronunciation.scored} {t("vcallReportPronScored", lang)}
-              </span>
-            </p>
-            {report.pronunciation.worstWords.length > 0 && (
-              <p className="text-muted-foreground">
-                {t("vcallReportPronWorst", lang)}:{" "}
-                <span lang="en" className="font-medium text-foreground">
-                  {report.pronunciation.worstWords.join(", ")}
-                </span>
+          <div className="space-y-3 text-sm">
+            {report.pronunciation.diagnosticTargets.map((diagnostic) => (
+              <div key={`${diagnostic.targetWord}:${diagnostic.cueKey}`} className="rounded-xl border border-hairline bg-secondary/40 p-3">
+                <p>{t("vcallReportPronDiagnostic", lang).replace("{word}", diagnostic.targetWord)}</p>
+                <p className="mt-1 text-muted-foreground">{pronunciationCue(diagnostic.cueKey, lang)}</p>
+              </div>
+            ))}
+            {report.pronunciation.scripted.averageScore !== undefined && (
+              <p className="font-medium tabular-nums">
+                {t("vcallReportPronAverage", lang)
+                  .replace("{score}", String(report.pronunciation.scripted.averageScore))
+                  .replace("{n}", String(report.pronunciation.scripted.graded))}
               </p>
             )}
+            <div className="space-y-1 text-muted-foreground">
+              <p>{t("vcallReportPronMastered", lang).replace("{n}", String(report.pronunciation.scripted.mastered))}</p>
+              <p>{t("vcallReportPronPracticed", lang).replace("{n}", String(report.pronunciation.scripted.practiced))}</p>
+              {report.pronunciation.scripted.unavailable > 0 && <p>{t("vcallReportPronUnavailable", lang).replace("{n}", String(report.pronunciation.scripted.unavailable))}</p>}
+            </div>
           </div>
         ) : (
           // Absent evidence, stated as absent. Never an empty section that could
@@ -338,7 +341,7 @@ function SentencePractice({
   const start = () => {
     setError(null);
     setOutcome(null);
-    const handle = createRecognition({ lang: "en-US", target: sentence });
+    const handle = createRecognition({ lang: "en-US", target: sentence, assessmentKind: "phrase" });
     handleRef.current = handle;
     setRecording(true);
     const cap = setTimeout(() => handle.stop(), MAX_RECORDING_MS);

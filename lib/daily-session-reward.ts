@@ -1,5 +1,6 @@
 import type { DailySession } from "./daily-session.ts";
 import type { PlayerStats } from "./db/types.ts";
+import { roundRewardXp } from "./gamification.ts";
 
 /** A modest completion bonus on top of the attempt-level rewards in the loop. */
 export const DAILY_SESSION_REWARD_XP = 20;
@@ -39,14 +40,15 @@ export function applySessionCompletion(
   }
 
   const at = session.completedAt ?? session.updatedAt;
+  const xpAward = roundRewardXp(DAILY_SESSION_REWARD_XP, 1);
   const isCurrentDay = session.day === today;
   const dailyAccounting = isCurrentDay
     ? {
         todayKey: today,
         todayXp:
           player.todayKey === today
-            ? player.todayXp + DAILY_SESSION_REWARD_XP
-            : DAILY_SESSION_REWARD_XP,
+            ? player.todayXp + xpAward
+            : xpAward,
       }
     : player.todayKey === today
       ? {}
@@ -54,7 +56,7 @@ export function applySessionCompletion(
   return {
     player: {
       ...player,
-      xp: player.xp + DAILY_SESSION_REWARD_XP,
+      xp: player.xp + xpAward,
       stars: (player.stars ?? 0) + DAILY_SESSION_REWARD_STARS,
       ...dailyAccounting,
       updatedAt: Math.max(player.updatedAt, at),
@@ -65,7 +67,7 @@ export function applySessionCompletion(
       updatedAt: Math.max(session.updatedAt, at),
     },
     reward: {
-      xp: DAILY_SESSION_REWARD_XP,
+      xp: xpAward,
       stars: DAILY_SESSION_REWARD_STARS,
     },
   };

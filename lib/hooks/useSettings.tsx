@@ -1,21 +1,27 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { repo } from "@/lib/db";
 import { DEFAULT_SETTINGS } from "@/lib/db/repository";
 import type { Settings } from "@/lib/db/types";
 import { setSfxEnabled } from "@/lib/sfx";
-import { ensureProfile, pushSettings } from "@/lib/sync/supabase-sync";
 import { restoreProfile, hydrateFromCloud } from "@/lib/sync/restore";
 import { requestPersistentStorage, rememberSyncCode, recalledSyncCode } from "@/lib/sync/durability";
 import { publishVoiceConsent } from "@/lib/speech/consent";
+import { flushOutbox } from "@/lib/sync/outbox";
 
 // App-wide settings (instructor toggle, voice, rate) loaded once and shared.
+
+type SettingsPatch = Partial<Omit<Settings, "voiceConsent">>;
 
 interface SettingsContextValue {
   settings: Settings;
   ready: boolean;
-  update: (patch: Partial<Settings>) => Promise<void>;
+  update: (patch: SettingsPatch) => Promise<boolean>;
+  saveError: string | null;
+  retryLastUpdate: () => Promise<boolean>;
+  saveVoiceConsent: (consent: NonNullable<Settings["voiceConsent"]>) => Promise<void>;
+  revokeVoiceConsent: () => Promise<boolean>;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -23,9 +29,16 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [ready, setReady] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const currentSettings = useRef<Settings>(DEFAULT_SETTINGS);
+  const persistedSettings = useRef<Settings>(DEFAULT_SETTINGS);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const lastFailedPatch = useRef<SettingsPatch | null>(null);
+  const voiceRevocationNeedsRetry = useRef(false);
 
   useEffect(() => {
     let active = true;
+    publishVoiceConsent(null);
     void requestPersistentStorage();
     void (async () => {
       let s = await repo.getSettings();
@@ -65,7 +78,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }
       if (s.profileId) rememberSyncCode(s.profileId);
       if (!active) return;
+      currentSettings.current = s;
+      persistedSettings.current = s;
       setSettings(s);
+      publishVoiceConsent(s.voiceConsent ?? null);
       setSfxEnabled(s.soundEnabled);
       setReady(true);
     })();
@@ -74,38 +90,83 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Mirror the persisted voice consent into the broker (lib/speech/consent.ts)
-  // so the capture chokepoint can check it without touching React. The sheet
-  // persists an accept through update(), which lands back here.
-  useEffect(() => {
-    publishVoiceConsent(settings.voiceConsent ?? null);
-  }, [settings.voiceConsent]);
-
   // Keep the document language in sync with the coach language so a screen
   // reader announces the UI with the right pronunciation (SSR defaults to "es").
   useEffect(() => {
     if (typeof document !== "undefined") document.documentElement.lang = settings.coachLanguage;
   }, [settings.coachLanguage]);
 
-  const update = async (patch: Partial<Settings>) => {
-    const next = { ...settings, ...patch, id: "app" };
-    setSettings(next);
-    if (patch.soundEnabled !== undefined) setSfxEnabled(patch.soundEnabled);
-    await repo.saveSettings(next);
-    // Mirror the student's synced preferences to the cloud (no-op without sync).
-    if (next.profileId) {
-      rememberSyncCode(next.profileId);
-      pushSettings(next.profileId, next);
-      if (next.studentName && (patch.studentName !== undefined || patch.coachLanguage !== undefined)) {
-        void ensureProfile({ id: next.profileId, name: next.studentName, coachLanguage: next.coachLanguage }).catch(
-          () => {},
-        );
-      }
+  const persistPatch = useCallback((patch: Partial<Settings>) => {
+    const operation = saveQueue.current.then(async () => {
+      const next = { ...persistedSettings.current, ...patch, id: "app" };
+      const binding = repo.capturePracticeBinding();
+      if (!binding) throw new Error("Settings account binding unavailable");
+      await repo.saveSettingsForPracticeBinding(binding, next);
+      persistedSettings.current = next;
+      return next;
+    });
+    saveQueue.current = operation.then(() => undefined, () => undefined);
+    return operation;
+  }, []);
+
+  const update = useCallback(async (patch: SettingsPatch): Promise<boolean> => {
+    let persisted: Settings;
+    try {
+      persisted = await persistPatch(patch);
+    } catch {
+      lastFailedPatch.current = patch;
+      setSaveError("No pudimos guardar el cambio. Inténtalo de nuevo. · We couldn't save that change. Please retry.");
+      return false;
     }
+    currentSettings.current = persisted;
+    setSettings(persisted);
+    if (patch.soundEnabled !== undefined) setSfxEnabled(patch.soundEnabled);
+    setSaveError(null);
+    lastFailedPatch.current = null;
+    if (persisted.profileId) {
+      rememberSyncCode(persisted.profileId);
+      await flushOutbox().catch(() => undefined);
+    }
+    return true;
+  }, [persistPatch]);
+
+  const revokeVoiceConsent = useCallback(async (): Promise<boolean> => {
+    // Fail closed immediately: future capture is denied and every active handle
+    // is cancelled before local/cloud persistence is attempted.
+    publishVoiceConsent(null);
+    let persisted: Settings;
+    try {
+      persisted = await persistPatch({ voiceConsent: null });
+    } catch {
+      voiceRevocationNeedsRetry.current = true;
+      setSaveError("El permiso de voz quedó desactivado, pero falta guardar el retiro. · Voice is off, but saving the withdrawal needs a retry.");
+      return false;
+    }
+    currentSettings.current = persisted;
+    setSettings(persisted);
+    voiceRevocationNeedsRetry.current = false;
+    setSaveError(null);
+    if (persisted.profileId) await flushOutbox().catch(() => undefined);
+    return true;
+  }, [persistPatch]);
+
+  const retryLastUpdate = useCallback(async () => {
+    if (voiceRevocationNeedsRetry.current) return revokeVoiceConsent();
+    const patch = lastFailedPatch.current;
+    return patch ? update(patch) : true;
+  }, [revokeVoiceConsent, update]);
+
+  const saveVoiceConsent = async (consent: NonNullable<Settings["voiceConsent"]>) => {
+    if (!ready) throw new Error("Settings are not ready");
+    const committed = await persistPatch({ voiceConsent: consent });
+    currentSettings.current = committed;
+    setSettings(committed);
+    publishVoiceConsent(consent);
+    if (committed.profileId) await flushOutbox().catch(() => undefined);
   };
 
   return (
-    <SettingsContext.Provider value={{ settings, ready, update }}>{children}</SettingsContext.Provider>
+    <SettingsContext.Provider value={{ settings, ready, update, saveError, retryLastUpdate, saveVoiceConsent, revokeVoiceConsent }}>{children}</SettingsContext.Provider>
   );
 }
 

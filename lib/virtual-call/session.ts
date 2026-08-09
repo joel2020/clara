@@ -13,6 +13,10 @@
 //              one line and asks for the sentence again, then verifies.
 
 import type { Level } from "../placement.ts";
+import { isAssessmentResult, type AssessmentResult } from "../speech/azure-response.ts";
+import { diagnosePronunciationTarget } from "../speech/pronunciation-diagnosis.ts";
+import type { PronunciationCueKey } from "../speech/latam-prior.ts";
+import { gradePronunciation, type CefrLevel, type PronunciationVerdict } from "../speech/pronunciation-policy.ts";
 
 export type CorrectionMode = "natural" | "practice";
 
@@ -39,9 +43,11 @@ export interface TurnCorrection {
   severity: MistakeSeverity;
   /** "grammar" | "vocabulary" | "phrasing" — used to group the report. */
   kind: CorrectionKind;
+  /** One acoustic cue selected from this turn's free-speech evidence. */
+  pronunciation?: CallPronunciationDiagnostic;
 }
 
-export type CorrectionKind = "grammar" | "vocabulary" | "phrasing";
+export type CorrectionKind = "grammar" | "vocabulary" | "phrasing" | "pronunciation";
 
 /** What the model returned for one learner turn, after server-side validation. */
 export interface TurnAnalysis {
@@ -76,24 +82,45 @@ export interface LearnerTurn {
 }
 
 export interface PronunciationEvidence {
-  /** 0-100 from the assessment service. */
-  score: number;
-  /**
-   * The sentence it was graded against, when there was one. Present for a
-   * retry (scripted); absent for free conversation, which Azure grades
-   * unscripted against whatever she actually said. Both are real measurements —
-   * this says which one, so a report never implies more than was measured.
-   */
-  target?: string;
-  worstWord?: string;
+  /** Free speech can identify a practice target, but can never be mastery. */
+  diagnostic: CallPronunciationDiagnostic;
+  /** Present only after a reference-text phrase capture. */
+  scripted?: ScriptedCallPronunciation;
+}
+
+export interface CallPronunciationDiagnostic {
+  assessmentKind: "free";
+  policyVersion: "latam-v1";
+  outcome: "diagnostic";
+  targetWord: string;
+  targetSound: string;
+  cueKey: PronunciationCueKey;
+  referenceSentence: string;
+  source: "personal-evidence" | "latam-prior" | "provider";
+}
+
+export interface ScriptedCallPronunciation {
+  assessmentKind: "phrase";
+  policyVersion: "latam-v1";
+  outcome: PronunciationVerdict["outcome"];
+  targetWord: string;
+  referenceSentence: string;
+  /** Included only for acoustically graded mastery/retry evidence. */
+  score?: number;
+  reasons: string[];
 }
 
 export interface RetryOutcome {
   transcript: string;
   accepted: boolean;
+  /** Unavailable means provider failure supplied no transcript judgment. */
+  transcriptStatus?: "unavailable";
   /** Word-level similarity against the corrected sentence, 0..1. */
   similarity: number;
   at: number;
+  /** Acoustic verdict from the separate reference-text assessment. */
+  pronunciationOutcome?: PronunciationVerdict["outcome"];
+  pronunciationPolicyVersion?: "latam-v1";
 }
 
 export interface CallState {
@@ -123,6 +150,73 @@ export const MAX_TURNS = 24;
 export const CONTEXT_WINDOW_TURNS = 8;
 /** A retry is accepted at or above this word-level similarity. */
 export const RETRY_ACCEPT_SIMILARITY = 0.8;
+export const MAX_CALL_REFERENCE_CHARS = 200;
+
+function boundedSentence(value: string, targetWord: string): string | null {
+  const candidates = value
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=[.!?])\s+/);
+  const escaped = targetWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const word = new RegExp(`(^|[^A-Za-z])${escaped}(?=$|[^A-Za-z])`, "i");
+  return candidates.find((candidate) => candidate.length > 0 && candidate.length <= MAX_CALL_REFERENCE_CHARS && word.test(candidate)) ?? null;
+}
+
+/** Build one bounded free-speech cue; never returns a score or mastery. */
+export function diagnoseFreeCallPronunciation(input: {
+  evidence: unknown;
+  sentence: string;
+  canonicalCorrection?: string;
+  cefr: CefrLevel;
+}): CallPronunciationDiagnostic | null {
+  if (!isAssessmentResult(input.evidence)) return null;
+  const verdict = gradePronunciation({ context: "free", cefr: input.cefr, evidence: input.evidence });
+  if (verdict.outcome !== "diagnostic" || input.evidence.providerStatus !== "valid" || input.evidence.recognitionReason !== undefined) return null;
+  const diagnosis = diagnosePronunciationTarget({ evidence: input.evidence, personalWeaknesses: [] });
+  if (!diagnosis) return null;
+  const referenceSentence = (input.canonicalCorrection ? boundedSentence(input.canonicalCorrection, diagnosis.word) : null)
+    ?? boundedSentence(input.sentence, diagnosis.word);
+  if (!referenceSentence) return null;
+  return {
+    assessmentKind: "free",
+    policyVersion: verdict.policyVersion,
+    outcome: "diagnostic",
+    targetWord: diagnosis.word,
+    targetSound: diagnosis.target,
+    cueKey: diagnosis.cueKey,
+    referenceSentence,
+    source: diagnosis.source,
+  };
+}
+
+/** Apply the shared strict phrase policy to a known reference-text retry. */
+export function gradeScriptedCallPronunciation(input: {
+  evidence: unknown;
+  referenceSentence: string;
+  targetWord: string;
+  cefr: CefrLevel;
+}): ScriptedCallPronunciation {
+  const evidence = isAssessmentResult(input.evidence) ? input.evidence : null;
+  const verdict = evidence
+    ? gradePronunciation({ context: "daily-phrase", cefr: input.cefr, evidence })
+    : { policyVersion: "latam-v1" as const, outcome: "technical-skip" as const, reasons: ["invalid-provider-evidence"] };
+  return {
+    assessmentKind: "phrase",
+    policyVersion: verdict.policyVersion,
+    outcome: verdict.outcome,
+    targetWord: input.targetWord.slice(0, 80),
+    referenceSentence: input.referenceSentence.slice(0, MAX_CALL_REFERENCE_CHARS),
+    ...((verdict.outcome === "mastered" || verdict.outcome === "retry") && evidence?.pronunciationScore !== undefined
+      ? { score: Math.round(evidence.pronunciationScore) }
+      : {}),
+    reasons: verdict.reasons.slice(0, 8).map((reason) => reason.slice(0, 80)),
+  };
+}
+
+/** Entering mute stops a capture; leaving mute must not discard a new reply. */
+export function shouldCancelCaptureOnMute(wasMuted: boolean): boolean {
+  return !wasMuted;
+}
 
 export function createCallState(input: {
   scenarioId: string;
@@ -230,6 +324,10 @@ export function evaluateRetry(said: string, target: string, at: number): RetryOu
   return { transcript: said, accepted: similarity >= RETRY_ACCEPT_SIMILARITY, similarity, at };
 }
 
+export function retryReferenceSentence(correction: TurnCorrection): string {
+  return correction.pronunciation?.referenceSentence ?? correction.corrected;
+}
+
 /** Apply one analyzed learner turn, returning the next state. Pure. */
 export function applyTurn(
   state: CallState,
@@ -258,10 +356,16 @@ export function applyTurn(
 /** Record a retry attempt against the pending correction. Pure. */
 export function applyRetry(
   state: CallState,
-  input: { transcript: string; at: number; pronunciation?: PronunciationEvidence },
+  input: { transcript: string; at: number; pronunciation?: PronunciationEvidence; transcriptStatus?: "unavailable" },
 ): CallState {
   if (!state.pendingRetry || state.pendingRetryTurn === null) return state;
-  const outcome = evaluateRetry(input.transcript, state.pendingRetry.corrected, input.at);
+  const similarityOutcome = evaluateRetry(input.transcript, retryReferenceSentence(state.pendingRetry), input.at);
+  const scripted = input.pronunciation?.scripted;
+  const outcome: RetryOutcome = {
+    ...similarityOutcome,
+    ...(input.transcriptStatus ? { transcriptStatus: input.transcriptStatus } : {}),
+    ...(scripted ? { pronunciationOutcome: scripted.outcome, pronunciationPolicyVersion: scripted.policyVersion } : {}),
+  };
   const turns = state.turns.map((t) =>
     t.index === state.pendingRetryTurn
       ? { ...t, retry: outcome, ...(input.pronunciation ? { pronunciation: input.pronunciation } : {}) }

@@ -195,6 +195,47 @@ const STRINGS = {
   shadowExit: { es: "Salir", en: "Exit" },
   shadowNeedsMic: { es: "Repetir necesita el micrófono", en: "Shadowing needs the mic" },
 
+  // Strict pronunciation coach
+  pronClear: { es: "Claro", en: "Clear" },
+  pronAlmost: { es: "Casi", en: "Almost" },
+  pronTryAgain: { es: "Otra vez", en: "Try again" },
+  pronHeard: { es: "Clara escuchó", en: "Clara heard" },
+  pronOneFix: { es: "Un ajuste", en: "One adjustment" },
+  pronMouthCue: { es: "Clave de boca", en: "Mouth cue" },
+  pronClearCue: { es: "Repite el mismo movimiento: boca relajada, aire continuo y final completo.", en: "Repeat the same movement: relaxed mouth, steady air, and a complete ending." },
+  pronListenSlow: { es: "Escuchar despacio", en: "Listen slowly" },
+  pronListenNormal: { es: "Escuchar normal", en: "Listen normally" },
+  pronRetry: { es: "Intentar otra vez", en: "Try again" },
+  pronRecordAria: { es: "Grabar tu pronunciación", en: "Record your pronunciation" },
+  pronContinue: { es: "Continuar", en: "Continue" },
+  pronScoreDetails: { es: "Detalles del puntaje", en: "Score details" },
+  pronScorePronunciation: { es: "Pronunciación", en: "Pronunciation" },
+  pronScoreAccuracy: { es: "Precisión", en: "Accuracy" },
+  pronScoreCompleteness: { es: "Frase completa", en: "Completeness" },
+  pronScoreProsody: { es: "Ritmo", en: "Prosody" },
+  pronContrast: { es: "Contraste", en: "Contrast" },
+  pronProgressImproved: { es: "Mejoraste desde tu primer intento", en: "Improved from your first try" },
+  pronProgressSame: { es: "Te mantuviste igual que en tu primer intento", en: "Held steady from your first try" },
+  pronProgressDeclined: { es: "Bajó un poco desde tu primer intento; descansa y vuelve al movimiento", en: "Dipped from your first try; reset and return to the movement" },
+  pronMiniChallenge: { es: "Mini reto", en: "Mini challenge" },
+  pronChallengeRhythm: { es: "Marca el pulso y di la frase una vez, sin correr.", en: "Tap the beat and say the phrase once without rushing." },
+  pronChallengeContrast: { es: "Alterna el sonido meta y su contraste tres veces.", en: "Alternate the target sound and its contrast three times." },
+  pronTechnicalTitle: { es: "No se calificó", en: "Not graded" },
+  pronTechnicalBody: { es: "El servicio de pronunciación no respondió. Esto no cuenta como error tuyo ni cambia tu progreso.", en: "Pronunciation scoring did not respond. This is not your mistake and does not change your progress." },
+  pronRetryScoring: { es: "Reintentar calificación", en: "Retry scoring" },
+  pronPracticeUngraded: { es: "Práctica solo con transcripción — sin calificación", en: "Transcript-only practice — ungraded" },
+  pronTechnicalSkip: { es: "Omitir por este problema", en: "Skip because of this issue" },
+  pronUngraded: { es: "Práctica solo con transcripción — sin calificación", en: "Transcript-only practice — ungraded" },
+  pronUngradedBody: { es: "Clara solo revisó la transcripción. No calificó tu pronunciación ni guardó puntaje, progreso o recompensa.", en: "Clara checked only the transcript. Your pronunciation was not graded, and no score, progress, or reward was saved." },
+  pronSaveFailedTitle: { es: "No pudimos guardar tu resultado", en: "Couldn’t save your result" },
+  pronSaveFailedBody: { es: "Tu pronunciación ya fue calificada. Reintenta guardar el mismo resultado; no necesitas volver a grabar.", en: "Your pronunciation was already graded. Retry saving the same result—you do not need to record again." },
+  pronAccountChangedTitle: { es: "Cambió la cuenta", en: "Account changed" },
+  pronAccountChangedBody: { es: "La cuenta cambió antes de guardar. Este resultado no se guardó. Vuelve a la cuenta correcta y graba de nuevo.", en: "The account changed before this result was saved. Return to the correct account and record it again; it was not added to the current account." },
+  pronAccountChangedAction: { es: "Continuar", en: "Continue" },
+  pronRetrySave: { es: "Reintentar guardado", en: "Retry save" },
+  pronMicPermission: { es: "Activa el micrófono en el navegador y vuelve a intentarlo. No contamos un error.", en: "Allow the microphone in your browser and try again. No miss was counted." },
+  pronNoSpeech: { es: "No escuchamos voz. Acércate al micrófono y vuelve a intentarlo. No contamos un error.", en: "We did not hear speech. Move closer to the microphone and try again. No miss was counted." },
+
   // Today's guided session
   todayCard: { es: "Sesión de hoy", en: "Today's session" },
   todayCardSub: { es: "Tu rutina guiada — empieza aquí", en: "Your guided routine — start here" },
@@ -222,7 +263,7 @@ const STRINGS = {
   todayReviewSub: { es: "Repasa lo que ya viste", en: "Refresh what you've seen" },
   todayReviewNone: { es: "Nada que repasar hoy — ¡listo!", en: "Nothing to review today — done!" },
   todayLearn: { es: "Aprende", en: "Learn" },
-  todayTalk: { es: "Conversa con Joel", en: "Talk with Joel" },
+  todayTalk: { es: "Conversa con Lumi", en: "Talk with Lumi" },
   todayDoneTitle: { es: "¡Sesión completa!", en: "Session complete!" },
   todayDoneSub: { es: "Lo hiciste todo hoy. Nos vemos mañana.", en: "You did it all today. See you tomorrow." },
   todayStarsToday: { es: "estrellas hoy", en: "stars today" },
@@ -354,10 +395,17 @@ const STRINGS = {
   today: { es: "hoy", en: "today" },
 
   // Stages / stepper
+  stageStory: { es: "Historia", en: "Story" },
+  stageDiscover: { es: "Descubre", en: "Discover" },
   stageLearn: { es: "Aprende", en: "Learn" },
   stageEar: { es: "Oído", en: "Ear" },
   stageWords: { es: "Palabras", en: "Words" },
   stageSentences: { es: "Frases", en: "Sentences" },
+  startScene: { es: "Empezar la escena", en: "Start the scene" },
+  chooseCoffee: { es: "Elige el café", en: "Choose the coffee" },
+  useThisWord: { es: "Usar esta palabra", en: "Use this word" },
+  audioUnavailable: { es: "Audio no disponible", en: "Audio unavailable" },
+  retryAudio: { es: "Reintentar audio", en: "Retry audio" },
   learnEyebrow: { es: "Aprende", en: "Learn" },
   earEyebrow: { es: "Entrena el oído", en: "Train your ear" },
   skipToSpeaking: { es: "Saltar a hablar", en: "Skip to speaking" },
@@ -454,19 +502,19 @@ const STRINGS = {
 
   // Live conversation partner
   talkCard: { es: "Conversación en vivo", en: "Live conversation" },
-  talkCardSub: { es: "Habla de verdad con Joel, tu compañero de IA", en: "Really talk with Joel, your AI partner" },
-  talkEyebrow: { es: "Habla con Joel", en: "Talk with Joel" },
+  talkCardSub: { es: "Habla de verdad con Lumi, tu guía de IA", en: "Really talk with Lumi, your AI guide" },
+  talkEyebrow: { es: "Habla con Lumi", en: "Talk with Lumi" },
   talkTitle: { es: "Conversación en vivo", en: "Live conversation" },
   talkIntro: {
-    es: "Elige una situación y habla con Joel como en la vida real. Él te responde con su voz, te entiende, y te da un empujoncito cuando lo necesitas.",
-    en: "Pick a situation and talk with Joel like in real life. He answers in his own voice, understands you, and nudges you when you need it.",
+    es: "Elige una situación y habla con Lumi, una guía de práctica con IA. Te responde, te entiende y te da un empujoncito cuando lo necesitas.",
+    en: "Pick a situation and talk with Lumi, an AI practice guide. Lumi replies, understands you, and nudges you when you need it.",
   },
   talkChoose: { es: "Elige una situación", en: "Choose a situation" },
   talkStart: { es: "Empezar", en: "Start" },
   talkYourTurn: { es: "Tu turno — toca y habla", en: "Your turn — tap and speak" },
   talkListening: { es: "Escuchando… habla ahora", en: "Listening… speak now" },
   talkStop: { es: "Detener", en: "Stop" },
-  talkThinking: { es: "Joel está pensando…", en: "Joel is thinking…" },
+  talkThinking: { es: "Lumi está pensando…", en: "Lumi is thinking…" },
   talkYouSaid: { es: "Dijiste", en: "You said" },
   talkTip: { es: "Un consejito", en: "A little tip" },
   talkTrySaying: { es: "Puedes decir…", en: "You could say…" },
@@ -480,7 +528,7 @@ const STRINGS = {
   questsTitle: { es: "Misiones de hoy", en: "Today's missions" },
   questsSub: { es: "Un poquito cada día — así se vuelve fluida.", en: "A little every day — that's how fluency comes." },
   questsAllDone: { es: "¡Misiones completas! +30 XP", en: "Missions complete! +30 XP" },
-  questTalk: { es: "Conversa con Joel", en: "Have a conversation" },
+  questTalk: { es: "Conversa con Lumi", en: "Have a conversation" },
   questReview: { es: "Repasa 5 palabras", en: "Review 5 words" },
   questLearn: { es: "Aprende 5 palabras nuevas", en: "Learn 5 new words" },
 
@@ -491,8 +539,8 @@ const STRINGS = {
   },
   talkNotConfiguredTitle: { es: "Casi listo", en: "Almost ready" },
   talkNotConfigured: {
-    es: "El compañero de conversación necesita una llave de API de Anthropic para funcionar. Añádela y estará lista.",
-    en: "The conversation partner needs an Anthropic API key to work. Add it and it's ready to go.",
+    es: "La guía de conversación con IA necesita una llave de API para funcionar. Añádela y estará lista.",
+    en: "The AI conversation guide needs an API key to work. Add it and it's ready to go.",
   },
 
   // Pinpoint sound diagnosis (result card)
@@ -657,6 +705,8 @@ const STRINGS = {
   vcallKindGrammar: { es: "Gramática", en: "Grammar" },
   vcallKindVocabulary: { es: "Vocabulario", en: "Vocabulary" },
   vcallKindPhrasing: { es: "Forma de decirlo", en: "Phrasing" },
+  vcallKindPronunciation: { es: "Pronunciación", en: "Pronunciation" },
+  vcallPronTarget: { es: "Sonido objetivo", en: "Sound target" },
 
   // Retry prompt.
   vcallRetryTitle: { es: "Dilo otra vez, así", en: "Say it again, like this" },
@@ -664,12 +714,18 @@ const STRINGS = {
     es: "Toca y repite la frase corregida. Es un solo intento — después seguimos con la llamada.",
     en: "Tap and repeat the corrected sentence. One attempt — then the call moves on.",
   },
-  vcallRetryAccepted: { es: "Eso es. Quedó clarísimo.", en: "That's it. Nice and clear." },
+  vcallRetryAccepted: { es: "Entendido. La llamada sigue.", en: "Got it. The call keeps moving." },
   vcallRetryMissed: {
     es: "Casi. Seguimos con la llamada y lo vuelves a ver en el reporte.",
     en: "Close. The call moves on, and you'll see it again in the report.",
   },
   vcallRetryHeard: { es: "Escuché", en: "Heard" },
+  vcallRetryPronMastered: { es: "Pronunciación dominada en esta frase.", en: "Pronunciation mastered for this sentence." },
+  vcallRetryPronPracticed: { es: "Practicada; todavía no está dominada.", en: "Practiced, not mastered yet." },
+  vcallRetryPronDiagnostic: { es: "Esta toma no tuvo evidencia completa para calificar.", en: "This take did not have complete evidence for a grade." },
+  vcallRetryPronUnavailable: { es: "La calificación de pronunciación no estuvo disponible.", en: "Pronunciation grading was unavailable." },
+  vcallReplaySlow: { es: "Escuchar despacio", en: "Play slowly" },
+  vcallReplayNormal: { es: "Escuchar normal", en: "Play at normal speed" },
 
   // The guide's call-state artwork.
   // the stage renders a state medallion instead of temporary art.
@@ -723,9 +779,13 @@ const STRINGS = {
   vcallReportPron: { es: "Pronunciación", en: "Pronunciation" },
   vcallReportPronScored: { es: "frases medidas", en: "sentences measured" },
   vcallReportPronWorst: { es: "Palabras por pulir", en: "Words to polish" },
-  // Absent pronunciation must never read as a perfect score. It is absent only
-  // when the scoring service was unavailable — every spoken turn is graded when
-  // it is configured, free conversation included.
+  vcallReportPronDiagnostic: { es: "Objetivo de diagnóstico: {word} (la conversación libre no se calificó).", en: "Diagnostic target: {word} (free speech was not graded)." },
+  vcallReportPronAverage: { es: "{score} / 100 · {n} frases guiadas medidas", en: "{score} / 100 · {n} scripted sentences measured" },
+  vcallReportPronMastered: { es: "{n} dominadas con evidencia acústica", en: "{n} mastered with acoustic evidence" },
+  vcallReportPronPracticed: { es: "{n} practicadas, todavía no dominadas", en: "{n} practiced, not mastered" },
+  vcallReportPronUnavailable: { es: "{n} sin calificación disponible", en: "{n} unavailable" },
+  // Absent pronunciation must never read as a perfect score. Free conversation
+  // may create a diagnostic target, but only a scripted retry is graded.
   vcallReportPronAbsent: {
     es: "No se pudo medir la pronunciación en esta llamada. El servicio de puntaje no estuvo disponible; no quiere decir que hayas hablado mal.",
     en: "Pronunciation could not be measured on this call. The scoring service was unavailable — it does not mean you spoke badly.",
@@ -754,6 +814,33 @@ export type StringKey = keyof typeof STRINGS;
 
 export function t(key: StringKey, lang: CoachLang): string {
   return STRINGS[key][lang];
+}
+
+const PRONUNCIATION_CUES = {
+  "pronunciation.cue.es.short-i-long-ee": { es: "Para /ɪ/, relaja la boca y hazlo corto; para /iː/, sonríe un poco y alarga el sonido.", en: "For /ɪ/, relax and keep it short; for /iː/, smile slightly and hold the sound." },
+  "pronunciation.cue.es.foot-goose": { es: "Para /ʊ/, redondea poco y suelta rápido; para /uː/, redondea más y alarga.", en: "For /ʊ/, round lightly and release fast; for /uː/, round more and hold it." },
+  "pronunciation.cue.es.trap-dress": { es: "Para /æ/, baja más la mandíbula; para /ɛ/, déjala a media altura.", en: "For /æ/, drop your jaw farther; for /ɛ/, keep it halfway open." },
+  "pronunciation.cue.es.strut-lot": { es: "Para /ʌ/, relaja la lengua al centro; para /ɑ/, abre y lleva la lengua atrás.", en: "For /ʌ/, relax the tongue centrally; for /ɑ/, open and move it back." },
+  "pronunciation.cue.es.b-v": { es: "Para /v/, pon los dientes superiores sobre el labio inferior y deja vibrar el aire.", en: "For /v/, rest your top teeth on your lower lip and let the air buzz." },
+  "pronunciation.cue.es.dzh-y": { es: "Para /dʒ/, cierra un instante y suelta con fricción; para /j/, desliza sin cerrar.", en: "For /dʒ/, close briefly then release with friction; for /j/, glide without closing." },
+  "pronunciation.cue.es.sh-ch": { es: "Para /ʃ/, deja correr el aire; para /tʃ/, bloquéalo un instante antes de soltar.", en: "For /ʃ/, let air flow; for /tʃ/, stop it briefly before releasing." },
+  "pronunciation.cue.es.th": { es: "Pon la punta de la lengua entre los dientes y deja salir el aire; no la escondas detrás de los dientes.", en: "Put your tongue tip between your teeth and let air pass; do not hide it behind your teeth." },
+  "pronunciation.cue.es.initial-s-cluster": { es: "Empieza directamente con un siseo largo: sss-; no agregues una e antes.", en: "Start directly with a long hiss: sss-; do not add an e first." },
+  "pronunciation.cue.es.final-endings": { es: "Mantén el aire hasta tocar la consonante final; no cortes la palabra antes.", en: "Keep the air moving until you land the final consonant; do not cut the word short." },
+  "pronunciation.cue.es.final-clusters": { es: "Ve despacio y toca cada consonante final con la boca, sin insertar una vocal.", en: "Slow down and land each final consonant without inserting a vowel." },
+  "pronunciation.cue.es.h": { es: "Abre la garganta y suelta un soplo suave antes de la vocal, sin raspar.", en: "Open your throat and release a soft breath before the vowel, without scraping." },
+  "pronunciation.cue.es.rhotic-r": { es: "Lleva la lengua hacia atrás sin tocar el paladar y mantén los labios apenas redondos.", en: "Pull the tongue back without touching the roof and keep the lips slightly rounded." },
+  "pronunciation.cue.es.schwa": { es: "Relaja mandíbula, labios y lengua; deja salir una vocal corta y neutra.", en: "Relax jaw, lips, and tongue; release a short neutral vowel." },
+  "pronunciation.cue.es.word-stress": { es: "Alarga y marca una sola sílaba; reduce las demás sin darles el mismo peso.", en: "Lengthen and emphasize one syllable; reduce the others instead of weighting them equally." },
+  "pronunciation.cue.es.sentence-rhythm": { es: "Marca las palabras importantes y comprime las pequeñas entre los pulsos.", en: "Beat the important words and compress the small words between them." },
+  "pronunciation.cue.es.connected-speech": { es: "Une la consonante final con la vocal siguiente en un solo movimiento.", en: "Link the final consonant into the next vowel in one motion." },
+  "pronunciation.cue.es.flap": { es: "Entre vocales, toca una vez muy rápido detrás de los dientes, como una r suave española.", en: "Between vowels, tap once quickly behind the teeth, like a light Spanish r." },
+} as const;
+
+export type PronunciationCueKey = keyof typeof PRONUNCIATION_CUES;
+
+export function pronunciationCue(key: PronunciationCueKey, lang: CoachLang): string {
+  return PRONUNCIATION_CUES[key][lang];
 }
 
 /** "That sounded like X. Aim for Y…" — the minimal-pair miss, translated. */

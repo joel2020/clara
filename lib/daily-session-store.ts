@@ -4,6 +4,8 @@ import { repo } from "./db/index.ts";
 import { mergeDailySessions } from "./daily-session-merge.ts";
 import type { SessionCompletionResult } from "./daily-session-reward.ts";
 import type { DailySessionCompletionClaim } from "./db/repository.ts";
+import type { DailyPronunciationGameState } from "./speech/daily-pronunciation-game.ts";
+import type { PracticePersistenceBinding } from "./db/repository.ts";
 
 export { mergeDailySessions } from "./daily-session-merge.ts";
 
@@ -55,6 +57,25 @@ export interface ActivityCheckpoint {
   activityId: string;
   status: "completed" | "technical-skip";
   at: number;
+}
+
+export interface PronunciationGameCheckpoint {
+  day: string;
+  activityId: string;
+  contentHash: string;
+  state: DailyPronunciationGameState;
+  at: number;
+}
+
+/** Durable, monotonic checkpoint for every game stage and graded attempt. */
+export async function checkpointPronunciationGame(
+  bindingOrInput: PracticePersistenceBinding | PronunciationGameCheckpoint,
+  explicitInput?: PronunciationGameCheckpoint,
+): Promise<DailySession> {
+  const binding = explicitInput ? bindingOrInput as PracticePersistenceBinding : repo.capturePracticeBinding();
+  const input = explicitInput ?? bindingOrInput as PronunciationGameCheckpoint;
+  if (!binding) throw new Error("No learner account is bound");
+  return repo.checkpointDailyPronunciation(binding, input);
 }
 
 /**

@@ -196,7 +196,7 @@ By name only; all server-side, none exposed to the client.
 | Max body | 16 KB turn / 32 KB report | turn + report routes, measured in **bytes** |
 | Max vocabulary item | 60 chars | report route — these strings enter the system prompt |
 | Fact counts | clamped 0-100 | report route |
-| Per-IP flood limit | 40/min | existing `guardApi` |
+| Durable call-turn quota | 100/user/day + 90/global/min | `api-quota.ts` + atomic Supabase RPC |
 | Same-origin only | required | existing `guardApi` |
 
 Cost drivers, in rough order: the chat model (one call per learner turn, plus one

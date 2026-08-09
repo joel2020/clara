@@ -61,6 +61,8 @@ export interface WavHandle {
 }
 
 export interface WavOptions {
+  /** Caller-specific hard cap; continuous calls use their 30-second turn limit. */
+  maxDurationMs?: number;
   /**
    * Fired once she stops talking, so a continuous call can take its turn
    * without her tapping a button. Only ever fires AFTER speech was detected —
@@ -71,6 +73,11 @@ export interface WavOptions {
 }
 
 const MAX_MS = 15000;
+
+/** The effective safety cap for this recording, independently testable. */
+export function wavRecordingDurationMs(options: WavOptions = {}): number {
+  return options.maxDurationMs ?? MAX_MS;
+}
 
 /** Silence this long after she has spoken reads as "her turn is over". */
 const END_OF_SPEECH_MS = 1400;
@@ -156,7 +163,7 @@ export async function startWavRecording(options: WavOptions = {}): Promise<WavHa
     void ctx.close().catch(() => {});
   };
 
-  const safety = setTimeout(cleanup, MAX_MS);
+  const safety = setTimeout(cleanup, wavRecordingDurationMs(options));
 
   return {
     peak: () => peak,

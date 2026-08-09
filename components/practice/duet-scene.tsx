@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, Square, Loader2, Star, ArrowRight, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { repo } from "@/lib/db";
-import { createRecognition, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
+import { createRecognition, isTechnicalRecognitionError, recognitionErrorKey, recognitionMode, RecognitionError } from "@/lib/speech/recognition";
 import { recordPracticeAttempt } from "@/lib/practice";
+import { repo } from "@/lib/db";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useSpeechSupport } from "@/lib/hooks/useSpeechSupport";
 import { sfx } from "@/lib/sfx";
@@ -16,12 +16,13 @@ import { t } from "@/lib/i18n";
 import { Lumi } from "@/components/lumi";
 import { JoelAvatar } from "@/components/joel-avatar";
 import { duetItem, type Duet } from "@/lib/content/duets";
+import { shouldCelebrateGradedCompletion } from "@/lib/speech/graded-round";
 
 // A duet: she performs one side of a scripted scene while Joel performs the
 // other in his recorded voice. Her lines run through the real practice
 // pipeline (scoring, SRS, stars) — dialogue practice with actual credit.
 
-type HerPhase = "idle" | "recording" | "scoring" | "failed";
+type HerPhase = "idle" | "recording" | "scoring" | "failed" | "ungraded";
 
 export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) {
   const { settings } = useSettings();
@@ -32,42 +33,98 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
   const [herPhase, setHerPhase] = useState<HerPhase>("idle");
   const [heard, setHeard] = useState<string | null>(null);
   const [stars, setStars] = useState(0);
-  const [joelSpeaking, setJoelSpeaking] = useState(false);
+  const [gradedAttempts, setGradedAttempts] = useState(0);
+  const [hadUngradedSkip, setHadUngradedSkip] = useState(false);
+  const [speakingIdentity, setSpeakingIdentity] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const handleRef = useRef<ReturnType<typeof createRecognition> | null>(null);
+  const prePlayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const safetyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handoffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const captureSequenceRef = useRef(0);
 
   const lines = duet.lines;
   const current = lines[lineIdx];
+  const currentIdentity = current ? `${duet.id}:${current.speaker}:${current.itemId}` : null;
+  const joelSpeaking = speakingIdentity === currentIdentity;
 
-  const advance = useCallback(() => {
+  const clearSceneTimers = useCallback(() => {
+    for (const timerRef of [prePlayRef, safetyRef, handoffRef]) {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  }, []);
+
+  const cancelActive = useCallback(() => {
+    captureSequenceRef.current += 1;
+    handleRef.current?.cancel();
+    handleRef.current = null;
+    stopPronunciation();
+  }, []);
+
+  const stopScene = useCallback(() => {
+    clearSceneTimers();
+    cancelActive();
+  }, [cancelActive, clearSceneTimers]);
+
+  const advance = useCallback((completion: "automatic" | "graded" | "skipped" = "automatic") => {
+    stopScene();
     setHeard(null);
     setHerPhase("idle");
+    const nextGradedAttempts = gradedAttempts + (completion === "graded" ? 1 : 0);
+    const nextHadUngradedSkip = hadUngradedSkip || completion === "skipped";
+    if (completion === "skipped") setHadUngradedSkip(true);
     if (lineIdx + 1 >= lines.length) {
       setDone(true);
-      sfx.finish();
-      celebrate();
-      juice.centerBurst();
+      if (shouldCelebrateGradedCompletion({
+        gradedAttempts: nextGradedAttempts,
+        completedWithGradedResult: completion !== "skipped",
+        hadUngradedSkip: nextHadUngradedSkip,
+      })) {
+        sfx.finish();
+        celebrate();
+        juice.centerBurst();
+      }
     } else {
       setLineIdx((i) => i + 1);
     }
-  }, [lineIdx, lines.length]);
+  }, [gradedAttempts, hadUngradedSkip, lineIdx, lines.length, stopScene]);
 
   // Joel performs his lines automatically, then hands the scene to her. If his
   // audio can't play (autoplay policy, flaky network), a safety timer keeps the
   // scene moving instead of stalling forever.
   useEffect(() => {
-    if (done || !current || current.speaker !== "joel") return;
-    const item = duetItem(current);
     let ended = false;
+    if (done || !current || current.speaker !== "joel") {
+      return () => {
+        ended = true;
+        clearSceneTimers();
+        cancelActive();
+      };
+    }
+    const item = duetItem(current);
     const finish = () => {
       if (ended) return;
       ended = true;
-      setJoelSpeaking(false);
-      setTimeout(advance, 450);
+      if (safetyRef.current !== null) {
+        clearTimeout(safetyRef.current);
+        safetyRef.current = null;
+      }
+      setSpeakingIdentity(null);
+      handoffRef.current = setTimeout(() => {
+        handoffRef.current = null;
+        advance("automatic");
+      }, 450);
     };
-    const safety = setTimeout(finish, 9000);
-    const timer = setTimeout(() => {
-      setJoelSpeaking(true);
+    safetyRef.current = setTimeout(() => {
+      safetyRef.current = null;
+      finish();
+    }, 9000);
+    prePlayRef.current = setTimeout(() => {
+      prePlayRef.current = null;
+      setSpeakingIdentity(currentIdentity);
       playPronunciation({
         id: item.id,
         text: item.text,
@@ -78,25 +135,33 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
       });
     }, 400);
     return () => {
-      clearTimeout(timer);
-      clearTimeout(safety);
+      ended = true;
+      clearSceneTimers();
+      cancelActive();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lineIdx, done]);
-
-  useEffect(() => () => stopPronunciation(), []);
+  }, [advance, cancelActive, clearSceneTimers, current?.itemId, current?.speaker, currentIdentity, done, duet.id, settings.speechRate, settings.voiceURI]);
 
   const record = async () => {
     if (herPhase === "recording" || herPhase === "scoring" || !current || current.speaker !== "her") return;
     const item = duetItem(current);
+    const persistenceBinding = repo.capturePracticeBinding();
+    if (!persistenceBinding) {
+      setHerPhase("ungraded");
+      setHeard(t("pronAccountChangedBody", lang));
+      return;
+    }
+    const captureSequence = captureSequenceRef.current + 1;
+    captureSequenceRef.current = captureSequence;
+    clearSceneTimers();
     stopPronunciation();
     setHeard(null);
     setHerPhase("recording");
     sfx.tap();
-    const h = createRecognition({ lang: settings.recognitionLang, target: item.text });
+    const h = createRecognition({ lang: settings.recognitionLang, target: item.text, assessmentKind: item.kind });
     handleRef.current = h;
     try {
       const r = await h.result;
+      if (captureSequence !== captureSequenceRef.current) return;
       setHerPhase("scoring");
       const out = await recordPracticeAttempt({
         item,
@@ -105,26 +170,46 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
         alternatives: r.alternatives,
         combo: 1,
         assessment: r.assessment,
+        persistenceBinding,
       });
+      if (captureSequence !== captureSequenceRef.current) return;
+      if (!out.recorded) {
+        setHeard(out.score.feedback);
+        setHerPhase("ungraded");
+        return;
+      }
+      setGradedAttempts((value) => value + 1);
       if (out.score.passed) {
         setStars((s) => s + out.rewards.starsEarned);
         sfx.correct(1);
         juice.centerBurst(out.rewards.starsEarned > 0 ? `+${out.rewards.starsEarned} ★` : undefined);
-        advance();
+        advance("graded");
       } else {
         setHeard(out.score.heard || "—");
         setHerPhase("failed");
         sfx.wrong();
       }
     } catch (e) {
+      if (captureSequence !== captureSequenceRef.current) return;
       if (e instanceof RecognitionError && (e.code === "cancelled" || e.code === "consent")) {
         setHerPhase("idle");
+        return;
+      }
+      if (isTechnicalRecognitionError(e)) {
+        setHerPhase("ungraded");
+        setHeard(t(recognitionErrorKey(e), lang));
+        return;
+      }
+      if (e && typeof e === "object" && "code" in e && e.code === "account-changed") {
+        stopScene();
+        setHerPhase("ungraded");
+        setHeard(t("pronAccountChangedBody", lang));
         return;
       }
       setHerPhase("failed");
       setHeard(null);
     } finally {
-      handleRef.current = null;
+      if (captureSequence === captureSequenceRef.current) handleRef.current = null;
     }
   };
 
@@ -132,7 +217,7 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
     return (
       <div className="mx-auto max-w-md px-5 py-24 text-center">
         <p className="font-display text-2xl font-medium tracking-[-0.01em]">{t("duetNeedsMic", lang)}</p>
-        <button onClick={onExit} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
+        <button onClick={() => { stopScene(); onExit(); }} className="mt-6 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background">
           {t("backHome", lang)}
         </button>
       </div>
@@ -140,18 +225,31 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
   }
 
   if (done) {
+    const neutral = gradedAttempts === 0 || hadUngradedSkip;
     return (
       <div className="animate-scale-in px-5 py-14 text-center">
-        <Lumi frame="bust" mood="cheer" className="mx-auto size-28" />
+        <Lumi frame="bust" mood={neutral ? "think" : "cheer"} className="mx-auto size-28" />
         <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{duet.title[lang]}</p>
-        <h1 className="mt-3 inline-flex items-center gap-2 font-display text-5xl font-medium tracking-[-0.03em]">
-          {stars}
-          <Star className="size-9 text-co-yellow" style={{ fill: "currentColor" }} strokeWidth={0} />
-        </h1>
-        <p className="mt-3 text-muted-foreground">{t("duetDone", lang)}</p>
+        {gradedAttempts === 0 ? (
+          <h1 className="mt-3 font-display text-4xl font-medium tracking-[-0.03em]">
+            {lang === "es" ? "Sin calificar" : "Not graded"}
+          </h1>
+        ) : (
+          <h1 className="mt-3 inline-flex items-center gap-2 font-display text-5xl font-medium tracking-[-0.03em]">
+            {stars}
+            <Star className="size-9 text-co-yellow" style={{ fill: "currentColor" }} strokeWidth={0} />
+          </h1>
+        )}
+        <p className="mt-3 text-muted-foreground">
+          {gradedAttempts === 0
+            ? (lang === "es" ? "Práctica terminada · Sin calificar" : "Practice complete · Not graded")
+            : neutral
+              ? (lang === "es" ? "Práctica terminada" : "Practice complete")
+              : t("duetDone", lang)}
+        </p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <button
-            onClick={onExit}
+            onClick={() => { stopScene(); onExit(); }}
             className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground/80 transition-all hover:border-foreground/30 active:scale-[0.98]"
           >
             {t("finish", lang)}
@@ -170,7 +268,7 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
   return (
     <div className="mx-auto flex min-h-[80dvh] max-w-xl flex-col px-5 py-6">
       <div className="flex items-center justify-between">
-        <button onClick={onExit} className="text-sm font-medium text-muted-foreground hover:text-foreground">
+        <button onClick={() => { stopScene(); onExit(); }} className="text-sm font-medium text-muted-foreground hover:text-foreground">
           {t("shadowExit", lang)}
         </button>
         <p className="flex items-center gap-2 text-sm font-medium">
@@ -224,6 +322,9 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
               {t("heard", lang)} <span className="font-medium text-destructive">“{heard ?? "—"}”</span>
             </p>
           )}
+          {herPhase === "ungraded" && (
+            <p role="status" className="mb-3 text-sm text-muted-foreground">{heard}</p>
+          )}
           <div className="flex items-center justify-center gap-3">
             {herPhase === "recording" ? (
               <button
@@ -260,7 +361,7 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
                   <Volume2 className="size-4" />
                 </button>
                 <button
-                  onClick={advance}
+                  onClick={() => advance("skipped")}
                   className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-4 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:border-primary/40"
                 >
                   {t("skipToNext", lang)}
@@ -268,12 +369,24 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
                 </button>
               </>
             )}
+            {herPhase === "ungraded" && (
+              <button
+                type="button"
+                onClick={() => advance("skipped")}
+                className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-4 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:border-primary/40"
+              >
+                {t("skipToNext", lang)}
+                <ArrowRight className="size-4" />
+              </button>
+            )}
           </div>
           <p className="mt-2.5 text-sm font-medium text-muted-foreground">
             {herPhase === "recording"
               ? t("talkListening", lang)
               : herPhase === "failed"
                 ? t("tryAgain", lang)
+                : herPhase === "ungraded"
+                  ? lang === "es" ? "No se calificó. Intenta otra vez." : "Not graded. Try again."
                 : t("duetYourLine", lang)}
           </p>
         </div>

@@ -1,4 +1,5 @@
 import type { ActivityStatus, DailyActivity, DailySession } from "./daily-session.ts";
+import { mergeDailyPronunciationGameStates } from "./speech/daily-pronunciation-game.ts";
 
 const STATUS_RANK: Record<ActivityStatus, number> = {
   pending: 0,
@@ -9,9 +10,24 @@ const STATUS_RANK: Record<ActivityStatus, number> = {
 
 function mergeActivity(newer: DailyActivity, older: DailyActivity): DailyActivity {
   const evidence = STATUS_RANK[newer.status] >= STATUS_RANK[older.status] ? newer : older;
-  const { completedAt: _newerCompletedAt, ...newerWithoutCompletion } = newer;
+  const newerWithoutCompletion = { ...newer };
+  delete newerWithoutCompletion.completedAt;
+  if (newer.pronunciation?.state && older.pronunciation?.state
+    && (newer.pronunciation.state.contentHash !== older.pronunciation.state.contentHash
+      || newer.pronunciation.state.game !== older.pronunciation.state.game)) {
+    throw new Error("Cannot merge incompatible pronunciation content");
+  }
+  const pronunciation = newer.pronunciation?.state && older.pronunciation?.state
+    ? {
+        ...newer.pronunciation,
+        state: mergeDailyPronunciationGameStates(newer.pronunciation.state, older.pronunciation.state),
+      }
+    : newer.pronunciation?.state ? newer.pronunciation
+      : older.pronunciation?.state ? older.pronunciation
+        : newer.pronunciation ?? older.pronunciation;
   return {
     ...newerWithoutCompletion,
+    ...(pronunciation ? { pronunciation } : {}),
     status: evidence.status,
     ...(evidence.completedAt === undefined ? {} : { completedAt: evidence.completedAt }),
   };
@@ -35,6 +51,7 @@ export function mergeDailySessions(local: DailySession, remote: DailySession): D
   const current = activities.find((entry) => entry.status === "pending" || entry.status === "active");
   return {
     ...newer,
+    version: Math.max(local.version, remote.version) as DailySession["version"],
     activities,
     currentActivityId: current?.id ?? null,
     rewardClaimed: local.rewardClaimed || remote.rewardClaimed,

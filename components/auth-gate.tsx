@@ -11,8 +11,7 @@ import { useAccess } from "@/lib/hooks/useAccess";
 import { PrivacyNotice } from "@/components/privacy-notice";
 
 // Stands in front of the whole app until there is a Google-backed Supabase
-// session. During the family-and-friends beta every authenticated learner is
-// admitted; /api/me still supplies the separately enforced admin flag.
+// session whose identity is admitted by the server-side access policy.
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { ready, required, session, signOut } = useAuth();

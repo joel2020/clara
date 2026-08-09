@@ -10,9 +10,11 @@
 // A learner who finishes a call always gets a report.
 
 import { guardApi } from "@/lib/api-guard";
-import { requireUser } from "@/lib/auth-server";
+import { requireAllowedUserIdentity } from "@/lib/auth-server";
+import { enforcePaidApiQuota } from "@/lib/api-quota";
 import { getChatModel } from "@/lib/ai/chat-client";
 import { getVirtualCallScenario } from "@/lib/content/virtual-call-scenarios";
+import { sanitizePronunciationFacts } from "@/lib/virtual-call/report";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -29,8 +31,9 @@ interface ReportBody {
     durationMs?: unknown;
     metCriteria?: unknown;
     retriedAcceptedCount?: unknown;
-    vocabularyUsed?: unknown;
-    priorities?: unknown;
+    vocabularyUsedCount?: unknown;
+    priorityKinds?: unknown;
+    pronunciation?: unknown;
   };
 }
 
@@ -84,8 +87,10 @@ function fallbackProse(
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
-  if (unauth) return unauth;
+  const identity = await requireAllowedUserIdentity(request);
+  if ("response" in identity) return identity.response;
+  const quota = await enforcePaidApiQuota({ userId: identity.user.id, route: "virtual-call-report" });
+  if (quota) return quota;
 
   const raw = await request.text();
   if (Buffer.byteLength(raw) > MAX_BODY_BYTES) return Response.json({ error: "too_large" }, { status: 413 });
@@ -111,21 +116,12 @@ export async function POST(request: Request): Promise<Response> {
   // Capped per item, not just per array: these strings are interpolated into
   // the system prompt, so an uncapped one is a prompt-injection vector even
   // when the caller is same-origin and authenticated.
-  const vocab = Array.isArray(f.vocabularyUsed)
-    ? f.vocabularyUsed
-        .filter((v): v is string => typeof v === "string")
-        .slice(0, 10)
-        .map((v) => v.slice(0, 60))
+  const vocabularyUsedCount = clamp(f.vocabularyUsedCount, 20);
+  const allowedKinds = new Set(["grammar", "vocabulary", "phrasing", "pronunciation"]);
+  const priorityKinds = Array.isArray(f.priorityKinds)
+    ? f.priorityKinds.filter((kind): kind is string => typeof kind === "string" && allowedKinds.has(kind)).slice(0, 3)
     : [];
-  const priorities = Array.isArray(f.priorities)
-    ? f.priorities
-        .filter((p): p is { corrected?: string; explanation?: string } => Boolean(p) && typeof p === "object")
-        .slice(0, 3)
-        .map((p) => ({
-          corrected: typeof p.corrected === "string" ? p.corrected.slice(0, 200) : "",
-          explanation: typeof p.explanation === "string" ? p.explanation.slice(0, 300) : "",
-        }))
-    : [];
+  const pronunciation = sanitizePronunciationFacts(f.pronunciation);
 
   const brain = getChatModel();
   if (!brain) {
@@ -141,10 +137,15 @@ These are the FACTS of the call. Do not invent anything beyond them, and never c
 - Turns that needed no correction: ${clean}
 - Reached the goal of the conversation: ${met ? "yes" : "not this time"}
 - Mistakes she fixed when asked to say the sentence again: ${retriesFixed}
-- Target vocabulary she actually used: ${vocab.length ? vocab.join(", ") : "none this call"}
-- Things to work on next: ${priorities.map((p) => p.corrected).filter(Boolean).join(" | ") || "nothing major"}
+- Number of target-vocabulary items she used: ${vocabularyUsedCount}
+- Bounded correction categories to work on next: ${priorityKinds.join(", ") || "nothing major"}
+- Free-speech pronunciation targets identified for practice (diagnosis only, never a grade): ${pronunciation.diagnosed}
+- Reference sentences acoustically graded by policy: ${pronunciation.graded}
+- Reference sentences mastered acoustically: ${pronunciation.mastered}
+- Reference sentences practiced but not mastered: ${pronunciation.practiced}
+- Scripted pronunciation checks unavailable or incomplete: ${pronunciation.unavailable}
 
-Be warm, specific and adult. No baby talk, no empty praise. If the call was short, say so kindly rather than inflating it. Do not mention pronunciation at all — it is not in these facts.`;
+Be warm, specific and adult. No baby talk, no empty praise. If the call was short, say so kindly rather than inflating it. Never describe a diagnosis or transcript match as pronunciation mastery. Mention pronunciation only from the five bounded pronunciation facts above.`;
 
   try {
     const completion = await brain.client.chat.completions.create({

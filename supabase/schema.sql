@@ -75,6 +75,7 @@ create table if not exists settings (
   daily_goal int not null default 40,
   speech_rate real not null default 0.9,
   voice_uri text,
+  voice_consent jsonb,
   recognition_lang text not null default 'en-US',
   updated_at bigint
 );

@@ -13,7 +13,13 @@ layer (XP, stars, streaks, a shop, pets) keep it a habit, not a chore.
 
 ## Quick start (local dev)
 
+Use Node.js **24.19.0** locally (the version in `.nvmrc`) and in CI. Vercel only
+supports selecting the `24.x` major line, so `package.json` intentionally keeps
+`engines.node` at `24.x`; verify the exact patch reported in each release's
+Vercel build log before promotion.
+
 ```bash
+nvm use
 npm install
 npm run dev            # http://localhost:3000
 npm run build          # production build (also full typecheck)
@@ -26,7 +32,7 @@ only activates when `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` exist. With those set
 Type/logic tests (Node strips TS types; no test runner needed):
 
 ```bash
-npm test                         # the whole suite (440 checks across 16 files)
+npm test                         # the whole unit suite
 node lib/placement.test.mjs      # or run one alias-free file directly
 npx tsx lib/scoring.test.mjs     # files importing through "@/" or "./x.ts" need tsx
 ```
@@ -44,6 +50,8 @@ design (Supabase URL + anon key, VAPID public key); everything else is
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | public |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (auth + RLS-scoped data) | public |
+| `SUPABASE_SERVICE_ROLE_KEY` | Durable API quotas and trusted admin/push operations | server-only secret |
+| `ALLOWED_EMAILS` | Comma-separated invited learner emails | server |
 | `OPENAI_API_KEY` | AI conversation (`/api/chat`) + news rewrites (`/api/news`) | server |
 | `ELEVENLABS_API_KEY` | Joel's TTS voice (`/api/tts`) + iOS transcription (`/api/transcribe`) | server |
 | `AZURE_SPEECH_KEY` | Phoneme-level pronunciation scoring (`/api/assess`) | server |
@@ -66,14 +74,24 @@ configured" and the rest of the app keeps working.
 - **Server-side allowlist** (`lib/allowlist.ts`): sign-up is open, but only
   allow-listed emails can enter the app or hit the paid AI routes — a stranger
   who self-registers gets a "no access" screen and every paid route returns 403.
-  The lists live in the **`ALLOWED_EMAILS` / `ADMIN_EMAILS` env vars** (comma-
-  separated, server-only — student emails are personal data and no longer live
-  in code or the client bundle; the UI asks `/api/me` for its own flags).
+  The learner list lives in the **`ALLOWED_EMAILS` env var** (comma-separated,
+  server-only — student emails are personal data and no longer live in code or
+  the client bundle; the UI asks `/api/me` for its own flags). Admin capability
+  comes from the server-verified Supabase `app_metadata.clara_role = "admin"`
+  claim and also grants access without a learner-list entry.
+  Grant or revoke that role only through Supabase's server-controlled raw app
+  metadata (`raw_app_meta_data`), never user-editable user metadata. The user's
+  current JWT can retain the old claim until it is refreshed, so require them to
+  sign out and back in after every admin-role change.
   **Add a student = add their email to `ALLOWED_EMAILS` in the Vercel env and
-  redeploy. With the vars unset in production, nobody gets in (fails closed).**
-- **Paid routes are protected** (`lib/api-guard.ts` + `lib/auth-server.ts`):
-  same-origin check + per-IP rate limit, then a valid Supabase session, then the
-  allowlist. Unauthenticated → 401, non-allowlisted → 403, cross-origin → 403.
+  redeploy. With the variable unset in production, every non-admin account is
+  denied (fails closed).**
+- **Paid routes are protected** (`lib/api-guard.ts` + `lib/auth-server.ts` +
+  `lib/api-quota.ts`): exact same-origin check, then one valid Supabase
+  session/allowlist identity check, then atomic per-user and global durable
+  quotas. Unauthenticated → 401, non-allowlisted → 403, cross-origin → 403,
+  exhausted quota → 429. There is no cross-user IP bucket because a classroom
+  commonly shares one NAT address.
 - **Account = identity.** After login, `components/profile-binder.tsx` sets
   `profile_id = auth.user.id`, retiring the old passwordless "sync code" model.
 
@@ -84,20 +102,17 @@ configured" and the rest of the app keeps working.
 
 ## Database & migrations (Supabase)
 
-Postgres tables keyed by `profile_id` (= the auth user id): `profiles`,
-`attempts`, `progress`, `player_stats`, `settings`, `custom_lessons`,
-`push_subscriptions`, `events`. Apply SQL files in the Supabase SQL editor **in
-this order**:
+Postgres tables are keyed by `profile_id` (= the authenticated user's id). To
+create or recover an empty project, execute **only**
+`supabase/current-schema.sql` in the Supabase SQL editor. It is the authoritative,
+idempotent snapshot and includes the tables, indexes, functions, RLS enablement,
+and policies required by the application.
 
-1. `supabase/schema.sql` — base tables (permissive policy for v1 bring-up).
-2. `supabase/player_stats_economy.sql` — stars/cosmetics/chest/freeze columns.
-3. `supabase/push_subscriptions.sql` — Web Push table.
-4. `supabase/events.sql` — analytics events (per-user RLS).
-5. `supabase/migration-v2-multiuser.sql` — **strict per-user RLS**
-   (`profile_id = auth.uid()`). **Apply only AFTER the account-binding app is
-   deployed**, or it locks out the sync-code app. `push_subscriptions` is
-   intentionally excluded (server-written) — harden it with a service-role key
-   before adding it to the strict list.
+Every other SQL file under `supabase/` is non-authoritative audit history for an
+upgrade that happened over time. Never replay that historical chain to rebuild or
+recover a database. Existing-project upgrades use only the migration explicitly
+approved by the release procedure, and its final definitions must also be mirrored
+into the authoritative snapshot.
 
 Data flow is **cloud-authoritative**: the phone is a cache re-seeded from
 Supabase on every launch (`lib/sync/restore.ts` `hydrateFromCloud`), with an
@@ -175,11 +190,15 @@ Git-connected: **push to `main` auto-builds and deploys to production.** For a
 first-time or config change:
 
 1. Set all env vars above in the Vercel project (Production + Preview).
-2. Ensure Deployment Protection is off for public access.
-3. Apply the Supabase SQL migrations (order above). Apply the strict RLS
-   (`migration-v2-multiuser.sql`) **after** the account-binding build is live.
-4. `git push origin main` → Vercel builds (Turbopack) and deploys.
-5. Verify: root 200, `/api/assess` `{enabled:true}`, `/api/chat` (no auth) → 401.
+2. Set the Vercel project Node.js version to `24.x`, then confirm the actual
+   Node patch in the deployment build log. Vercel advances minor/patch versions
+   within the selected major and does not support an exact patch selection.
+3. Ensure Deployment Protection is off for public access.
+4. For a new Supabase project, create the database from the single authoritative
+   schema named above. For an existing project, apply only the migration approved
+   for that release; never replay the historical SQL chain.
+5. `git push origin main` → Vercel builds (Turbopack) and deploys.
+6. Verify: root 200, `/api/assess` `{enabled:true}`, `/api/chat` (no auth) → 401.
 
 Commits are authored `46899218+joel2020@users.noreply.github.com` so Vercel can
 associate the committer (otherwise deploys block with `COMMIT_AUTHOR_REQUIRED`).

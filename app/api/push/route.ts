@@ -10,8 +10,8 @@
 // personalized reminders).
 
 import { createClient } from "@supabase/supabase-js";
-import { guardApi } from "@/lib/api-guard";
-import { getAuthedUser, requireUser } from "@/lib/auth-server";
+import { guardApi } from "../../../lib/api-guard.ts";
+import { getAuthedUser, requireAllowedUser } from "../../../lib/auth-server.ts";
 
 export const runtime = "nodejs";
 
@@ -43,8 +43,10 @@ interface SubscribeBody {
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
+  const unauth = await requireAllowedUser(request);
   if (unauth) return unauth;
+  const user = await getAuthedUser(request);
+  if (!user) return Response.json({ error: "unauthorized" }, { status: 401 });
 
   const sb = supa();
   if (!pushReady() || !sb) return Response.json({ error: "not_configured" }, { status: 503 });
@@ -60,14 +62,11 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Missing subscription." }, { status: 400 });
   }
 
-  // The session decides whose reminders this device gets — never the body.
-  const user = await getAuthedUser(request);
-
   const { error } = await sb.from("push_subscriptions").upsert(
     {
       endpoint,
       subscription: body.subscription,
-      profile_id: user?.id ?? null,
+      profile_id: user.id,
       lang: body.lang === "en" ? "en" : "es",
     },
     { onConflict: "endpoint" },
@@ -82,8 +81,10 @@ export async function POST(request: Request): Promise<Response> {
 export async function DELETE(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
+  const unauth = await requireAllowedUser(request);
   if (unauth) return unauth;
+  const user = await getAuthedUser(request);
+  if (!user) return Response.json({ error: "unauthorized" }, { status: 401 });
 
   const sb = supa();
   if (!sb) return Response.json({ error: "not_configured" }, { status: 503 });
@@ -96,11 +97,8 @@ export async function DELETE(request: Request): Promise<Response> {
   if (typeof endpoint !== "string" || !endpoint) {
     return Response.json({ error: "Missing endpoint." }, { status: 400 });
   }
-  // Only rows this account owns (or unclaimed rows for this same endpoint) —
-  // one student cannot silence another's reminders.
-  const user = await getAuthedUser(request);
-  let del = sb.from("push_subscriptions").delete().eq("endpoint", endpoint);
-  if (user) del = del.or(`profile_id.eq.${user.id},profile_id.is.null`);
-  await del;
+  // The service-role client bypasses RLS, so both endpoint and owner predicates
+  // are mandatory: one student must never delete another student's row.
+  await sb.from("push_subscriptions").delete().eq("endpoint", endpoint).eq("profile_id", user.id);
   return Response.json({ ok: true });
 }

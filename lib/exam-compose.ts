@@ -1,5 +1,7 @@
-import type { PracticeItem } from "@/lib/db/types";
+import type { ItemKind, PracticeItem } from "@/lib/db/types";
 import { SECTIONS, type SectionKey } from "@/lib/exams";
+import type { LatamPronunciationFeature } from "@/lib/speech/latam-prior";
+import type { CefrLevel } from "@/lib/speech/pronunciation-policy";
 
 // Composing a sitting from curriculum that already exists.
 //
@@ -11,7 +13,14 @@ import { SECTIONS, type SectionKey } from "@/lib/exams";
 export interface ExamItem {
   itemId: string;
   text: string;
+  kind: ItemKind;
   meaning?: string;
+  categoryId: string;
+  phoneme: string;
+  mouthHint: string;
+  assessmentRole?: "stage-acoustic";
+  targetFeature?: LatamPronunciationFeature;
+  lessonId?: string;
 }
 
 export interface ExamSection {
@@ -23,7 +32,59 @@ export interface ExamSection {
 
 export interface Exam {
   level: string;
+  status: "ready" | "unavailable";
+  reason?: "duplicate-item-id" | "insufficient-authored-targets" | "insufficient-item-pool";
+  contentVersion: typeof STAGE_CONTENT_VERSION;
+  contentHash: string;
   sections: ExamSection[];
+}
+
+export const STAGE_CONTENT_VERSION = "stage-content-v1";
+
+const CATEGORY_FEATURE: Readonly<Record<string, LatamPronunciationFeature>> = Object.freeze({
+  "i-vs-ii": "short-i-long-ee",
+  "b-vs-v": "b-v",
+  "dj-vs-y": "dzh-y",
+  th: "th",
+  "s-clusters": "initial-s-cluster",
+  "ed-endings": "final-endings",
+  "final-clusters": "final-clusters",
+  h: "h",
+  "american-r": "rhotic-r",
+  schwa: "schwa",
+});
+
+const LEVEL_REQUIRED_FEATURES: Readonly<Record<CefrLevel, readonly LatamPronunciationFeature[]>> = {
+  A0: ["short-i-long-ee", "b-v", "th", "initial-s-cluster", "final-endings"],
+  A1: ["short-i-long-ee", "b-v", "th", "initial-s-cluster", "final-endings"],
+  A2: ["b-v", "th", "initial-s-cluster", "final-clusters", "final-endings"],
+  B1: ["b-v", "th", "initial-s-cluster", "final-clusters", "final-endings"],
+  B2: ["b-v", "th", "initial-s-cluster", "final-clusters", "final-endings"],
+  C1: ["rhotic-r", "schwa", "th", "final-clusters", "final-endings"],
+  C2: ["rhotic-r", "schwa", "th", "final-clusters", "final-endings"],
+};
+
+const FEATURE_LESSON: Readonly<Partial<Record<LatamPronunciationFeature, string>>> = Object.freeze({
+  "short-i-long-ee": "i-vs-ii", "b-v": "b-vs-v", "dzh-y": "dj-vs-y", th: "th",
+  "initial-s-cluster": "s-clusters", "final-endings": "ed-endings", "final-clusters": "final-clusters",
+  h: "h", "rhotic-r": "american-r", schwa: "schwa",
+});
+
+export function requiredStageFeatures(level: string): readonly LatamPronunciationFeature[] {
+  return LEVEL_REQUIRED_FEATURES[level as CefrLevel] ?? LEVEL_REQUIRED_FEATURES.C2;
+}
+
+function examItem(item: PracticeItem, targetFeature?: LatamPronunciationFeature): ExamItem {
+  return {
+    itemId: item.id,
+    text: item.text,
+    kind: item.kind,
+    meaning: item.meaning,
+    categoryId: item.categoryId,
+    phoneme: item.phoneme,
+    mouthHint: item.mouthHint,
+    ...(targetFeature ? { assessmentRole: "stage-acoustic" as const, targetFeature, lessonId: FEATURE_LESSON[targetFeature] } : {}),
+  };
 }
 
 /** Deterministic 32-bit hash, so a seed string yields a stable ordering. */
@@ -41,7 +102,12 @@ function hash(s: string): number {
  * so the same seed always produces the same sitting and nothing impure runs.
  */
 export function seededOrder<T>(items: T[], key: (t: T) => string, seed: string): T[] {
-  return [...items].sort((a, b) => hash(seed + key(a)) - hash(seed + key(b)));
+  return [...items].sort((a, b) => hash(seed + key(a)) - hash(seed + key(b)) || key(a).localeCompare(key(b)));
+}
+
+function contentHash(level: string, sections: ExamSection[]): string {
+  const content = JSON.stringify({ version: STAGE_CONTENT_VERSION, level, sections });
+  return `${hash(`a:${content}`).toString(16).padStart(8, "0")}${hash(`b:${content}`).toString(16).padStart(8, "0")}`;
 }
 
 /** Open-response prompts, pitched at the band rather than at a fixed level. */
@@ -96,15 +162,47 @@ function bandKey(level: string): "low" | "mid" | "high" {
  */
 export function composeExam(level: string, pool: PracticeItem[], seed: string): Exam {
   const usable = pool.filter((i) => i.text.trim().length > 0);
-  const ordered = seededOrder(usable, (i) => i.id, seed);
   const band = bandKey(level);
+  if (new Set(usable.map((item) => item.id)).size !== usable.length) {
+    return { level, status: "unavailable", reason: "duplicate-item-id", contentVersion: STAGE_CONTENT_VERSION, contentHash: "", sections: [] };
+  }
+
+  const priorities = requiredStageFeatures(level);
+  const targetPool = usable.filter((item) =>
+    priorities.includes(CATEGORY_FEATURE[item.categoryId]) &&
+    (item.kind === "word" || item.kind === "phrase") &&
+    item.ipa.trim().length > 0 && item.mouthHint.trim().length > 0 && item.phoneme.trim().length > 0,
+  );
+  const byFeature = new Map<LatamPronunciationFeature, PracticeItem[]>();
+  for (const feature of priorities) {
+    byFeature.set(feature, seededOrder(targetPool.filter((item) => CATEGORY_FEATURE[item.categoryId] === feature), (item) => item.id, `${seed}:${feature}`));
+  }
+  const speaking: PracticeItem[] = [];
+  for (const feature of priorities) {
+    const candidate = byFeature.get(feature)?.shift();
+    if (candidate) speaking.push(candidate);
+  }
+  const remainingTargets = seededOrder(
+    [...byFeature.values()].flat(),
+    (item) => item.id,
+    `${seed}:speaking`,
+  );
+  while (speaking.length < 8 && remainingTargets.length) speaking.push(remainingTargets.shift()!);
+  const covered = new Set(speaking.map((item) => CATEGORY_FEATURE[item.categoryId]));
+  if (speaking.length < 8 || priorities.some((feature) => !covered.has(feature))) {
+    return { level, status: "unavailable", reason: "insufficient-authored-targets", contentVersion: STAGE_CONTENT_VERSION, contentHash: "", sections: [] };
+  }
+
+  const spokenIds = new Set(speaking.map((item) => item.id));
+  const ordered = seededOrder(usable.filter((item) => !spokenIds.has(item.id)), (i) => i.id, `${seed}:general`);
+  if (ordered.length < 6) return { level, status: "unavailable", reason: "insufficient-item-pool", contentVersion: STAGE_CONTENT_VERSION, contentHash: "", sections: [] };
 
   let cursor = 0;
   const take = (n: number): ExamItem[] => {
     const out: ExamItem[] = [];
     while (out.length < n && cursor < ordered.length) {
       const it = ordered[cursor++];
-      out.push({ itemId: it.id, text: it.text, meaning: it.meaning });
+      out.push(examItem(it));
     }
     return out;
   };
@@ -118,10 +216,16 @@ export function composeExam(level: string, pool: PracticeItem[], seed: string): 
     if (spec.key === "retell") {
       return { key: spec.key, items: [], prompt: RETELL_PROMPTS[band].passage };
     }
+    if (spec.key === "readAloud") {
+      return { key: spec.key, items: speaking.slice(0, spec.items).map((item) => examItem(item, CATEGORY_FEATURE[item.categoryId])) };
+    }
+    if (spec.key === "repeat") {
+      return { key: spec.key, items: speaking.slice(SECTIONS[0].items, SECTIONS[0].items + spec.items).map((item) => examItem(item, CATEGORY_FEATURE[item.categoryId])) };
+    }
     return { key: spec.key, items: take(spec.items) };
   });
 
-  return { level, sections };
+  return { level, status: "ready", contentVersion: STAGE_CONTENT_VERSION, contentHash: contentHash(level, sections), sections };
 }
 
 /** The keywords a retell answer is measured against, for the level's passage. */

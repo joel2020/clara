@@ -28,7 +28,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24.19.0
           cache: npm
 
       # `npm ci` respects the lockfile exactly, which is what makes CI a real signal
@@ -46,6 +46,9 @@ jobs:
 
       - name: Unit tests
         run: npm test
+
+      - name: Production dependency audit
+        run: npm run audit:prod
 
       # Catches the class of failure the unit tests structurally cannot: a broken
       # import, a bad server component, a Lightning CSS rule silently dropped.

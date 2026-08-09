@@ -9,39 +9,12 @@
 // Pronunciation-Assessment config passed as a base64 header per the API spec.
 
 import { guardApi } from "@/lib/api-guard";
-import { requireUser } from "@/lib/auth-server";
+import { requireAllowedUserIdentity } from "@/lib/auth-server";
+import { enforcePaidApiQuota } from "@/lib/api-quota";
+import { AZURE_RESPONSE_LIMITS, normalizeAzureAssessment, type AssessmentKind } from "@/lib/speech/azure-response";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
-
-interface AzurePhoneme {
-  Phoneme?: string;
-  PronunciationAssessment?: { AccuracyScore?: number };
-  AccuracyScore?: number;
-}
-
-interface AzureWord {
-  Word?: string;
-  PronunciationAssessment?: { AccuracyScore?: number; ErrorType?: string };
-  AccuracyScore?: number;
-  ErrorType?: string;
-  Phonemes?: AzurePhoneme[];
-}
-
-interface AzureNBest {
-  PronScore?: number;
-  AccuracyScore?: number;
-  FluencyScore?: number;
-  CompletenessScore?: number;
-  Display?: string;
-  Words?: AzureWord[];
-  PronunciationAssessment?: {
-    PronScore?: number;
-    AccuracyScore?: number;
-    FluencyScore?: number;
-    CompletenessScore?: number;
-  };
-}
 
 function envReady(): boolean {
   return Boolean(process.env.AZURE_SPEECH_KEY && process.env.AZURE_SPEECH_REGION);
@@ -55,8 +28,10 @@ export async function GET(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
-  if (unauth) return unauth;
+  const identity = await requireAllowedUserIdentity(request);
+  if ("response" in identity) return identity.response;
+  const quota = await enforcePaidApiQuota({ userId: identity.user.id, route: "assess" });
+  if (quota) return quota;
 
   const key = process.env.AZURE_SPEECH_KEY;
   const region = process.env.AZURE_SPEECH_REGION;
@@ -64,10 +39,12 @@ export async function POST(request: Request): Promise<Response> {
 
   let file: unknown;
   let target: unknown;
+  let kind: unknown;
   try {
     const form = await request.formData();
     file = form.get("file");
     target = form.get("target");
+    kind = form.get("kind");
   } catch {
     return Response.json({ error: "Bad request." }, { status: 400 });
   }
@@ -80,6 +57,16 @@ export async function POST(request: Request): Promise<Response> {
   // what makes it possible to grade free conversation rather than only a
   // repeat-after-me drill.
   const reference = typeof target === "string" ? target.trim() : "";
+  const assessmentKind: AssessmentKind | null = kind === "word" || kind === "phrase" || kind === "free" ? kind : null;
+  const scripted = assessmentKind === "word" || assessmentKind === "phrase";
+  if (
+    !assessmentKind ||
+    (scripted && !reference) ||
+    (assessmentKind === "free" && reference.length > 0) ||
+    reference.length > AZURE_RESPONSE_LIMITS.recognizedTextLength
+  ) {
+    return Response.json({ error: "Invalid assessment mode." }, { status: 400 });
+  }
   if (file.size > 4 * 1024 * 1024) {
     return Response.json({ error: "Audio too large." }, { status: 413 });
   }
@@ -93,7 +80,10 @@ export async function POST(request: Request): Promise<Response> {
       // Miscue compares what she said against the expected words, which only
       // means something when there ARE expected words. Left on for unscripted
       // speech it would flag every word she chose herself as an insertion.
-      EnableMiscue: reference.length > 0,
+      EnableMiscue: scripted,
+      // Azure exposes this only for scripted speech. Free conversation remains
+      // diagnostic rather than pretending a missing prosody score is zero.
+      EnableProsodyAssessment: assessmentKind === "phrase",
       PhonemeAlphabet: "IPA",
     }),
   ).toString("base64");
@@ -116,41 +106,10 @@ export async function POST(request: Request): Promise<Response> {
     if (!res.ok) {
       return Response.json({ error: "Assessment failed." }, { status: 502 });
     }
-    const data = (await res.json()) as { RecognitionStatus?: string; DisplayText?: string; NBest?: AzureNBest[] };
-    if (data.RecognitionStatus !== "Success" || !data.NBest?.length) {
-      // Nothing intelligible — let the client treat it like a no-speech miss.
-      return Response.json({ display: "", pronScore: 0, words: [] });
-    }
-
-    const best = data.NBest[0];
-    const pa = best.PronunciationAssessment ?? {};
-    const words = (best.Words ?? []).map((w) => ({
-      word: w.Word ?? "",
-      accuracy: Math.round(w.PronunciationAssessment?.AccuracyScore ?? w.AccuracyScore ?? 0),
-      errorType: w.PronunciationAssessment?.ErrorType ?? w.ErrorType ?? "None",
-      phonemes: (w.Phonemes ?? []).map((p) => ({
-        p: p.Phoneme ?? "",
-        accuracy: Math.round(p.PronunciationAssessment?.AccuracyScore ?? p.AccuracyScore ?? 0),
-      })),
-    }));
-
-    return Response.json({
-      display: best.Display ?? data.DisplayText ?? "",
-      pronScore: Math.round(pa.PronScore ?? best.PronScore ?? 0),
-      accuracyScore: Math.round(pa.AccuracyScore ?? best.AccuracyScore ?? 0),
-      fluencyScore: Math.round(pa.FluencyScore ?? best.FluencyScore ?? 0),
-      // Completeness answers "did she say all of the expected words", which has
-      // no meaning without expected words. Omitted for unscripted speech rather
-      // than reported as a zero, which would read as a failure she did not earn.
-      ...(reference
-        ? { completenessScore: Math.round(pa.CompletenessScore ?? best.CompletenessScore ?? 0) }
-        : {}),
-      /** Whether this was graded against a known sentence. */
-      scripted: reference.length > 0,
-      words,
-    });
-  } catch (e) {
-    console.error("[api/assess]", e instanceof Error ? e.message : e);
+    const data: unknown = await res.json();
+    return Response.json(normalizeAzureAssessment(data));
+  } catch {
+    console.error("[api/assess] provider request failed");
     return Response.json({ error: "Couldn't reach the assessment service." }, { status: 502 });
   }
 }

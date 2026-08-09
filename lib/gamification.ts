@@ -10,6 +10,17 @@ export const FAIL_XP = 2; // a little reward for trying keeps momentum
 export const COMBO_STEP = 2; // bonus per consecutive pass
 export const COMBO_CAP = 10;
 
+/** Apply a bounded reward multiplier using the app's whole-XP rounding rule. */
+export function roundRewardXp(baseXp: number, multiplier: number): number {
+  if (!Number.isSafeInteger(baseXp) || baseXp < 0) {
+    throw new RangeError("baseXp must be a non-negative safe integer");
+  }
+  if (!Number.isFinite(multiplier) || multiplier < 0 || multiplier > 1) {
+    throw new RangeError("multiplier must be between 0 and 1");
+  }
+  return Math.round(baseXp * multiplier);
+}
+
 /** Total XP required to *reach* a given level (level 1 = 0). */
 export function levelFloor(level: number): number {
   let total = 0;

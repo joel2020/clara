@@ -59,7 +59,7 @@ export const VIRTUAL_CALL_SCENARIOS: VirtualCallScenario[] = [
       es: "Presente simple con I y verbo to be.",
       en: "Present simple with I, and the verb to be.",
     },
-    openingPrompt: "Hi! I'm Clara. I'd love to get to know you — tell me a little about yourself. What's your name and what do you do?",
+    openingPrompt: "Hi! I'm Lumi. I'd love to get to know you — tell me a little about yourself. What's your name and what do you do?",
     suggestedTurns: [
       "Ask what she does for work or study.",
       "Ask where in Colombia she is from.",
@@ -90,7 +90,7 @@ export const VIRTUAL_CALL_SCENARIOS: VirtualCallScenario[] = [
       es: "Preguntas con do/does y respuestas cortas naturales.",
       en: "Questions with do/does, and natural short answers.",
     },
-    openingPrompt: "Hey! I don't think we've met — I'm Clara. Are you here with someone, or did you come on your own?",
+    openingPrompt: "Hey! I don't think we've met — I'm Lumi. Are you here with someone, or did you come on your own?",
     suggestedTurns: [
       "Ask how she knows the host.",
       "Share something small about yourself so it feels mutual.",
