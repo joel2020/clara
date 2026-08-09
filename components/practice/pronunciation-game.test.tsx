@@ -119,6 +119,8 @@ it("automatically upgrades a started shipped v1 activity before practice opens",
   const authored = activity("sound-sprint");
   const migrated = { ...authored, state: createDailyPronunciationGameState(authored.game, authored.targets, authored.itemPool) };
   const { itemPool: _pool, state: _state, ...legacy } = migrated;
+  void _pool;
+  void _state;
   const binding = { account: "legacy-student" };
   boundaries.currentBinding = binding;
   boundaries.replaceCorrupt.mockResolvedValueOnce({ activities: [{ id: "speak", pronunciation: migrated }] });
@@ -131,6 +133,7 @@ it("automatically upgrades a started shipped v1 activity before practice opens",
 it("gives shipped v1 recovery a bilingual Retry and Back path when canonical resolution fails", async () => {
   const authored = activity("sound-sprint");
   const { itemPool: _pool, ...legacy } = authored;
+  void _pool;
   boundaries.lang = "es";
   boundaries.replaceCorrupt.mockRejectedValueOnce(new Error("canonical target unavailable"));
   render(<PronunciationGame activity={legacy} day="2026-08-14" activityId="speak" lessonId="lesson" itemPool={[...targets]} recognitionSupported combo={0} onComplete={vi.fn()} />);

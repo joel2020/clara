@@ -1,7 +1,7 @@
 "use client";
 
 import { supabase, syncEnabled } from "../db/supabase.ts";
-import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ExamCompletionPayload, ItemProgress, Lesson, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "../db/types.ts";
+import type { Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "../db/types.ts";
 import type { DailySession } from "../daily-session.ts";
 import { sanitizeDailySessionPayload } from "../daily-session-sanitizer.ts";
 import {

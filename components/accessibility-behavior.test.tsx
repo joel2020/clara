@@ -13,6 +13,11 @@ const mocks = vi.hoisted(() => ({
   },
   update: vi.fn(),
   saveVoiceConsent: vi.fn(),
+  replace: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: mocks.replace }),
 }));
 
 vi.mock("@/lib/hooks/useSettings", () => ({
@@ -63,6 +68,7 @@ beforeEach(() => {
   mocks.update.mockResolvedValue(undefined);
   mocks.saveVoiceConsent.mockReset();
   mocks.saveVoiceConsent.mockResolvedValue(undefined);
+  mocks.replace.mockReset();
   mocks.ready = true;
   mocks.player = { xp: 0, totalAttempts: 0 };
   mocks.settings = { studentName: "Ana", coachLanguage: "es", onboarding: null };

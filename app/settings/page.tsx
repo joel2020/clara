@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Copy, Check, Trash2, Bell, BellOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { repo } from "@/lib/db";
@@ -25,6 +26,7 @@ const GOALS = [20, 40, 60];
 type PushUi = "hidden" | "needs_install" | "off" | "on" | "denied" | "error";
 
 export default function SettingsPage() {
+  const router = useRouter();
   // Read once on mount via a lazy initialiser rather than in an effect: this is a
   // diagnostic snapshot, not a live indicator, and a spinner for background sync
   // would worry her over nothing.
@@ -126,7 +128,7 @@ export default function SettingsPage() {
     }
     forgetSyncCode();
     await repo.reset();
-    window.location.href = "/";
+    router.replace("/");
   };
 
   return (

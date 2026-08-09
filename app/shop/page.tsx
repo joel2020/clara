@@ -107,7 +107,7 @@ export default function ShopPage() {
   };
 
   return (
-    <main className="mx-auto max-w-5xl px-4 pb-28 pt-5 sm:px-6 sm:pt-8">
+    <div className="mx-auto max-w-5xl px-4 pb-28 pt-5 sm:px-6 sm:pt-8">
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/profile"
@@ -217,61 +217,61 @@ export default function ShopPage() {
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3" role="list" aria-label="City Remix">
+          <ul className="mt-4 grid grid-cols-2 gap-3" aria-label="City Remix">
             {LUMI_CITY_REMIX.map((cosmetic) => {
               const quote = quoteClosetAction({ cosmetic, stats: player, eligibility: closetEligibility(player) });
               const chosen = cosmetic.id === selected.id;
               const equipped = cosmetic.id === player.equippedOutfit;
               const owned = player.ownedCosmetics.includes(cosmetic.id);
               return (
-                <button
-                  key={cosmetic.id}
-                  type="button"
-                  role="listitem"
-                  aria-pressed={chosen}
-                  onClick={() => {
-                    sfx.tap();
-                    setSelectedId(cosmetic.id);
-                  }}
-                  className={cn(
-                    "relative min-h-44 rounded-3xl border bg-card p-3 text-left transition-all hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                    chosen ? "border-primary shadow-md ring-2 ring-primary/20" : "border-hairline hover:border-primary/40",
-                  )}
-                >
-                  <div className="shop-pedestal grid h-24 place-items-center overflow-hidden rounded-2xl" aria-hidden>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`${cosmetic.outfit}.png`}
-                      alt=""
-                      className="shop-figure h-24 w-auto object-contain drop-shadow-[0_8px_10px_rgba(0,0,0,0.2)]"
-                    />
-                  </div>
-                  <p className="mt-2 truncate text-sm font-bold">{cosmetic.name[lang]}</p>
-                  <p className="mt-1 line-clamp-2 text-xs font-semibold text-muted-foreground">
-                    {equipped
-                      ? (lang === "es" ? "Puesto" : "Wearing")
-                      : owned
-                        ? (lang === "es" ? "Tuyo" : "Owned")
-                        : quote.status === "locked"
-                          ? requirement(cosmetic, player, lang)
-                          : cosmetic.cost > 0
-                            ? `${cosmetic.cost} ★`
-                            : (lang === "es" ? "Se gana practicando" : "Earn through practice")}
-                  </p>
-                  {equipped && (
-                    <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-primary text-primary-foreground" aria-label={lang === "es" ? "Puesto" : "Wearing"}>
-                      <Check className="size-4" aria-hidden />
-                    </span>
-                  )}
-                  {quote.status === "locked" && (
-                    <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-background/90 text-muted-foreground" aria-hidden>
-                      <Lock className="size-3.5" />
-                    </span>
-                  )}
-                </button>
+                <li key={cosmetic.id}>
+                  <button
+                    type="button"
+                    aria-pressed={chosen}
+                    onClick={() => {
+                      sfx.tap();
+                      setSelectedId(cosmetic.id);
+                    }}
+                    className={cn(
+                      "relative min-h-44 w-full rounded-3xl border bg-card p-3 text-left transition-all hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                      chosen ? "border-primary shadow-md ring-2 ring-primary/20" : "border-hairline hover:border-primary/40",
+                    )}
+                  >
+                    <div className="shop-pedestal grid h-24 place-items-center overflow-hidden rounded-2xl" aria-hidden>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`${cosmetic.outfit}.png`}
+                        alt=""
+                        className="shop-figure h-24 w-auto object-contain drop-shadow-[0_8px_10px_rgba(0,0,0,0.2)]"
+                      />
+                    </div>
+                    <p className="mt-2 truncate text-sm font-bold">{cosmetic.name[lang]}</p>
+                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-muted-foreground">
+                      {equipped
+                        ? (lang === "es" ? "Puesto" : "Wearing")
+                        : owned
+                          ? (lang === "es" ? "Tuyo" : "Owned")
+                          : quote.status === "locked"
+                            ? requirement(cosmetic, player, lang)
+                            : cosmetic.cost > 0
+                              ? `${cosmetic.cost} ★`
+                              : (lang === "es" ? "Se gana practicando" : "Earn through practice")}
+                    </p>
+                    {equipped && (
+                      <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-primary text-primary-foreground" aria-label={lang === "es" ? "Puesto" : "Wearing"}>
+                        <Check className="size-4" aria-hidden />
+                      </span>
+                    )}
+                    {quote.status === "locked" && (
+                      <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-background/90 text-muted-foreground" aria-hidden>
+                        <Lock className="size-3.5" />
+                      </span>
+                    )}
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ul>
         </div>
       </section>
 
@@ -308,6 +308,6 @@ export default function ShopPage() {
           )}
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   );
 }

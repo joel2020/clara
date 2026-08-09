@@ -12,7 +12,7 @@ const boundaries = vi.hoisted(() => {
     capturePracticeBinding: vi.fn(() => ({ binding: "practice" })),
     getSettings: vi.fn(async () => ({ difficulty: "normal", dailyGoal: 40, profileId: "profile-1" })),
     getAttempts: vi.fn(async () => []),
-    recordAttempt: vi.fn(async (_attempt: Attempt) => undefined),
+    recordAttempt: vi.fn(async () => undefined),
     commitPracticeAttempt: vi.fn(async (_binding: unknown, mutation: { attempt: Attempt; progress?: unknown; reward?: { passed: boolean; xpAward?: number; masteryStars?: number } }): Promise<
       | { status: "committed"; rewards: ReturnType<typeof rewards>; outboxIds: number[] }
       | { status: "already-committed"; outboxIds: [] }
@@ -33,7 +33,7 @@ const boundaries = vi.hoisted(() => {
     scoreAttempt: vi.fn(),
     applyAttempt: vi.fn(),
     recordQuestEvent: vi.fn(),
-    pushAttempt: vi.fn((_profileId: string, _attempt: Attempt) => undefined),
+    pushAttempt: vi.fn(() => undefined),
     pushProgress: vi.fn(),
     pushPlayer: vi.fn(),
     flushOutbox: vi.fn(async () => ({ delivered: 0, remaining: 0 })),

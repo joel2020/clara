@@ -79,8 +79,8 @@ export default function MediaPage() {
         </section>
       )}
 
-      <MediaSection heading={t("mediaSongs", lang)} items={mediaByKind("song")} lang={lang} onOpen={setOpen} />
-      <MediaSection heading={t("mediaTrailers", lang)} items={mediaByKind("trailer")} lang={lang} onOpen={setOpen} />
+      <MediaSection heading={t("mediaSongs", lang)} items={mediaByKind("song")} onOpen={setOpen} />
+      <MediaSection heading={t("mediaTrailers", lang)} items={mediaByKind("trailer")} onOpen={setOpen} />
 
       <Dialog open={open !== null} onOpenChange={(nextOpen) => !nextOpen && setOpen(null)}>
         {open && <Player item={open} lang={lang} />}
@@ -92,12 +92,10 @@ export default function MediaPage() {
 function MediaSection({
   heading,
   items,
-  lang,
   onOpen,
 }: {
   heading: string;
   items: MediaItem[];
-  lang: CoachLang;
   onOpen: (m: MediaItem) => void;
 }) {
   return (

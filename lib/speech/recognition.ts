@@ -517,14 +517,14 @@ export async function createRequiredAssessmentRecognition(opts: {
   maxDurationMs?: number;
   signal?: AbortSignal;
 }): Promise<RecognitionHandle> {
+  const { signal, ...capture } = opts;
   try {
-    await requireAssessmentCapability(opts.signal);
-  } catch (error) {
-    if (opts.signal?.aborted) throw new RecognitionError("cancelled", "Cancelled.");
+    await requireAssessmentCapability(signal);
+  } catch {
+    if (signal?.aborted) throw new RecognitionError("cancelled", "Cancelled.");
     throw new RecognitionError("technical-skip", "Pronunciation assessment is unavailable.");
   }
-  if (opts.signal?.aborted) throw new RecognitionError("cancelled", "Cancelled.");
+  if (signal?.aborted) throw new RecognitionError("cancelled", "Cancelled.");
   if (!hasMediaRecording()) throw new RecognitionError("technical-skip", "Pronunciation recording is unavailable.");
-  const { signal: _signal, ...capture } = opts;
   return createRecognition({ ...capture, assess: true });
 }

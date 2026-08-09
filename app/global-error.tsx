@@ -48,7 +48,7 @@ export default function GlobalError({
           </p>
           <button
             type="button"
-            onClick={() => window.location.assign("/")}
+            onClick={() => window.location.reload()}
             style={{
               marginTop: 20,
               borderRadius: 999,

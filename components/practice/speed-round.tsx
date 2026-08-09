@@ -103,7 +103,7 @@ function SpeedRoundSession({
         stopPronunciation();
       };
     }
-  }, [current?.id, current?.text, done, settings.speechRate, settings.voiceURI]);
+  }, [current, done, settings.speechRate, settings.voiceURI]);
 
   const go = async () => {
     if (phase !== "ready") return;

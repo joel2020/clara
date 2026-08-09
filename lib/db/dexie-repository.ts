@@ -517,6 +517,7 @@ export class DexieRepository implements DataRepository {
       if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
       if (existing) {
         const { id: _existingId, ...existingAttempt } = existing;
+        void _existingId;
         if (JSON.stringify(existingAttempt) === JSON.stringify(attempt)) return;
         throw new Error("Conflicting exam sitting identity");
       }
@@ -711,7 +712,11 @@ export class DexieRepository implements DataRepository {
     await db.transaction("rw", db.virtualCalls, async () => {
       const stripped = (await db.virtualCalls.toArray())
         .filter((call) => call.transcript !== undefined)
-        .map(({ transcript: _dropped, ...rest }) => rest as VirtualCallRecord);
+        .map((call) => {
+          const rest = { ...call };
+          delete rest.transcript;
+          return rest as VirtualCallRecord;
+        });
       if (stripped.length) await db.virtualCalls.bulkPut(stripped);
     });
   }

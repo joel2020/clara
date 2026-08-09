@@ -139,7 +139,7 @@ export function DuetScene({ duet, onExit }: { duet: Duet; onExit: () => void }) 
       clearSceneTimers();
       cancelActive();
     };
-  }, [advance, cancelActive, clearSceneTimers, current?.itemId, current?.speaker, currentIdentity, done, duet.id, settings.speechRate, settings.voiceURI]);
+  }, [advance, cancelActive, clearSceneTimers, current, currentIdentity, done, duet.id, settings.speechRate, settings.voiceURI]);
 
   const record = async () => {
     if (herPhase === "recording" || herPhase === "scoring" || !current || current.speaker !== "her") return;

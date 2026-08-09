@@ -112,11 +112,11 @@ export default function ExamPage() {
   const finalSaveBusyRef = useRef(false);
   const discoveredCheckpointRef = useRef<ExamCheckpoint | null>(null);
   const ttsOwnerRef = useRef<OwnedTtsSession | null>(null);
-  const disposeTts = () => {
+  const disposeTts = useCallback(() => {
     ttsOwnerRef.current?.dispose();
     window.speechSynthesis?.cancel();
-  };
-  const clearEphemeral = () => {
+  }, []);
+  const clearEphemeral = useCallback(() => {
     captureEpochRef.current += 1;
     speakingBusyRef.current = false;
     recognitionRef.current?.cancel();
@@ -126,7 +126,7 @@ export default function ExamPage() {
     for (const timer of timersRef.current) window.clearTimeout(timer);
     timersRef.current.clear();
     disposeTts();
-  };
+  }, [disposeTts]);
   const schedule = (callback: () => void, delay: number) => {
     const timer = window.setTimeout(() => {
       timersRef.current.delete(timer);
@@ -143,14 +143,14 @@ export default function ExamPage() {
       clearEphemeral();
       ttsOwnerRef.current = null;
     };
-  }, []);
+  }, [clearEphemeral]);
 
   useEffect(() => {
     if ((phase === "running" || phase === "pending-advance" || phase === "grading") && startedProfileRef.current !== (settings.profileId ?? null)) {
       clearEphemeral();
       setPhase("voided");
     }
-  }, [phase, settings.profileId]);
+  }, [clearEphemeral, phase, settings.profileId]);
 
   // One sitting per calendar day, checked against recorded attempts.
   useEffect(() => {
@@ -919,14 +919,7 @@ export default function ExamPage() {
             </div>
           ))}
         </div>
-        <Link
-          href="/"
-          onClick={(event) => {
-            event.preventDefault();
-            window.location.assign("/");
-          }}
-          className="mt-6 block rounded-2xl bg-primary px-5 py-3.5 text-center text-sm font-semibold text-primary-foreground"
-        >
+        <Link href="/" className="mt-6 block rounded-2xl bg-primary px-5 py-3.5 text-center text-sm font-semibold text-primary-foreground">
           Volver al inicio
         </Link>
       </div>,

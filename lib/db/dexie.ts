@@ -273,6 +273,7 @@ async function claimLegacyInto(target: ClaraDB, accountId: string): Promise<void
         // payload. Re-attribute both or it can never pass the new account's RLS.
         const claimable = (rows as OutboxRow[]).flatMap((row) => {
           const { id: _id, ...withoutId } = row;
+          void _id;
           if (row.kind !== "daily-session") return [withoutId];
           if (!isClaimableDailySession(row.payload)) return [];
           const session = row.payload;
@@ -289,7 +290,11 @@ async function claimLegacyInto(target: ClaraDB, accountId: string): Promise<void
         if (claimable.length) await target.outbox.bulkAdd(claimable);
       } else if (name === "attempts" || name === "events" || name === "examAttempts" || name === "callScores" || name === "talkSessions" || name === "virtualCalls") {
         // Auto-increment keys: strip ids so the target assigns fresh ones.
-        await target.table(name).bulkAdd(rows.map((r) => { const { id: _id, ...rest } = r as { id?: number }; return rest; }));
+        await target.table(name).bulkAdd(rows.map((r) => {
+          const { id: _id, ...rest } = r as { id?: number };
+          void _id;
+          return rest;
+        }));
       } else {
         await target.table(name).bulkPut(rows);
       }

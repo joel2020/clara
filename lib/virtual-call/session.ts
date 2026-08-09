@@ -13,7 +13,7 @@
 //              one line and asks for the sentence again, then verifies.
 
 import type { Level } from "../placement.ts";
-import { isAssessmentResult, type AssessmentResult } from "../speech/azure-response.ts";
+import { isAssessmentResult } from "../speech/azure-response.ts";
 import { diagnosePronunciationTarget } from "../speech/pronunciation-diagnosis.ts";
 import type { PronunciationCueKey } from "../speech/latam-prior.ts";
 import { gradePronunciation, type CefrLevel, type PronunciationVerdict } from "../speech/pronunciation-policy.ts";

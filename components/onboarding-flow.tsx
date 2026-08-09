@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Volume2, RotateCcw, Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Volume2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -15,7 +16,7 @@ import {
 } from "@/lib/placement";
 import { GOALS, type Goal, type DailyMinutes, firstWeekPlan, levelBlurbEs, type OnboardingProfile } from "@/lib/onboarding";
 import type { LearningPath } from "@/lib/paths";
-import { PLACEMENT_BANK, pickQuestion, type PlacementQ } from "@/lib/content/placement-questions";
+import { pickQuestion, type PlacementQ } from "@/lib/content/placement-questions";
 import { authHeaders } from "@/lib/auth-client";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -91,6 +92,7 @@ const SELF_OPTIONS: { id: SelfLevel; es: string }[] = [
 ];
 
 export function OnboardingFlow() {
+  const router = useRouter();
   const { settings, update, ready } = useSettings();
   const player = usePlayer();
   // Give login-time cloud hydration a moment to land before we decide whether
@@ -204,7 +206,7 @@ export function OnboardingFlow() {
     };
     sfx.finish?.();
     await update({ studentName: profile.name, onboarding: profile, dailyGoal: minutes === 10 ? 20 : minutes === 20 ? 40 : 60 });
-    window.location.href = "/today";
+    router.replace("/today");
   };
 
   // Skip the adaptive test: complete onboarding using the self-assessed level so
@@ -227,7 +229,7 @@ export function OnboardingFlow() {
     };
     sfx.finish?.();
     await update({ studentName: profile.name, onboarding: profile, dailyGoal: minutes === 10 ? 20 : minutes === 20 ? 40 : 60 });
-    window.location.href = "/today";
+    router.replace("/today");
   };
 
   return (
