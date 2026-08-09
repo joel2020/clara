@@ -227,7 +227,7 @@ export function VirtualCallScreen() {
             disabled={!micSupported || !call.online}
             onRecord={call.retry}
             onStop={call.stopRecording}
-            onListen={() => call.replay(pendingRetry.corrected)}
+            onListen={(rate) => call.replay(pendingRetry.pronunciation?.referenceSentence ?? pendingRetry.corrected, rate)}
           />
         )}
 

@@ -1,6 +1,6 @@
 import { repo } from "@/lib/db";
 import { dayKey } from "@/lib/gamification";
-import { slotFor } from "@/lib/store";
+import { applyClosetAction, closetEligibility, quoteClosetAction, slotFor } from "@/lib/store";
 import type { PlayerStats } from "@/lib/db/types";
 
 export {
@@ -38,6 +38,12 @@ export type EffectKind =
   | "diamonds"
   | "fireworks";
 
+export type UnlockRule =
+  | { type: "none" }
+  | { type: "level"; level: number }
+  | { type: "completed-daily-sessions"; count: number }
+  | { type: "milestone"; id: "first-passed-interview-call" };
+
 export interface Cosmetic {
   id: string;
   type: CosmeticType;
@@ -64,11 +70,49 @@ export interface Cosmetic {
   /** Optional level gate (levelForXp). Never applied retroactively: ownership
    *  always wins over a lock (see lib/store.ts itemState). */
   unlockLevel?: number;
+  /** Durable eligibility rule used by the Lumi City Remix collection. */
+  unlockRule?: UnlockRule;
+  collection?: "city-remix";
   /** Optional seasonal availability window, epoch ms. Owned items survive the
    *  window closing. */
   availableFrom?: number;
   availableUntil?: number;
 }
+
+/** The approved first Lumi collection. Asset bases are replaceable without
+ * changing the stable ids, prices, ownership, or unlock history. */
+export const LUMI_CITY_REMIX: Cosmetic[] = [
+  {
+    id: "cancha-chic", type: "outfit", collection: "city-remix",
+    name: { es: "Cancha Chic", en: "Cancha Chic" }, cost: 140,
+    unlockRule: { type: "none" }, outfit: "/character/outfits/sport",
+  },
+  {
+    id: "club-lectura", type: "outfit", collection: "city-remix",
+    name: { es: "Club de Lectura", en: "Book Club" }, cost: 160,
+    unlockRule: { type: "none" }, outfit: "/character/outfits/invierno",
+  },
+  {
+    id: "nuevo-romance", type: "outfit", collection: "city-remix",
+    name: { es: "Nuevo Romance", en: "New Romance" }, cost: 180,
+    unlockRule: { type: "none" }, outfit: "/character/outfits/rosa",
+  },
+  {
+    id: "moto-rosa", type: "outfit", collection: "city-remix",
+    name: { es: "Moto Rosa", en: "Pink Moto" }, cost: 200,
+    unlockRule: { type: "level", level: 5 }, outfit: "/character/outfits/noche",
+  },
+  {
+    id: "retro-86", type: "outfit", collection: "city-remix",
+    name: { es: "Retro 86", en: "Retro 86" }, cost: 0,
+    unlockRule: { type: "completed-daily-sessions", count: 7 }, outfit: "/character/outfits/cargo",
+  },
+  {
+    id: "la-jefa", type: "outfit", collection: "city-remix",
+    name: { es: "La Jefa", en: "The Boss" }, cost: 0,
+    unlockRule: { type: "milestone", id: "first-passed-interview-call" }, outfit: "/character/outfits/elegante",
+  },
+];
 
 export const COSMETICS: Cosmetic[] = [
   // ── Backgrounds ──
@@ -208,6 +252,7 @@ export const COSMETICS: Cosmetic[] = [
 
   // ── Outfits (Lumi's look — a full pose set per outfit) ──
   { id: "outfit-default", type: "outfit", name: { es: "Clásico", en: "Classic" }, cost: 0, free: true, outfit: "/character/lumi" },
+  ...LUMI_CITY_REMIX,
   { id: "outfit-rosa", type: "outfit", name: { es: "Rosa acogedor", en: "Cozy pink" }, cost: 120, outfit: "/character/outfits/rosa" },
   { id: "outfit-sport", type: "outfit", name: { es: "Deportiva", en: "Sporty" }, cost: 120, outfit: "/character/outfits/sport" },
   { id: "outfit-verano", type: "outfit", name: { es: "Verano", en: "Summer" }, cost: 130, outfit: "/character/outfits/verano" },
@@ -346,7 +391,7 @@ export function equippedOutfitBase(player: Pick<PlayerStats, "equippedOutfit"> |
 
 export interface BuyResult {
   ok: boolean;
-  reason?: "owned" | "insufficient" | "unknown";
+  reason?: "owned" | "insufficient" | "locked" | "unknown";
 }
 
 /** Spend stars to buy a cosmetic, then equip it. No-op if already owned (just equips). */
@@ -354,6 +399,13 @@ export async function buyCosmetic(id: string): Promise<BuyResult> {
   const c = BY_ID.get(id);
   if (!c) return { ok: false, reason: "unknown" };
   const player = await repo.getPlayerStats();
+  if (c.collection === "city-remix") {
+    const result = applyClosetAction({ cosmetic: c, stats: player, at: Date.now() });
+    if (result.status === "locked") return { ok: false, reason: "locked" };
+    if (result.status === "insufficient") return { ok: false, reason: "insufficient" };
+    await repo.savePlayerStats(result.stats);
+    return { ok: true, ...(result.status === "equipped" ? { reason: "owned" as const } : {}) };
+  }
   if (isOwned(player, id)) {
     await equipCosmetic(id);
     return { ok: true, reason: "owned" };
@@ -374,6 +426,15 @@ export async function equipCosmetic(id: string): Promise<void> {
   const c = BY_ID.get(id);
   if (!c) return;
   const player = await repo.getPlayerStats();
+  if (c.collection === "city-remix") {
+    const quote = quoteClosetAction({ cosmetic: c, stats: player, eligibility: closetEligibility(player) });
+    if (quote.status !== "equip") return;
+    const result = applyClosetAction({ cosmetic: c, stats: player, at: Date.now() });
+    if (result.status === "applied" || result.status === "equipped") {
+      await repo.savePlayerStats(result.stats);
+    }
+    return;
+  }
   if (!isOwned(player, id)) return;
   await repo.savePlayerStats({ ...player, [slotFor(c.type)]: id, updatedAt: Date.now() });
 }

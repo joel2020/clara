@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 // Last-resort boundary: catches errors thrown by the root layout itself, so it
 // must render its own <html> and cannot assume any CSS or provider exists.
@@ -11,7 +12,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
 }) {
   useEffect(() => {
-    console.error("[clara] fatal error", error.digest ?? "", error.message);
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) Sentry.captureException(error);
   }, [error]);
 
   return (
@@ -47,7 +48,7 @@ export default function GlobalError({
           </p>
           <button
             type="button"
-            onClick={() => window.location.assign("/")}
+            onClick={() => window.location.reload()}
             style={{
               marginTop: 20,
               borderRadius: 999,

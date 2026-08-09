@@ -8,17 +8,10 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { useAccess } from "@/lib/hooks/useAccess";
 import { Switch } from "@/components/ui/switch";
 import { t } from "@/lib/i18n";
+import { isImmersiveRoute, isLearnerNavActive, LEARNER_NAV } from "@/lib/navigation";
 
-// Desktop nav mirrors the tab bar's five spaces — one IA on every device.
+// Desktop nav mirrors the tab bar's four spaces — one IA on every device.
 // Links appear at lg+ (below that the bottom tab bar owns navigation).
-const NAV = [
-  { href: "/", key: "navToday" as const },
-  { href: "/map", key: "navCamino" as const },
-  { href: "/talk", key: "navTalk" as const },
-  { href: "/shop", key: "navTienda" as const },
-  { href: "/profile", key: "navYo" as const },
-];
-
 export function SiteHeader() {
   const pathname = usePathname();
   const { settings, update } = useSettings();
@@ -27,6 +20,8 @@ export function SiteHeader() {
   // accounts see the toggle. Local dev (no auth) keeps it for convenience.
   const { admin } = useAccess();
   const teacher = admin;
+
+  if (isImmersiveRoute(pathname)) return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-background/70 backdrop-blur-xl">
@@ -43,8 +38,8 @@ export function SiteHeader() {
         {/* On phones and tablets the bottom tab bar owns navigation, so the
             header stays minimal: logo + sound + settings. */}
         <nav className="ml-auto flex items-center gap-5">
-          {NAV.map((item) => {
-            const active = pathname === item.href;
+          {LEARNER_NAV.map((item) => {
+            const active = isLearnerNavActive(item, pathname);
             return (
               <Link
                 key={item.href}
@@ -55,7 +50,7 @@ export function SiteHeader() {
                   active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {t(item.key, lang)}
+                {t(item.labelKey, lang)}
                 {active && (
                   <span className="absolute -bottom-1.5 left-0 h-px w-full bg-foreground" aria-hidden />
                 )}

@@ -22,6 +22,19 @@ function chunks(lessonId: string, rows: ChunkRow[]): PracticeItem[] {
   }));
 }
 
+const CAFE_VISUAL_OBJECT_IDS = [
+  "table",
+  "menu",
+  "coffee",
+  "chicken",
+  "onion",
+  "meal",
+  "check",
+  "card",
+  "takeaway-bag",
+  "change",
+] as const;
+
 export const CONVERSATION_LESSONS: Lesson[] = [
   {
     id: "conv-greetings",
@@ -64,6 +77,7 @@ export const CONVERSATION_LESSONS: Lesson[] = [
     kind: "phrase",
     categoryIds: ["conversation"],
     track: "conversation",
+    visualTopicId: "cafe-restaurant",
     order: 22,
     intro: {
       summary: "Ordering is the most predictable conversation in English — the same six phrases work in every café and restaurant in the world.",
@@ -76,7 +90,8 @@ export const CONVERSATION_LESSONS: Lesson[] = [
       ],
       exampleIds: ["conv-cafe:2", "conv-cafe:3"],
     },
-    items: chunks("conv-cafe", [
+    items: (() => {
+      const items = chunks("conv-cafe", [
       { text: "A table for two, please", ipa: "/ə ˈteɪbəl fɔːr tuː pliːz/", meaning: "Una mesa para dos, por favor", hint: "La primera 'a' es una schwa perezosa: 'a-TEI-bol'." },
       { text: "Can I see the menu?", ipa: "/kæn aɪ siː ðə ˈmɛnjuː/", meaning: "¿Puedo ver el menú?", hint: "'Can I' se une: 'ke-nai'. MEN-yu, acento al inicio." },
       { text: "Can I have a coffee, please?", ipa: "/kæn aɪ hæv ə ˈkɔːfi pliːz/", meaning: "¿Me das un café, por favor?", hint: "Tu llave maestra: 'ke-nai-hav'. Sirve para pedir TODO." },
@@ -87,7 +102,15 @@ export const CONVERSATION_LESSONS: Lesson[] = [
       { text: "Do you take cards?", ipa: "/də juː teɪk kɑːrdz/", meaning: "¿Aceptan tarjeta?", hint: "'Do you' débil: 'da-yu'. Termina 'cards' con dz." },
       { text: "To go, please", ipa: "/tə ɡoʊ pliːz/", meaning: "Para llevar, por favor", hint: "'to' débil otra vez: 'ta-GOU'." },
       { text: "Keep the change", ipa: "/kiːp ðə tʃeɪndʒ/", meaning: "Quédate con el cambio", hint: "'change' termina en j vibrante: chein-DZH." },
-    ]),
+      ]);
+      if (items.length !== CAFE_VISUAL_OBJECT_IDS.length) {
+        throw new Error("conv-cafe visual object mapping must match the authored lesson length");
+      }
+      return items.map((item, index) => ({
+        ...item,
+        visualObjectId: CAFE_VISUAL_OBJECT_IDS[index]!,
+      }));
+    })(),
   },
   {
     id: "conv-directions",

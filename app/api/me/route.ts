@@ -1,7 +1,7 @@
-// Who am I, as far as the server is concerned. Every authenticated learner is
-// allowed during the family-and-friends beta; admin remains server-enforced.
-import { authRequired, getAuthedUser } from "@/lib/auth-server";
-import { isAdmin } from "@/lib/allowlist";
+// Who am I, as far as the server is concerned. Learner and admin access are
+// both derived from the same server-side identity policy used by paid routes.
+import { authRequired, getAuthedUser } from "../../../lib/auth-server.ts";
+import { accessFlags } from "../../../lib/allowlist.ts";
 
 export const runtime = "nodejs";
 
@@ -20,9 +20,9 @@ export async function GET(request: Request): Promise<Response> {
 
   const user = await getAuthedUser(request);
   if (!user) return Response.json({ authed: false, allowed: false, admin: false }, { status: 401 });
+  const flags = accessFlags(user);
   return Response.json({
     authed: true,
-    allowed: true,
-    admin: isAdmin(user.email),
+    ...flags,
   });
 }

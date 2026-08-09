@@ -1,5 +1,5 @@
 import { ArrowRight, Check, MessageSquareQuote } from "lucide-react";
-import { t, type CoachLang, type StringKey } from "@/lib/i18n";
+import { pronunciationCue, t, type CoachLang, type StringKey } from "@/lib/i18n";
 import type { CorrectionKind, TurnCorrection } from "@/lib/virtual-call/session";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ const KIND_LABEL: Record<CorrectionKind, StringKey> = {
   grammar: "vcallKindGrammar",
   vocabulary: "vcallKindVocabulary",
   phrasing: "vcallKindPhrasing",
+  pronunciation: "vcallKindPronunciation",
 };
 
 export function CorrectionCard({
@@ -62,6 +63,16 @@ export function CorrectionCard({
       </div>
 
       <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">{correction.explanation}</p>
+      {correction.pronunciation && (
+        <div className="mt-3 rounded-xl border border-primary/20 bg-primary/[0.05] p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("vcallPronTarget", lang)}</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-2">
+            <span lang="en" className="font-display text-lg font-semibold">{correction.pronunciation.targetWord}</span>
+            <span className="ipa text-sm text-muted-foreground">{correction.pronunciation.targetSound}</span>
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{pronunciationCue(correction.pronunciation.cueKey, lang)}</p>
+        </div>
+      )}
     </div>
   );
 }

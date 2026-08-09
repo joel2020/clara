@@ -61,6 +61,17 @@ const ACTIVITY_STATUSES = [
 /** App surfaces a `mode_open` may name. */
 const MODES = ["call", "talk", "radio", "practice", "exam", "review"] as const;
 
+/** Closed visual-learning outcomes; no visual event carries learner content. */
+export const VISUAL_FALLBACK_CLASSES = [
+  "topic-missing",
+  "environment-missing",
+  "object-missing",
+  "outfit-pose-missing",
+  "image-decode",
+] as const;
+export const VISUAL_ASSET_CLASSES = ["environment", "object", "character"] as const;
+export const VISUAL_LOAD_BANDS = ["under-250", "250-999", "1000-2999", "3000-plus"] as const;
+
 /**
  * Property names that could smuggle learner speech or identity into analytics.
  * Matched as case-insensitive substrings, so `studentName` and `rawTranscript`
@@ -120,6 +131,15 @@ const enumOf = (values: readonly string[]): PropRule => ({ kind: "enum", values 
 /** Ids are opaque handles: no spaces, no punctuation, no room for a sentence. */
 const ID_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/;
 
+export type VisualAnalyticsEvent =
+  | "visual_topic_shown"
+  | "visual_object_selected"
+  | "visual_object_replay"
+  | "visual_discovery_complete"
+  | "visual_to_speaking"
+  | "visual_fallback"
+  | "visual_asset_loaded";
+
 export type AnalyticsEventType =
   | "app_open"
   | "mode_open"
@@ -136,7 +156,8 @@ export type AnalyticsEventType =
   | "review_complete"
   | "return_next_day"
   | "return_seven_day"
-  | "technical_failure";
+  | "technical_failure"
+  | VisualAnalyticsEvent;
 
 /**
  * The closed event catalogue. The first group predates the daily loop and still
@@ -187,6 +208,10 @@ export const EVENT_SCHEMAS: Record<AnalyticsEventType, EventSchema> = {
       completedActivities: count,
       totalActivities: count,
       durationMs: duration,
+      gradedTargets: count,
+      masteredTargets: count,
+      technicalTargets: count,
+      ungradedTargets: count,
     },
   },
   speaking_attempted: {
@@ -214,6 +239,40 @@ export const EVENT_SCHEMAS: Record<AnalyticsEventType, EventSchema> = {
       retried: flag,
       durationMs: duration,
     },
+  },
+
+  // Contextual visual-learning slice. Topic, lesson, and object identifiers
+  // are opaque handles; fallback and performance dimensions are closed enums.
+  visual_topic_shown: {
+    required: { topicId: id, lessonId: id },
+    optional: {},
+  },
+  visual_object_selected: {
+    required: { topicId: id, lessonId: id, objectId: id },
+    optional: {},
+  },
+  visual_object_replay: {
+    required: { topicId: id, lessonId: id, objectId: id },
+    optional: {},
+  },
+  visual_discovery_complete: {
+    required: { topicId: id, lessonId: id },
+    optional: {},
+  },
+  visual_to_speaking: {
+    required: { topicId: id, lessonId: id },
+    optional: {},
+  },
+  visual_fallback: {
+    required: { fallbackClass: enumOf(VISUAL_FALLBACK_CLASSES) },
+    optional: {},
+  },
+  visual_asset_loaded: {
+    required: {
+      assetClass: enumOf(VISUAL_ASSET_CLASSES),
+      loadBand: enumOf(VISUAL_LOAD_BANDS),
+    },
+    optional: {},
   },
 };
 

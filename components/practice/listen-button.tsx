@@ -24,6 +24,7 @@ export function ListenButton({
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
   const [speaking, setSpeaking] = useState<"normal" | "slow" | "mix" | null>(null);
+  const [failedMode, setFailedMode] = useState<"normal" | "slow" | "mix" | null>(null);
   const [mixVoice, setMixVoice] = useState<VoiceInfo | null>(null);
 
   const recorded = hasRecordedVoice(itemId);
@@ -32,6 +33,7 @@ export function ListenButton({
 
   const play = (mode: "normal" | "slow") => {
     if (!canPlay) return;
+    setFailedMode(null);
     setSpeaking(mode);
     playPronunciation({
       id: itemId,
@@ -40,15 +42,34 @@ export function ListenButton({
       rate: settings.speechRate,
       voiceURI: settings.voiceURI,
       onEnd: () => setSpeaking(null),
+      onError: () => {
+        setSpeaking(null);
+        setFailedMode(mode);
+      },
     });
   };
 
   const playMix = () => {
     if (!canMix) return;
     const v = pickAltVoice(mixVoice?.slug);
+    setFailedMode(null);
     setMixVoice(v);
     setSpeaking("mix");
-    playPronunciation({ id: itemId, text, voice: v.slug, onEnd: () => setSpeaking(null) });
+    playPronunciation({
+      id: itemId,
+      text,
+      voice: v.slug,
+      onEnd: () => setSpeaking(null),
+      onError: () => {
+        setSpeaking(null);
+        setFailedMode("mix");
+      },
+    });
+  };
+
+  const retry = () => {
+    if (failedMode === "mix") playMix();
+    else if (failedMode) play(failedMode);
   };
 
   return (
@@ -95,9 +116,22 @@ export function ListenButton({
           </button>
         )}
       </div>
-      <span className="h-4 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
-        {speaking === "mix" && mixVoice ? `${t("voice", lang)} · ${mixVoice.name}` : recorded ? `${t("voice", lang)} · Joel` : ""}
-      </span>
+      {failedMode ? (
+        <div role="alert" className="flex min-h-4 items-center gap-2 text-xs text-destructive">
+          <span>{lang === "es" ? "No se pudo reproducir el audio." : "Audio couldn't play."}</span>
+          <button
+            type="button"
+            onClick={retry}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 py-2.5 font-medium underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {t("tryAgain", lang)}
+          </button>
+        </div>
+      ) : (
+        <span className="h-4 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+          {speaking === "mix" && mixVoice ? `${t("voice", lang)} · ${mixVoice.name}` : recorded ? `${t("voice", lang)} · Joel` : ""}
+        </span>
+      )}
     </div>
   );
 }

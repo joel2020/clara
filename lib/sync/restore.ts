@@ -1,6 +1,19 @@
-import { db } from "@/lib/db/dexie";
-import type { Settings } from "@/lib/db/types";
-import { getProfile, pullProfileData, pullPlayerAndProgress, pullSettings, pullExamsAndCalls, pullTalkSessions, pullConvItemsAndQuests, pullCustomLessons, type Profile } from "./supabase-sync";
+import { captureDbBinding, db, isDbBindingCurrent, type DbBinding } from "@/lib/db/dexie";
+import type { PlayerStats, Settings } from "@/lib/db/types";
+import { mergeAttemptHistory } from "@/lib/db/repository";
+import {
+  getProfile,
+  pullConvItemsAndQuests,
+  pullCustomLessons,
+  pullExamsAndCalls,
+  pullPlayerAndProgress,
+  pullProfileData,
+  pullSettings,
+  pullTalkSessions,
+  pushPlayer,
+  type Profile,
+} from "./supabase-sync";
+import { mergePlayerClosetProgress } from "./player-closet-merge.ts";
 
 // "Logging in" on a new device: the sync code is the account. Pull everything
 // the cloud has for that profile and seed the local Dexie stores with it, so
@@ -13,91 +26,171 @@ export interface RestoreSummary {
   hasPlayer: boolean;
 }
 
-/**
- * Pull her stage-exam sittings, call runs and talk sessions into the local cache.
- *
- * Additive by design: a row is inserted only when this device has no sitting for
- * that day (or no call at that timestamp), so a cloud pull can never erase local
- * history that has not been mirrored yet. Called from both restore and hydrate,
- * because an earned band must reappear on a new device without any extra step.
- */
-async function seedEarnedHistory(profileId: string): Promise<void> {
-  const [remote, talks, extras, customLessons] = await Promise.all([
-    pullExamsAndCalls(profileId),
-    pullTalkSessions(profileId),
-    pullConvItemsAndQuests(profileId),
-    pullCustomLessons(),
-  ]);
-  // Instructor lessons are shared content: cloud copy wins (upsert), but local
-  // lessons not yet pushed are never deleted here — a pull must not eat work.
-  if (customLessons?.length) {
-    await db.transaction("rw", [db.customLessons], async () => {
-      for (const lesson of customLessons) await db.customLessons.put(lesson);
-    });
-  }
-  // Mined conversation phrases are assigned homework, so a fresh device must get
-  // them back or she silently loses work. Quests come along so today's progress
-  // does not reset when she switches device mid-day.
-  if (extras) {
-    await db.transaction("rw", [db.convItems, db.quests], async () => {
-      for (const c of extras.convItems) {
-        if (!(await db.convItems.get(c.id))) await db.convItems.put(c);
-      }
-      for (const q of extras.quests) {
-        const local = await db.quests.get(q.day);
-        if (!local) await db.quests.put(q);
-      }
-    });
-  }
-  if (talks?.length) {
-    await db.transaction("rw", [db.talkSessions], async () => {
-      const localAt = new Set((await db.talkSessions.toArray()).map((t) => t.at));
-      for (const t of talks) if (!localAt.has(t.at)) await db.talkSessions.add(t);
-    });
-  }
-  if (!remote) return;
-  await db.transaction("rw", [db.examAttempts, db.callScores], async () => {
-    const localDays = new Set((await db.examAttempts.toArray()).map((e) => e.day));
-    for (const e of remote.exams) {
-      if (!localDays.has(e.day)) await db.examAttempts.add(e);
-    }
-    const localCallTimes = new Set((await db.callScores.toArray()).map((c) => c.at));
-    for (const c of remote.calls) {
-      if (!localCallTimes.has(c.at)) await db.callScores.add(c);
-    }
-  });
+export interface CloudRestoreSource {
+  getProfile: typeof getProfile;
+  pullProfileData: typeof pullProfileData;
+  pullPlayerAndProgress: typeof pullPlayerAndProgress;
+  pullSettings: typeof pullSettings;
+  pullExamsAndCalls: typeof pullExamsAndCalls;
+  pullTalkSessions: typeof pullTalkSessions;
+  pullConvItemsAndQuests: typeof pullConvItemsAndQuests;
+  pullCustomLessons: typeof pullCustomLessons;
+}
+
+const cloudRestoreSource: CloudRestoreSource = {
+  getProfile,
+  pullProfileData,
+  pullPlayerAndProgress,
+  pullSettings,
+  pullExamsAndCalls,
+  pullTalkSessions,
+  pullConvItemsAndQuests,
+  pullCustomLessons,
+};
+
+class StaleDbBindingError extends Error {}
+
+function bindingFor(profileId: string): DbBinding | null {
+  const binding = captureDbBinding();
+  // Authenticated databases must match exactly. The legacy/local database may
+  // still restore its remembered sync code; generation checks keep that safe if
+  // authentication binds a real account while the request is in flight.
+  return binding
+    && (binding.accountId === null || binding.accountId === profileId)
+    && isDbBindingCurrent(binding)
+    ? binding
+    : null;
+}
+
+function requireCurrent(binding: DbBinding): void {
+  if (!isDbBindingCurrent(binding)) throw new StaleDbBindingError();
 }
 
 /**
- * Is the bound local database effectively new? Used to decide between the full
- * restore (attempts included) and the cheap launch hydrate.
+ * Pull her earned-history stores into the concrete account database captured at
+ * request start. Every awaited boundary is followed by a generation check so a
+ * late response for A can never be redirected through the active-db proxy to B.
  */
+async function seedEarnedHistory(
+  profileId: string,
+  binding: DbBinding,
+  source: CloudRestoreSource,
+): Promise<boolean> {
+  const target = binding.database;
+  const [remote, talks, extras, customLessons] = await Promise.all([
+    source.pullExamsAndCalls(profileId),
+    source.pullTalkSessions(profileId),
+    source.pullConvItemsAndQuests(profileId),
+    source.pullCustomLessons(),
+  ]);
+  if (!isDbBindingCurrent(binding)) return false;
+
+  // Shared instructor lessons are additive: cloud copy upserts, local-only work
+  // is never deleted by a pull.
+  if (customLessons?.length) {
+    await target.transaction("rw", [target.customLessons], async () => {
+      for (const lesson of customLessons) {
+        requireCurrent(binding);
+        await target.customLessons.put(lesson);
+      }
+    });
+  }
+
+  if (extras) {
+    requireCurrent(binding);
+    await target.transaction("rw", [target.convItems, target.quests], async () => {
+      for (const item of extras.convItems) {
+        const existing = await target.convItems.get(item.id);
+        requireCurrent(binding);
+        if (!existing) await target.convItems.put(item);
+      }
+      for (const quest of extras.quests) {
+        const existing = await target.quests.get(quest.day);
+        requireCurrent(binding);
+        if (!existing) await target.quests.put(quest);
+      }
+    });
+  }
+
+  if (talks?.length) {
+    requireCurrent(binding);
+    await target.transaction("rw", [target.talkSessions], async () => {
+      const localAt = new Set((await target.talkSessions.toArray()).map((talk) => talk.at));
+      requireCurrent(binding);
+      for (const talk of talks) {
+        requireCurrent(binding);
+        if (!localAt.has(talk.at)) await target.talkSessions.add(talk);
+      }
+    });
+  }
+
+  if (!remote) return isDbBindingCurrent(binding);
+  requireCurrent(binding);
+  await target.transaction("rw", [target.examAttempts, target.callScores], async () => {
+    const localDays = new Set((await target.examAttempts.toArray()).map((exam) => exam.day));
+    requireCurrent(binding);
+    for (const exam of remote.exams) {
+      requireCurrent(binding);
+      if (!localDays.has(exam.day)) await target.examAttempts.add(exam);
+    }
+
+    const localCallTimes = new Set((await target.callScores.toArray()).map((call) => call.at));
+    requireCurrent(binding);
+    for (const call of remote.calls) {
+      requireCurrent(binding);
+      if (!localCallTimes.has(call.at)) await target.callScores.add(call);
+    }
+  });
+  return isDbBindingCurrent(binding);
+}
+
+/** Is the currently bound local database effectively new? */
 export async function isFreshLocalData(): Promise<boolean> {
   const [attempts, progress] = await Promise.all([db.attempts.count(), db.progress.count()]);
   return attempts === 0 && progress === 0;
 }
 
-export async function restoreProfile(profileId: string): Promise<RestoreSummary | null> {
+export async function restoreProfile(
+  profileId: string,
+  source: CloudRestoreSource = cloudRestoreSource,
+): Promise<RestoreSummary | null> {
   const id = profileId.trim().toLowerCase();
   if (!id) return null;
-  const profile = await getProfile(id);
-  if (!profile) return null;
-  const data = await pullProfileData(id);
-  if (!data) return null;
-  await seedEarnedHistory(id).catch(() => {});
+  const binding = bindingFor(id);
+  if (!binding) return null;
+  const target = binding.database;
 
-  await db.transaction("rw", [db.attempts, db.progress, db.player], async () => {
-    if (data.attempts.length) {
-      // `attempts` has an auto-increment key, so bulkAdd always appends — if the
-      // local cache already holds some (e.g. name was lost but attempts weren't),
-      // a naive add doubles the history. Insert only timestamps not already local.
-      const existing = new Set((await db.attempts.toArray()).map((a) => a.at));
-      const fresh = data.attempts.filter((a) => !existing.has(a.at));
-      if (fresh.length) await db.attempts.bulkAdd(fresh);
-    }
-    if (data.progress.length) await db.progress.bulkPut(data.progress);
-    if (data.player) await db.player.put(data.player);
-  });
+  const profile = await source.getProfile(id);
+  if (!isDbBindingCurrent(binding) || !profile) return null;
+  const data = await source.pullProfileData(id);
+  if (!isDbBindingCurrent(binding) || !data) return null;
+
+  try {
+    if (!(await seedEarnedHistory(id, binding, source))) return null;
+  } catch (error) {
+    // Earned-history restore remains best effort while the main profile restore
+    // proceeds. A generation change is different: all subsequent work aborts.
+    if (error instanceof StaleDbBindingError || !isDbBindingCurrent(binding)) return null;
+  }
+  if (!isDbBindingCurrent(binding)) return null;
+
+  try {
+    await target.transaction("rw", [target.attempts, target.progress, target.player], async () => {
+      if (data.attempts.length) {
+        const fresh = mergeAttemptHistory(await target.attempts.toArray(), data.attempts);
+        requireCurrent(binding);
+        if (fresh.length) await target.attempts.bulkAdd(fresh);
+      }
+      requireCurrent(binding);
+      if (data.progress.length) await target.progress.bulkPut(data.progress);
+      requireCurrent(binding);
+      if (data.player) await target.player.put(data.player);
+    });
+  } catch (error) {
+    if (error instanceof StaleDbBindingError || !isDbBindingCurrent(binding)) return null;
+    throw error;
+  }
+  if (!isDbBindingCurrent(binding)) return null;
 
   return {
     profile,
@@ -107,48 +200,63 @@ export async function restoreProfile(profileId: string): Promise<RestoreSummary 
   };
 }
 
-// Cloud-authoritative refresh for a device that already has this profile locally.
-// Supabase is the source of truth; the phone's IndexedDB is a fast cache that we
-// re-seed from the cloud on every launch. This is what makes her stars, streak,
-// and progress survive iOS evicting local storage, and lets a change made in the
-// cloud (e.g. an awarded star balance) appear without a manual "restore".
-//
-// Reconciliation policy:
-//   • Player economy/progression and per-item SRS progress — cloud wins unless
-//     the local copy is strictly newer (a `updatedAt` tiebreak). That only
-//     happens for practice done offline since the last push; that local work is
-//     preserved and syncs up on her next write. Cloud wins on ties, so an edit
-//     made directly in Supabase (with a fresh `updated_at`) always takes.
-// Attempt history isn't re-pulled here (it's append-only and already mirrored) to
-// avoid duplicating rows on every launch.
-//
-// Throws if the cloud is unreachable — the caller treats that as "stay on the
-// local cache" so the app still works offline.
-export async function hydrateFromCloud(profileId: string): Promise<{ settingsPatch: Partial<Settings> } | null> {
+// Cloud-authoritative refresh for a device that already has this profile. The
+// local database stays a fast offline cache; strictly newer local progress wins
+// so unsynced practice is not overwritten.
+export async function hydrateFromCloud(
+  profileId: string,
+  source: CloudRestoreSource = cloudRestoreSource,
+): Promise<{ settingsPatch: Partial<Settings> } | null> {
   const id = profileId.trim().toLowerCase();
   if (!id) return null;
-  // Player + progress only: attempts are append-only, already mirrored, and
-  // unused here — pulling the whole history on every open scaled cost with age.
-  const [data, cloudSettings] = await Promise.all([pullPlayerAndProgress(id), pullSettings(id)]);
-  if (!data) return null; // sync disabled — nothing to do
-  await seedEarnedHistory(id).catch(() => {});
+  const binding = bindingFor(id);
+  if (!binding) return null;
+  const target = binding.database;
 
-  await db.transaction("rw", [db.progress, db.player], async () => {
-    if (data.player) {
-      const local = await db.player.get("player");
-      if (!local || (local.updatedAt ?? 0) <= (data.player.updatedAt ?? 0)) {
-        await db.player.put(data.player);
+  const [data, cloudSettings] = await Promise.all([
+    source.pullPlayerAndProgress(id),
+    source.pullSettings(id),
+  ]);
+  if (!isDbBindingCurrent(binding) || !data) return null;
+
+  try {
+    if (!(await seedEarnedHistory(id, binding, source))) return null;
+  } catch (error) {
+    if (error instanceof StaleDbBindingError || !isDbBindingCurrent(binding)) return null;
+  }
+  if (!isDbBindingCurrent(binding)) return null;
+
+  try {
+    let mergedPlayerToPush: PlayerStats | null = null;
+    await target.transaction("rw", [target.progress, target.player], async () => {
+      if (data.player) {
+        const local = await target.player.get("player");
+        requireCurrent(binding);
+        const merged = mergePlayerClosetProgress(local, data.player);
+        await target.player.put(merged);
+        if (
+          merged.completedDailySessions !== data.player.completedDailySessions
+          || merged.unlockedMilestones.join("\0") !== data.player.unlockedMilestones.join("\0")
+        ) mergedPlayerToPush = merged;
       }
-    }
-    if (data.progress.length) {
-      const locals = new Map((await db.progress.toArray()).map((p) => [p.itemId, p]));
-      const toPut = data.progress.filter((c) => {
-        const l = locals.get(c.itemId);
-        return !l || (l.updatedAt ?? 0) <= (c.updatedAt ?? 0);
-      });
-      if (toPut.length) await db.progress.bulkPut(toPut);
-    }
-  });
+
+      requireCurrent(binding);
+      if (data.progress.length) {
+        const locals = new Map((await target.progress.toArray()).map((item) => [item.itemId, item]));
+        requireCurrent(binding);
+        const toPut = data.progress.filter((cloud) => {
+          const local = locals.get(cloud.itemId);
+          return !local || (local.updatedAt ?? 0) <= (cloud.updatedAt ?? 0);
+        });
+        if (toPut.length) await target.progress.bulkPut(toPut);
+      }
+    });
+    if (mergedPlayerToPush && isDbBindingCurrent(binding)) pushPlayer(id, mergedPlayerToPush);
+  } catch (error) {
+    if (error instanceof StaleDbBindingError || !isDbBindingCurrent(binding)) return null;
+    throw error;
+  }
+  if (!isDbBindingCurrent(binding)) return null;
 
   const settingsPatch: Partial<Settings> = {};
   if (cloudSettings) {
@@ -156,15 +264,13 @@ export async function hydrateFromCloud(profileId: string): Promise<{ settingsPat
     if (cloudSettings.speechRate != null) settingsPatch.speechRate = cloudSettings.speechRate;
     if (cloudSettings.voiceURI !== undefined) settingsPatch.voiceURI = cloudSettings.voiceURI ?? undefined;
     if (cloudSettings.recognitionLang != null) settingsPatch.recognitionLang = cloudSettings.recognitionLang;
-    // Identity + placement restore: what keeps a returning learner from being
-    // re-onboarded as brand new on a fresh device/origin.
     if (cloudSettings.studentName) settingsPatch.studentName = cloudSettings.studentName;
     if (cloudSettings.onboarding) settingsPatch.onboarding = cloudSettings.onboarding;
-    // Preferences, so the app feels like hers on any device she signs into.
     if (cloudSettings.coachLanguage) settingsPatch.coachLanguage = cloudSettings.coachLanguage;
     if (cloudSettings.difficulty) settingsPatch.difficulty = cloudSettings.difficulty;
     if (cloudSettings.soundEnabled != null) settingsPatch.soundEnabled = cloudSettings.soundEnabled;
     if (cloudSettings.instructorMode != null) settingsPatch.instructorMode = cloudSettings.instructorMode;
+    if (cloudSettings.voiceConsent !== undefined) settingsPatch.voiceConsent = cloudSettings.voiceConsent;
   }
   return { settingsPatch };
 }

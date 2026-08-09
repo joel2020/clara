@@ -5,7 +5,9 @@
 // memory for 6 hours: at most a few tiny model calls per day.
 
 import OpenAI from "openai";
-import { requireUser } from "@/lib/auth-server";
+import { guardApi } from "@/lib/api-guard";
+import { requireAllowedUserIdentity } from "@/lib/auth-server";
+import { enforcePaidApiQuota } from "@/lib/api-quota";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -54,13 +56,18 @@ function extractHeadlines(xml: string, max = 3): string[] {
   return out;
 }
 
-export async function GET(request: Request): Promise<Response> {
+export async function POST(request: Request): Promise<Response> {
   // This route spends OpenAI money on a cache miss (and the cache is per warm
   // serverless instance, not global), so it requires a signed-in, allowlisted
-  // user like every other paid route. No origin check: browsers don't send an
-  // Origin header on same-origin GETs, and the session is the real gate.
-  const unauth = await requireUser(request);
-  if (unauth) return unauth;
+  // user like every other paid route. POST ensures browsers supply Origin so
+  // this endpoint receives the same exact-origin protection as the other paid
+  // provider routes.
+  const blocked = guardApi(request);
+  if (blocked) return blocked;
+  const identity = await requireAllowedUserIdentity(request);
+  if ("response" in identity) return identity.response;
+  const quota = await enforcePaidApiQuota({ userId: identity.user.id, route: "news" });
+  if (quota) return quota;
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return Response.json({ error: "not_configured" }, { status: 503 });

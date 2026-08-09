@@ -62,11 +62,15 @@ export interface SpeakOptions {
   voiceURI?: string;
   onStart?: () => void;
   onEnd?: () => void;
+  onError?: () => void;
 }
 
 /** Speak text with the chosen voice/rate. Cancels anything already speaking. */
 export function speak(text: string, opts: SpeakOptions = {}): void {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    opts.onError?.();
+    return;
+  }
   const synth = window.speechSynthesis;
   synth.cancel(); // clear any stuck/queued utterance (Chrome quirk)
 
@@ -81,10 +85,8 @@ export function speak(text: string, opts: SpeakOptions = {}): void {
     utter.lang = "en-US";
   }
   if (opts.onStart) utter.onstart = opts.onStart;
-  if (opts.onEnd) {
-    utter.onend = opts.onEnd;
-    utter.onerror = opts.onEnd;
-  }
+  if (opts.onEnd) utter.onend = opts.onEnd;
+  if (opts.onError) utter.onerror = opts.onError;
   synth.speak(utter);
 }
 

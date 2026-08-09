@@ -6,7 +6,7 @@ import { ArrowLeft, Mic, PhoneOff, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { Splash } from "@/components/splash";
-import { JoelAvatar } from "@/components/joel-avatar";
+import { Lumi } from "@/components/lumi";
 import { sfx } from "@/lib/sfx";
 import { CALL_SCENARIOS, QA_CHECKS, type CallScenario, type QaKey } from "@/lib/content/call-scenarios";
 import { createRecognition } from "@/lib/speech/recognition";
@@ -16,8 +16,8 @@ import { repo } from "@/lib/db";
 
 // The call simulator — the job path's hard mode.
 //
-// Joel is not a tutor here: he is an American customer with a problem, at natural
-// speed. She has to run the call herself, and afterwards it is scored against the
+// Lumi is not a tutor here: she is the AI guide role-playing an American customer
+// with a problem, at natural speed. She has to run the call herself, and afterwards it is scored against the
 // same four things a real BPO quality team checks on a recording.
 //
 // Deliberately not scored live. A scorecard ticking during a call would make her
@@ -310,9 +310,11 @@ export default function CallPage() {
     <div className="rounded-3xl border border-hairline bg-card p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <JoelAvatar speaking={false} />
+          <div className="size-8">
+            <Lumi mood="think" frame="bust" />
+          </div>
           <div>
-            <p className="font-display text-base">{lang === "es" ? "Cliente" : "Customer"}</p>
+            <p className="font-display text-base">{lang === "es" ? "Lumi · Cliente" : "Lumi · Customer"}</p>
             <p className="text-xs text-muted-foreground">
               {lang === "es" ? scenario.title.es : scenario.title.en} ·{" "}
               {lang === "es" ? DIFFICULTY_ES[scenario.difficulty] : scenario.difficulty}

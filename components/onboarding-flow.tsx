@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Volume2, RotateCcw, Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Volume2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -15,8 +16,9 @@ import {
 } from "@/lib/placement";
 import { GOALS, type Goal, type DailyMinutes, firstWeekPlan, levelBlurbEs, type OnboardingProfile } from "@/lib/onboarding";
 import type { LearningPath } from "@/lib/paths";
-import { PLACEMENT_BANK, pickQuestion, type PlacementQ } from "@/lib/content/placement-questions";
+import { pickQuestion, type PlacementQ } from "@/lib/content/placement-questions";
 import { authHeaders } from "@/lib/auth-client";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 // Fisher–Yates: return a shuffled copy (never mutate the shared question bank).
 function shuffle<T>(arr: T[]): T[] {
@@ -90,6 +92,7 @@ const SELF_OPTIONS: { id: SelfLevel; es: string }[] = [
 ];
 
 export function OnboardingFlow() {
+  const router = useRouter();
   const { settings, update, ready } = useSettings();
   const player = usePlayer();
   // Give login-time cloud hydration a moment to land before we decide whether
@@ -109,6 +112,7 @@ export function OnboardingFlow() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [minutes, setMinutes] = useState<DailyMinutes>(20);
   const [self, setSelf] = useState<SelfLevel | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // adaptive test state
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
@@ -202,7 +206,7 @@ export function OnboardingFlow() {
     };
     sfx.finish?.();
     await update({ studentName: profile.name, onboarding: profile, dailyGoal: minutes === 10 ? 20 : minutes === 20 ? 40 : 60 });
-    window.location.href = "/today";
+    router.replace("/today");
   };
 
   // Skip the adaptive test: complete onboarding using the self-assessed level so
@@ -225,13 +229,24 @@ export function OnboardingFlow() {
     };
     sfx.finish?.();
     await update({ studentName: profile.name, onboarding: profile, dailyGoal: minutes === 10 ? 20 : minutes === 20 ? 40 : 60 });
-    window.location.href = "/today";
+    router.replace("/today");
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
-      <div className="hero-calm pointer-events-none absolute inset-0" aria-hidden />
-      <div className="flag-bar absolute inset-x-0 top-0 h-[3px]" aria-hidden />
+    <Dialog open disablePointerDismissal onOpenChange={(_nextOpen, eventDetails) => eventDetails.cancel()}>
+      <DialogContent
+        ref={dialogRef}
+        showCloseButton={false}
+        initialFocus={dialogRef}
+        overlayClassName="z-50 bg-background"
+        className="inset-0 z-[51] block max-h-none max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none border-0 bg-background p-0 ring-0"
+      >
+        <DialogTitle className="sr-only">Configura tu perfil · Set up your profile</DialogTitle>
+        <DialogDescription className="sr-only">
+          Completa estos pasos obligatorios antes de usar Clara. · Complete these required steps before using Clara.
+        </DialogDescription>
+        <div className="hero-calm pointer-events-none absolute inset-0" aria-hidden />
+        <div className="flag-bar absolute inset-x-0 top-0 h-[3px]" aria-hidden />
 
       <div className="relative mx-auto flex min-h-full max-w-md flex-col px-6 pb-10 pt-8">
         {/* progress bar */}
@@ -250,13 +265,18 @@ export function OnboardingFlow() {
           <Card>
             <Eyebrow>Bienvenida · Welcome</Eyebrow>
             <H>¿Cómo te llamas?</H>
+            <label htmlFor="student-name" className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Tu nombre · Your name
+            </label>
             <input
+              id="student-name"
+              name="studentName"
+              autoComplete="name"
               value={name}
               onChange={(e) => setNameOverride(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && name.trim() && go("place")}
               placeholder="Tu nombre"
-              autoFocus
-              className="mt-6 w-full border-b border-border bg-transparent pb-2 font-display text-3xl font-medium outline-none placeholder:text-muted-foreground/30 focus:border-primary"
+              className="mt-2 w-full border-b border-border bg-transparent pb-2 font-display text-3xl font-medium outline-none placeholder:text-muted-foreground/30 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
             <Primary disabled={!name.trim()} onClick={() => go("place")}>Seguir</Primary>
           </Card>
@@ -363,7 +383,8 @@ export function OnboardingFlow() {
           />
         )}
       </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

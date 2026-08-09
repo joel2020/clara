@@ -1,8 +1,8 @@
 // The AI conversation partner. Mariana speaks a line (transcribed by
 // /api/transcribe), the client sends the running conversation here, and the
-// model replies AS Joel — in her scenario, in very simple A1–A2 English, with a
+// model replies AS Lumi — in her scenario, in very simple A1–A2 English, with a
 // Spanish translation, a gentle correction, and a couple of things she could
-// say next. The reply text is then spoken back in Joel's real voice via
+// say next. The reply text is then spoken back as Lumi via
 // /api/tts. The OpenAI key stays on the server.
 
 import type OpenAI from "openai";
@@ -10,7 +10,8 @@ import { getScenario } from "@/lib/content/scenarios";
 import { personalize } from "@/lib/personalize";
 import { getCallScenario } from "@/lib/content/call-scenarios";
 import { guardApi } from "@/lib/api-guard";
-import { requireUser } from "@/lib/auth-server";
+import { requireAllowedUserIdentity } from "@/lib/auth-server";
+import { enforcePaidApiQuota } from "@/lib/api-quota";
 import { getChatModel } from "@/lib/ai/chat-client";
 
 export const runtime = "nodejs";
@@ -24,7 +25,7 @@ interface Turn {
 interface ChatRequest {
   scenarioId?: string;
   /**
-   * "call" flips Joel from tutor to CUSTOMER for the call simulator: natural
+   * "call" flips Lumi from tutor to CUSTOMER for the call simulator: natural
    * speed, a real problem, mild impatience, and no coaching — a customer does not
    * correct your grammar, and pretending otherwise would teach the wrong reflexes.
    */
@@ -34,9 +35,9 @@ interface ChatRequest {
   studentName?: string | null;
   coachLanguage?: "es" | "en";
   history?: Turn[];
-  /** Her weakest SRS items — Joel weaves them naturally into the roleplay. */
+  /** Her weakest SRS items — Lumi weaves them naturally into the roleplay. */
   focusWords?: string[];
-  /** CEFR level from placement (A0..C2) — pitches Joel's difficulty. */
+  /** CEFR level from placement (A0..C2) — pitches Lumi's difficulty. */
   level?: string;
   /** Her stated goal (travel/social/work/moving/dating/fluency). */
   goal?: string;
@@ -54,7 +55,7 @@ interface ChatReply {
 const SCHEMA = {
   type: "object",
   properties: {
-    reply: { type: "string", description: "Joel's next line — very simple English, 1–2 short sentences, ending with a question." },
+    reply: { type: "string", description: "Lumi's next line — very simple English, 1–2 short sentences, ending with a question." },
     reply_es: { type: "string", description: "A natural Spanish translation of reply." },
     correction: {
       type: ["string", "null"],
@@ -81,7 +82,7 @@ const SCHEMA = {
   additionalProperties: false,
 } as const;
 
-// How Joel pitches the conversation for each CEFR level — vocabulary, sentence
+// How Lumi pitches the conversation for each CEFR level — vocabulary, sentence
 // length, pace, and how hard to push. This is what makes a beginner and a B1
 // learner get genuinely different conversations.
 const LEVEL_GUIDE: Record<string, string> = {
@@ -113,7 +114,7 @@ const GOAL_CONTEXT: Record<string, string> = {
  */
 function callSystemPrompt(persona: string, difficulty: string, name: string, coachLang: "es" | "en"): string {
   const coach = coachLang === "es" ? "Spanish" : "English";
-  return `You are a CUSTOMER calling a customer-support line. ${name} is the support agent who answered. Stay in character as the customer for the entire call.
+  return `You are Lumi, an AI practice guide role-playing a CUSTOMER calling a customer-support line. ${name} is the support agent who answered. Stay in character as the customer for the entire call.
 
 WHO YOU ARE: ${persona}
 
@@ -125,7 +126,7 @@ HOW YOU SPEAK:
 
 HARD RULES:
 - NEVER correct her English, never comment on her English, never praise it. You are a customer; you do not care.
-- Never break character, never mention that you are an AI or that this is practice.
+- Stay in character, but if asked directly, say that you are Lumi, an AI practice guide, and that this is practice.
 - Do not solve your own problem or coach her. If she does not ask for a detail, do not volunteer it.
 - If she asks you to verify something, give it — read digits one at a time, the way people actually do on the phone.
 - If she acknowledges your frustration and takes ownership, soften. If she reads a script at you or tells you to calm down, get more frustrated.
@@ -158,14 +159,14 @@ function systemPrompt(
           ", ",
         )}. If one happens to fit this exact moment, you may use it in your reply or offer it in "suggestions". The conversation always comes first: if none of them fit naturally right now, IGNORE them completely. Never bend the topic, invent an odd situation, or ask a strange question just to fit one in — a natural reply with none of these is always better than an unnatural reply with one. Never more than one per turn, and never mention that these are practice targets.`
     : "";
-  return `You are Joel, a warm, patient AMERICAN English conversation partner and tutor for ${name}, an adult learner from Colombia. ${levelGuide} ${goalContext} She is practicing speaking out loud.
+  return `You are Lumi, a warm, patient AI English practice guide for ${name}, an adult learner from Colombia. ${levelGuide} ${goalContext} She is practicing speaking out loud.
 
 You are role-playing: you are ${scenarioRole}. ${scenarioSetting}${focus}
 
 RULES:
 - Speak natural, everyday AMERICAN English. Use American vocabulary (apartment, elevator, sidewalk, check/bill, "to go", vacation, cell phone, awesome), American spelling (color, favorite, realize), and common American expressions and contractions ("gonna", "wanna", "I'm", "it's", "how's it going", "sounds good", "no worries", "you got it"). Do NOT use British words (flat, lift, pavement, holiday, mobile) or British spelling.
 - Match her level (above): pitch your vocabulary, sentence length, pace, and how hard you push to it. End with a question that keeps the conversation going. Simple does not mean stiff — sound like a friendly American, not a textbook.
-- Stay fully in the scenario and in character. Never break role or mention that you are an AI.
+- Stay fully in the scenario and in character. If she asks, be honest that you are an AI practice guide named Lumi, not a real person.
 - Be encouraging and natural, like a kind friend — never like a test.
 - Her speech is transcribed from audio, so it may have small errors. Read past obvious transcription slips; assume she is trying her best.
 - Gently correct at most ONE mistake per turn, and only when it matters for being understood or for sounding American. Prefer the natural American form (e.g. nudge "I am going to" → "I'm gonna", "How are you?" → "How's it going?") when it helps her sound native. Put the correction in the "correction" field written in ${coach}, not in your reply. Most turns should have no correction (null) — do not nitpick.
@@ -177,8 +178,10 @@ RULES:
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
-  if (unauth) return unauth;
+  const identity = await requireAllowedUserIdentity(request);
+  if ("response" in identity) return identity.response;
+  const quota = await enforcePaidApiQuota({ userId: identity.user.id, route: "chat" });
+  if (quota) return quota;
 
   // Azure deployment when configured, plain OpenAI otherwise.
   const brain = getChatModel();
@@ -214,7 +217,7 @@ export async function POST(request: Request): Promise<Response> {
   const level = typeof body.level === "string" ? body.level.slice(0, 3) : "A2";
   const goal = typeof body.goal === "string" ? body.goal.slice(0, 20) : "fluency";
 
-  // Build the message list: system prompt, then the scenario opener as Joel's
+  // Build the message list: system prompt, then the scenario opener as Lumi's
   // first turn (the client rendered it locally), then the running conversation.
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     {
@@ -254,7 +257,7 @@ export async function POST(request: Request): Promise<Response> {
       messages,
       response_format: {
         type: "json_schema",
-        json_schema: { name: "joel_reply", strict: true, schema: SCHEMA },
+        json_schema: { name: "lumi_reply", strict: true, schema: SCHEMA },
       },
     });
 

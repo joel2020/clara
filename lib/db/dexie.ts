@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type { DailySession } from "../daily-session";
-import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "./types";
+import type { AnalyticsEvent, Attempt, CallScore, ConvItem, DailyQuestState, ExamAttempt, ExamCheckpoint, ItemProgress, Lesson, PhraseRecording, PlayerStats, Settings, TalkSession, VirtualCallRecord } from "./types";
 import type { OutboxRow } from "./types";
 
 /**
@@ -33,6 +33,7 @@ export class ClaraDB extends Dexie {
   outbox!: Table<OutboxRow, number>;
   dailySessions!: Table<DailySession, string>;
   virtualCalls!: Table<VirtualCallRecord, number>;
+  examCheckpoints!: Table<ExamCheckpoint, string>;
 
   constructor(name = "clara") {
     super(name);
@@ -100,6 +101,37 @@ export class ClaraDB extends Dexie {
     this.version(11).stores({
       virtualCalls: "++id, at, scenarioId",
     });
+    // v12 indexes bounded pronunciation evidence for weak-sound review. There
+    // is deliberately no upgrade callback: legacy rows stay byte-for-byte
+    // intact and simply read with the new optional fields absent.
+    this.version(12).stores({
+      attempts: "++id, &clientAttemptId, itemId, lessonId, categoryId, phoneme, at, passed, weakestPhoneme, pronunciationOutcome",
+    });
+    // v13 adds one account-local, resumable stage-exam checkpoint.
+    this.version(13).stores({
+      examCheckpoints: "id, day, sourceLevel, candidateLevel, contentHash",
+    });
+    // v14 persists the two monotonic Closet unlock fields on legacy player
+    // rows. No index changes are needed because there is still one player row.
+    this.version(14).stores({
+      player: "id",
+    }).upgrade(async (transaction) => {
+      const table = transaction.table<PlayerStats, string>("player");
+      const player = await table.get("player");
+      if (!player) return;
+      await table.put({
+        ...player,
+        completedDailySessions:
+          Number.isSafeInteger(player.completedDailySessions) && player.completedDailySessions >= 0
+            ? player.completedDailySessions
+            : 0,
+        unlockedMilestones: Array.isArray(player.unlockedMilestones)
+          ? [...new Set(player.unlockedMilestones.filter(
+              (id): id is string => typeof id === "string" && /^[a-z0-9][a-z0-9:._/-]{0,127}$/i.test(id),
+            ))].sort().slice(0, 64)
+          : [],
+      });
+    });
   }
 }
 
@@ -133,11 +165,40 @@ function isClaimableDailySession(value: unknown): value is DailySession {
 }
 
 // Guard against multiple instances during Next.js hot-reload.
-const globalForDb = globalThis as unknown as { __claraDb?: ClaraDB; __claraDbAccount?: string | null };
+const globalForDb = globalThis as unknown as {
+  __claraDb?: ClaraDB;
+  __claraDbAccount?: string | null;
+  __claraDbGeneration?: number;
+};
 
 if (typeof window !== "undefined" && !globalForDb.__claraDb) {
   globalForDb.__claraDb = new ClaraDB(dbNameFor(null));
   globalForDb.__claraDbAccount = null;
+  globalForDb.__claraDbGeneration = 1;
+}
+
+export interface DbBinding {
+  database: ClaraDB;
+  accountId: string | null;
+  generation: number;
+}
+
+/** Capture the concrete database behind the proxy for work spanning awaits. */
+export function captureDbBinding(): DbBinding | null {
+  const database = globalForDb.__claraDb;
+  if (!database) return null;
+  return {
+    database,
+    accountId: globalForDb.__claraDbAccount ?? null,
+    generation: globalForDb.__claraDbGeneration ?? 0,
+  };
+}
+
+/** True only while the exact database/account generation is still active. */
+export function isDbBindingCurrent(binding: DbBinding): boolean {
+  return globalForDb.__claraDb === binding.database
+    && (globalForDb.__claraDbAccount ?? null) === binding.accountId
+    && (globalForDb.__claraDbGeneration ?? 0) === binding.generation;
 }
 
 /**
@@ -170,7 +231,7 @@ export function boundAccountId(): string | null {
 const LEGACY_TABLES = [
   "attempts", "progress", "customLessons", "settings", "player", "convItems",
   "quests", "recordings", "events", "examAttempts", "callScores", "talkSessions",
-  "outbox", "dailySessions", "virtualCalls",
+  "outbox", "dailySessions", "virtualCalls", "examCheckpoints",
 ] as const;
 
 /** An account database with no settings row and no history is considered new. */
@@ -212,6 +273,7 @@ async function claimLegacyInto(target: ClaraDB, accountId: string): Promise<void
         // payload. Re-attribute both or it can never pass the new account's RLS.
         const claimable = (rows as OutboxRow[]).flatMap((row) => {
           const { id: _id, ...withoutId } = row;
+          void _id;
           if (row.kind !== "daily-session") return [withoutId];
           if (!isClaimableDailySession(row.payload)) return [];
           const session = row.payload;
@@ -228,7 +290,11 @@ async function claimLegacyInto(target: ClaraDB, accountId: string): Promise<void
         if (claimable.length) await target.outbox.bulkAdd(claimable);
       } else if (name === "attempts" || name === "events" || name === "examAttempts" || name === "callScores" || name === "talkSessions" || name === "virtualCalls") {
         // Auto-increment keys: strip ids so the target assigns fresh ones.
-        await target.table(name).bulkAdd(rows.map((r) => { const { id: _id, ...rest } = r as { id?: number }; return rest; }));
+        await target.table(name).bulkAdd(rows.map((r) => {
+          const { id: _id, ...rest } = r as { id?: number };
+          void _id;
+          return rest;
+        }));
       } else {
         await target.table(name).bulkPut(rows);
       }
@@ -271,6 +337,7 @@ export async function bindLocalDb(accountId: string | null): Promise<void> {
   const prev = globalForDb.__claraDb;
   globalForDb.__claraDb = next;
   globalForDb.__claraDbAccount = id;
+  globalForDb.__claraDbGeneration = (globalForDb.__claraDbGeneration ?? 0) + 1;
   // Close after the swap so nothing new lands in the old handle; in-flight
   // live queries on the old instance error and re-subscribe on remount.
   if (prev && prev.name !== name) prev.close();

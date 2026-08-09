@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { SettingsProvider } from "@/lib/hooks/useSettings";
@@ -63,11 +64,15 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Per-request CSP nonces do not exist during static generation. Waiting for
+  // an incoming request keeps HTML dynamic while public assets remain static.
+  await connection();
+
   return (
     // Always the light editorial canvas — the game's warmth reads best on white,
     // so the OS dark preference is intentionally ignored.

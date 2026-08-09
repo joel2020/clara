@@ -2,7 +2,7 @@
 
 import { Check, Mic, Square, Volume2, X } from "lucide-react";
 import { t, type CoachLang } from "@/lib/i18n";
-import type { RetryOutcome, TurnCorrection } from "@/lib/virtual-call/session";
+import { retryReferenceSentence, type RetryOutcome, type TurnCorrection } from "@/lib/virtual-call/session";
 import { cn } from "@/lib/utils";
 
 // The retry prompt — practice mode's whole point.
@@ -28,15 +28,16 @@ export function RetryPrompt({
   disabled: boolean;
   onRecord: () => void;
   onStop: () => void;
-  onListen: () => void;
+  onListen: (rate: 0.65 | 1) => void;
 }) {
+  const referenceSentence = retryReferenceSentence(correction);
   return (
     <div className="rounded-2xl border border-warn/55 bg-warn/[0.08] p-3.5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         {t("vcallRetryTitle", lang)}
       </p>
       <p lang="en" className="mt-1.5 break-words font-display text-lg font-medium leading-snug">
-        {correction.corrected}
+        {referenceSentence}
       </p>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{t("vcallRetryHelp", lang)}</p>
 
@@ -55,11 +56,19 @@ export function RetryPrompt({
         </button>
         <button
           type="button"
-          onClick={onListen}
+          onClick={() => onListen(0.65)}
           className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-hairline px-4 py-2.5 text-sm font-medium transition-colors hover:border-primary/40"
         >
           <Volume2 className="size-4" aria-hidden />
-          {t("vcallReplay", lang)}
+          {t("vcallReplaySlow", lang)}
+        </button>
+        <button
+          type="button"
+          onClick={() => onListen(1)}
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-hairline px-4 py-2.5 text-sm font-medium transition-colors hover:border-primary/40 motion-reduce:transition-none"
+        >
+          <Volume2 className="size-4" aria-hidden />
+          {t("vcallReplayNormal", lang)}
         </button>
       </div>
     </div>
@@ -68,23 +77,35 @@ export function RetryPrompt({
 
 /** Accepted or not — stated after the single attempt, never left ambiguous. */
 export function RetryOutcomeNote({ outcome, lang }: { outcome: RetryOutcome; lang: CoachLang }) {
+  const transcriptUnavailable = outcome.transcriptStatus === "unavailable";
   const accepted = outcome.accepted;
+  const acousticallyMastered = outcome.pronunciationOutcome === "mastered";
+  const positive = outcome.pronunciationOutcome ? acousticallyMastered : accepted;
+  const pronunciationKey = outcome.pronunciationOutcome === "mastered" ? "vcallRetryPronMastered"
+    : outcome.pronunciationOutcome === "retry" ? "vcallRetryPronPracticed"
+      : outcome.pronunciationOutcome === "diagnostic" ? "vcallRetryPronDiagnostic"
+        : outcome.pronunciationOutcome === "technical-skip" || transcriptUnavailable ? "vcallRetryPronUnavailable" : null;
   return (
     <div
       role="status"
       aria-live="polite"
       className={cn(
         "rounded-2xl border px-3.5 py-3 text-sm",
-        accepted ? "border-success/50 bg-success/[0.08]" : "border-hairline bg-secondary",
+        positive ? "border-success/50 bg-success/[0.08]" : "border-hairline bg-secondary",
       )}
     >
-      <p className={cn("flex items-center gap-2 font-medium", accepted ? "text-success" : "text-foreground")}>
-        {accepted ? <Check className="size-4 shrink-0" aria-hidden /> : <X className="size-4 shrink-0" aria-hidden />}
-        {t(accepted ? "vcallRetryAccepted" : "vcallRetryMissed", lang)}
-      </p>
-      <p className="mt-1 break-words text-muted-foreground">
-        {t("vcallRetryHeard", lang)}: <span lang="en">{outcome.transcript}</span>
-      </p>
+      {!transcriptUnavailable && (
+        <p className={cn("flex items-center gap-2 font-medium", positive ? "text-success" : "text-foreground")}>
+          {accepted ? <Check className="size-4 shrink-0" aria-hidden /> : <X className="size-4 shrink-0" aria-hidden />}
+          {t(accepted ? "vcallRetryAccepted" : "vcallRetryMissed", lang)}
+        </p>
+      )}
+      {pronunciationKey && <p className="mt-1 font-medium text-foreground">{t(pronunciationKey, lang)}</p>}
+      {!transcriptUnavailable && (
+        <p className="mt-1 break-words text-muted-foreground">
+          {t("vcallRetryHeard", lang)}: <span lang="en">{outcome.transcript}</span>
+        </p>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 // The Conversación en vivo (live conversation) scenarios. Each one is a small
-// roleplay where Joel plays a role and the learner talks back — the same six
+// roleplay where Lumi plays a role and the learner talks back — the same six
 // situations as the Conversación drill track, but now open-ended and spoken.
 // The drills build the chunks; this is where she uses them for real.
 
@@ -10,12 +10,12 @@ export interface Scenario {
   title: { es: string; en: string };
   /** One-line setting shown under the title. */
   blurb: { es: string; en: string };
-  /** The role Joel plays — feeds the system prompt so he stays in character.
+  /** The role Lumi plays — feeds the system prompt so she stays in character.
    *  May contain {name}; resolve with lib/personalize before use. */
   role: string;
   /** The situation, described to the model in plain English. */
   setting: string;
-  /** Joel's opening line and its Spanish translation. */
+  /** Lumi's opening line and its Spanish translation. */
   opener: { en: string; es: string };
   /** A few things she could say to get started (English). */
   starters: string[];
@@ -30,7 +30,7 @@ export const SCENARIOS: Scenario[] = [
     role: "a friendly new coworker meeting {name} for the first time",
     setting:
       "You just met {name} at work. Make small introductions — names, where she is from, what she does — the way two friendly coworkers meet on a first day.",
-    opener: { en: "Hi! I'm Joel. Nice to meet you. What's your name?", es: "¡Hola! Soy Joel. Mucho gusto. ¿Cómo te llamas?" },
+    opener: { en: "Hi! I'm Lumi. Nice to meet you. What's your name?", es: "¡Hola! Soy Lumi. Mucho gusto. ¿Cómo te llamas?" },
     starters: ["Hi, I'm {name}.", "Nice to meet you too.", "I'm from Colombia."],
   },
   {

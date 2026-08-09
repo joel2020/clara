@@ -13,7 +13,7 @@ import { VoiceSettings } from "@/components/instructor/voice-settings";
 
 export default function InstructorPage() {
   const { settings, update } = useSettings();
-  const { required, user } = useAuth();
+  const { required } = useAuth();
   const { admin } = useAccess();
 
   // Admin-only when a real auth backend exists (the DB policy enforces the same

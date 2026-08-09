@@ -9,10 +9,11 @@
 //
 // Cost controls live here rather than in the client, because a client-side cap
 // is a suggestion: utterance and history are truncated, history is windowed,
-// and guardApi applies per-IP flood limits on top of the provider spend caps.
+// durable authenticated quotas and provider spend caps limit paid usage.
 
 import { guardApi } from "@/lib/api-guard";
-import { requireUser } from "@/lib/auth-server";
+import { requireAllowedUserIdentity } from "@/lib/auth-server";
+import { enforcePaidApiQuota } from "@/lib/api-quota";
 import { getChatModel } from "@/lib/ai/chat-client";
 import { getVirtualCallScenario } from "@/lib/content/virtual-call-scenarios";
 import { ModelCallBrain } from "@/lib/virtual-call/brain";
@@ -50,8 +51,10 @@ function pickBrain(): CallBrain | null {
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
-  if (unauth) return unauth;
+  const identity = await requireAllowedUserIdentity(request);
+  if ("response" in identity) return identity.response;
+  const quota = await enforcePaidApiQuota({ userId: identity.user.id, route: "virtual-call-turn" });
+  if (quota) return quota;
 
   const raw = await request.text();
   if (Buffer.byteLength(raw) > MAX_BODY_BYTES) {

@@ -1,12 +1,14 @@
 "use client";
 
 import { Suspense, use } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { PracticeSession } from "@/components/practice/practice-session";
 import { useSessionReturn } from "@/components/daily-session/use-session-return";
 import { SceneVideo } from "@/components/scene-video";
 import { useLesson } from "@/lib/hooks/useLessons";
 import { Splash } from "@/components/splash";
+import { resolveLessonFocus } from "@/lib/lesson-focus";
 
 // A dim cinematic backdrop for the real-world conversation units, so a lesson
 // about the cafe/airport/work feels like you're there. Sound & phonics lessons
@@ -41,6 +43,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
 function LessonContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const lesson = useLesson(id);
+  const searchParams = useSearchParams();
   const { exitHref, completedHref } = useSessionReturn();
 
   if (!lesson) {
@@ -59,6 +62,7 @@ function LessonContent({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const scene = SCENE_FOR_LESSON[lesson.id];
+  const focusItemId = resolveLessonFocus(lesson, searchParams.get("focus"))?.item.id;
   return (
     <>
       {scene && (
@@ -71,6 +75,7 @@ function LessonContent({ params }: { params: Promise<{ id: string }> }) {
         lesson={lesson}
         exitHref={exitHref ?? "/"}
         completionHref={completedHref}
+        focusItemId={focusItemId}
       />
     </>
   );

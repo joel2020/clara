@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Gift, Check, Lock, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { ArrowLeft, ArrowRight, Check, Lock, Sparkles, Star } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { SectionHeader } from "@/components/ui/section-header";
+import { CharacterPreview } from "@/components/character";
+import { Splash } from "@/components/splash";
 import {
   Dialog,
   DialogContent,
@@ -14,368 +14,295 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { juice } from "@/components/juice";
+import {
+  LUMI_CITY_REMIX,
+  buyCosmetic,
+  equipCosmetic,
+  type Cosmetic,
+} from "@/lib/cosmetics";
+import { popConfetti } from "@/lib/fx";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { t } from "@/lib/i18n";
 import { sfx } from "@/lib/sfx";
-import { popConfetti } from "@/lib/fx";
-import { juice } from "@/components/juice";
-import { CharacterPreview } from "@/components/character";
-import { AvatarPreview } from "@/components/avatar/avatar-preview";
-import { SceneArt } from "@/components/scene-art";
-import { SceneVideo } from "@/components/scene-video";
-import { Splash } from "@/components/splash";
 import {
-  cosmeticsByType,
-  buyCosmetic,
-  equipCosmetic,
-  openChest,
-  chestAvailable,
-  chestReward,
-  chestIsJackpot,
-  type Cosmetic,
-} from "@/lib/cosmetics";
-import { STORE_CATEGORIES, DEFAULT_FOR_SLOT, itemState, quotePurchase, slotFor } from "@/lib/store";
-import {
-  avatarCapSrc,
-  avatarFigureSrc,
-  loadoutFor,
-  type AvatarBase,
-  type AvatarLoadout,
-} from "@/lib/avatar";
+  DEFAULT_FOR_SLOT,
+  closetEligibility,
+  quoteClosetAction,
+} from "@/lib/store";
+import { cn } from "@/lib/utils";
 
-// The store: where speaking-earned stars become Lumi's world. All spending
-// still flows through the one authoritative path (buyCosmetic → repo →
-// cloud mirror); this page derives every card from the pure state layer and
-// never spends without an explicit confirmation.
+function requirement(cosmetic: Cosmetic, player: NonNullable<ReturnType<typeof usePlayer>>, lang: "es" | "en") {
+  const rule = cosmetic.unlockRule;
+  if (!rule || rule.type === "none") return `${cosmetic.cost} ★`;
+  if (rule.type === "level") {
+    return lang === "es" ? `Nivel ${rule.level} + ${cosmetic.cost} ★` : `Level ${rule.level} + ${cosmetic.cost} ★`;
+  }
+  if (rule.type === "completed-daily-sessions") {
+    const progress = Math.min(player.completedDailySessions, rule.count);
+    return lang === "es"
+      ? `${progress}/${rule.count} sesiones diarias`
+      : `${progress}/${rule.count} daily sessions`;
+  }
+  return player.unlockedMilestones.includes(rule.id)
+    ? (lang === "es" ? "Llamada aprobada" : "Call passed")
+    : (lang === "es" ? "Aprueba tu primera llamada" : "Pass your first call");
+}
 
 export default function ShopPage() {
   const player = usePlayer();
   const { settings } = useSettings();
   const lang = settings.coachLanguage;
-  const [chestMsg, setChestMsg] = useState<number | null>(null);
-  /** The item awaiting purchase confirmation (or insufficient-balance info). */
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<Cosmetic | null>(null);
   const [busy, setBusy] = useState(false);
 
   if (!player) return <Splash />;
 
-  const onTap = async (c: Cosmetic) => {
-    const s = itemState(c, player);
-    if (s.status === "equipped" || s.status === "locked") return;
-    if (s.status === "owned") {
-      sfx.tap();
-      await equipCosmetic(c.id);
-      return;
-    }
-    // Available: never spend on a bare tap — quote it and ask.
+  const selected = LUMI_CITY_REMIX.find(
+    (item) => item.id === (selectedId ?? player.equippedOutfit),
+  ) ?? LUMI_CITY_REMIX[0];
+  const selectedQuote = quoteClosetAction({
+    cosmetic: selected,
+    stats: player,
+    eligibility: closetEligibility(player),
+  });
+  const previewCosmetic = selected;
+  const previewOutfit = previewCosmetic.outfit;
+  const selectedOwned = player.ownedCosmetics.includes(selected.id);
+  const selectedEquipped = player.equippedOutfit === selected.id;
+  const purchaseQuote = confirming
+    ? quoteClosetAction({ cosmetic: confirming, stats: player, eligibility: closetEligibility(player) })
+    : null;
+
+  const celebrate = () => {
+    sfx.correct(0);
+    popConfetti();
+    juice.centerBurst();
+    juice.sweep();
+  };
+
+  const wearSelected = async () => {
+    if (busy || selectedQuote.status !== "equip") return;
+    setBusy(true);
+    await equipCosmetic(selected.id);
+    setBusy(false);
     sfx.tap();
-    setConfirming(c);
+    if (!selectedOwned) celebrate();
   };
 
   const confirmBuy = async () => {
     if (!confirming || busy) return;
     setBusy(true);
-    const res = await buyCosmetic(confirming.id);
+    const result = await buyCosmetic(confirming.id);
     setBusy(false);
+    if (!result.ok) {
+      if (result.reason === "insufficient") toast.error(t("shopInsufficient", lang));
+      return;
+    }
     setConfirming(null);
-    if (res.ok) {
-      sfx.correct(0);
-      popConfetti();
-      juice.centerBurst();
-      juice.sweep();
-      toast.success(t("shopPurchased", lang));
-    } else if (res.reason === "insufficient") {
-      // The balance changed between quote and confirm (another device, a sync).
-      sfx.wrong();
-      toast.error(`${t("shopInsufficient", lang)} ${quotePurchase(confirming, player).shortfall} ★`);
-    }
-  };
-
-  const claimChest = async () => {
-    const jackpot = chestIsJackpot(player);
-    const reward = await openChest();
-    if (reward > 0) {
-      sfx.correct(3);
-      popConfetti();
-      juice.centerBurst(`+${reward} ★`);
-      juice.sweep();
-      if (jackpot) {
-        sfx.finish();
-        setTimeout(() => juice.sweep(), 250);
-      }
-      setChestMsg(reward);
-    }
-  };
-
-  const canChest = chestAvailable(player);
-  const quote = confirming ? quotePurchase(confirming, player) : null;
-  // Selecting an available item is a non-destructive try-on. The confirmation
-  // dialog and the stage show the same candidate before any stars are spent.
-  const previewCosmetic = confirming;
-  const previewOutfit =
-    previewCosmetic?.type === "outfit" ? previewCosmetic.outfit : undefined;
-  const previewBg =
-    previewCosmetic?.type === "background" ? previewCosmetic.id : player.equippedBg;
-  const previewAccessory =
-    previewCosmetic?.type === "accessory" ? previewCosmetic.id : player.equippedAccessory;
-  const previewEffect =
-    previewCosmetic?.type === "effect" ? previewCosmetic.id : player.equippedEffect;
-  const previewPet =
-    previewCosmetic?.type === "pet" ? previewCosmetic.id : player.equippedPet;
-  // The learner's own avatar reads from the same try-on: her equipped loadout
-  // with the candidate swapped into whichever slot it belongs to.
-  const equippedLoadout = loadoutFor(player);
-  const previewLoadout: AvatarLoadout = {
-    ...equippedLoadout,
-    outfit: previewCosmetic?.type === "avatar-outfit" ? previewCosmetic.id : equippedLoadout.outfit,
-    cap: previewCosmetic?.type === "cap" ? previewCosmetic.id : equippedLoadout.cap,
-    pet: previewPet,
+    celebrate();
+    toast.success(t("shopPurchased", lang));
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-5 pb-28 pt-6 sm:px-6">
-      {/* Title + balance: one heading, one number that matters here. */}
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="type-label">{t("navTienda", lang)}</p>
-          <h1 className="type-display mt-2" style={{ fontSize: "clamp(1.75rem, 6vw, 2.25rem)" }}>
-            {t("shopTitle", lang)}
-          </h1>
-        </div>
+    <div className="mx-auto max-w-5xl px-4 pb-28 pt-5 sm:px-6 sm:pt-8">
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href="/profile"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          {lang === "es" ? "Volver a Yo" : "Back to Me"}
+        </Link>
         <span
-          className="star-chip inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-bold shadow-sm"
+          className="star-chip inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-sm font-bold shadow-sm"
           aria-label={`${t("shopBalanceLabel", lang)}: ${player.stars}`}
         >
-          <Star className="size-4" style={{ fill: "currentColor" }} strokeWidth={0} aria-hidden />
+          <Star className="size-4" fill="currentColor" strokeWidth={0} aria-hidden />
           {player.stars}
         </span>
       </div>
-      <p className="type-support mt-2 max-w-md">{t("shopIntro", lang)}</p>
-      {/* The standing promise of this page. */}
-      <p className="mt-2 text-xs font-semibold text-muted-foreground">{t("shopNoRealMoney", lang)}</p>
 
-      {/* Live previews. The point of the store: she's dressing HER avatar and
-          HER Lumi, and every equip (or try-on tap) updates both instantly. */}
-      <div className="mt-6 grid gap-4 min-[420px]:grid-cols-2">
-        <AvatarPreview
-          loadout={previewLoadout}
-          label={t("shopYourAvatar", lang)}
-          alt={t("shopYourAvatarAlt", lang)}
-        />
-        <CharacterPreview
-          bgId={previewBg}
-          accessoryId={previewAccessory}
-          effectId={previewEffect}
-          petId={previewPet}
-          outfit={previewOutfit}
-          label={t("shopPreviewTitle", lang)}
-        />
-      </div>
+      <header className="mt-5 max-w-2xl">
+        <p className="type-label">Lumi City Remix</p>
+        <h1 className="type-display mt-2 text-balance" style={{ fontSize: "clamp(2rem, 7vw, 3.5rem)" }}>
+          {lang === "es" ? "El clóset de Lumi" : "Lumi’s Closet"}
+        </h1>
+        <p className="type-support mt-3 max-w-xl">
+          {lang === "es"
+            ? "Prueba un look, mira a Lumi en el escenario y desbloquéalo practicando."
+            : "Try a look, see Lumi on stage, and unlock it through practice."}
+        </p>
+        <p className="mt-2 text-xs font-bold text-muted-foreground">{t("shopNoRealMoney", lang)}</p>
+      </header>
 
-      {/* Daily chest. */}
-      <div className="mt-4 flex flex-col justify-center rounded-3xl border border-hairline bg-card p-6 text-center">
-        <span
-          className="mx-auto grid size-14 place-items-center rounded-full"
-          style={{ background: "var(--surface-wash)" }}
-          aria-hidden
-        >
-          <Gift className={cn("size-6 text-primary", canChest && "animate-pop-in")} strokeWidth={1.75} />
-        </span>
-        <p className="type-heading mt-3">{t("chestTitle", lang)}</p>
-        {chestMsg !== null ? (
-          <p className="mt-1 text-sm font-medium text-success">
-            {t("chestGot", lang)} {chestMsg} ★
-          </p>
-        ) : canChest ? (
-          <button
-            type="button"
-            onClick={claimChest}
-            className="star-chip mx-auto mt-3 inline-flex h-11 items-center gap-1.5 rounded-full px-5 text-sm font-bold shadow-sm transition-transform active:scale-95"
-          >
-            <Gift className="size-4" aria-hidden />
-            {t("chestOpen", lang)} · +{chestReward(player)} ★
-          </button>
-        ) : (
-          <p className="type-support mt-1">{t("chestBack", lang)}</p>
-        )}
-      </div>
-
-      {/* Category navigation: sticky chips, anchor per section. */}
-      <nav
-        aria-label={t("navTienda", lang)}
-        className="sticky top-16 z-30 -mx-5 mt-8 border-b border-hairline bg-background/92 px-5 py-2 backdrop-blur sm:-mx-6 sm:px-6"
-      >
-        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
-          {STORE_CATEGORIES.map((cat) => (
-            <a
-              key={cat.type}
-              href={`#store-${cat.type}`}
-              className="shrink-0 rounded-full border border-hairline bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-foreground/30"
-            >
-              {cat.label[lang]}
-            </a>
-          ))}
-        </div>
-      </nav>
-
-      {/* One section per category. */}
-      {STORE_CATEGORIES.map((cat) => {
-        const equippedId = player[slotFor(cat.type)] ?? DEFAULT_FOR_SLOT[cat.type];
-        const canRestore = equippedId !== DEFAULT_FOR_SLOT[cat.type];
-        return (
-          <section key={cat.type} id={`store-${cat.type}`} className="mt-10 scroll-mt-28">
-            <div className="flex items-center justify-between gap-3">
-              <SectionHeader bordered label={cat.label[lang]} className="flex-1" />
-              {canRestore && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfx.tap();
-                    void equipCosmetic(DEFAULT_FOR_SLOT[cat.type]);
-                  }}
-                  className="shrink-0 text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-                >
-                  {/* Outfit/background reset to a real look; the rest reset to "none". */}
-                  {cat.type === "outfit" || cat.type === "background"
-                    ? t("shopRestoreDefault", lang)
-                    : t("shopRemove", lang)}
-                </button>
-              )}
+      <section className="mt-7 grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(19rem,.9fr)]">
+        <div className="rounded-[2rem] border border-hairline bg-card p-3 shadow-sm sm:p-5">
+          <CharacterPreview
+            bgId={player.equippedBg}
+            accessoryId={player.equippedAccessory}
+            effectId={player.equippedEffect}
+            outfit={previewOutfit}
+            label={selected.name[lang]}
+            className="[&>div:last-child]:h-[20rem] sm:[&>div:last-child]:h-[31rem]"
+          />
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1 pb-1">
+            <div>
+              <p className="type-heading">{selected.name[lang]}</p>
+              <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                {requirement(selected, player, lang)}
+              </p>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {cosmeticsByType(cat.type).map((c) => {
-                const s = itemState(c, player);
-                return (
+            {selectedEquipped ? (
+              <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary/10 px-5 text-sm font-bold text-primary">
+                <Check className="size-4" aria-hidden />
+                {lang === "es" ? "Puesto" : "Wearing"}
+              </span>
+            ) : selectedQuote.status === "locked" ? (
+              <button
+                type="button"
+                disabled
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-muted px-5 text-sm font-bold text-muted-foreground"
+              >
+                <Lock className="size-4" aria-hidden />
+                {lang === "es" ? "Todavía bloqueado" : "Still locked"}
+              </button>
+            ) : selectedQuote.status === "equip" ? (
+              <button
+                type="button"
+                onClick={wearSelected}
+                disabled={busy}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+              >
+                <Sparkles className="size-4" aria-hidden />
+                {selectedOwned
+                  ? (lang === "es" ? "Usar este look" : "Wear this look")
+                  : (lang === "es" ? "Desbloquear y usar" : "Unlock & wear")}
+              </button>
+            ) : selectedQuote.balanceAfter !== undefined ? (
+              <button
+                type="button"
+                onClick={() => setConfirming(selected)}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {lang === "es" ? "Conseguir" : "Get the look"} · {selected.cost} ★
+              </button>
+            ) : (
+              <Link
+                href="/today"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {t("shopGoPractice", lang)} <ArrowRight className="size-4" aria-hidden />
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="type-label">Drop 01</p>
+              <h2 className="type-heading mt-1">City Remix</h2>
+            </div>
+            {player.equippedOutfit !== DEFAULT_FOR_SLOT.outfit && (
+              <button
+                type="button"
+                onClick={() => void equipCosmetic(DEFAULT_FOR_SLOT.outfit)}
+                className="min-h-11 rounded-full px-3 text-xs font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {t("shopRestoreDefault", lang)}
+              </button>
+            )}
+          </div>
+
+          <ul className="mt-4 grid grid-cols-2 gap-3" aria-label="City Remix">
+            {LUMI_CITY_REMIX.map((cosmetic) => {
+              const quote = quoteClosetAction({ cosmetic, stats: player, eligibility: closetEligibility(player) });
+              const chosen = cosmetic.id === selected.id;
+              const equipped = cosmetic.id === player.equippedOutfit;
+              const owned = player.ownedCosmetics.includes(cosmetic.id);
+              return (
+                <li key={cosmetic.id}>
                   <button
-                    key={c.id}
                     type="button"
-                    onClick={() => onTap(c)}
-                    disabled={s.status === "equipped" || s.status === "locked"}
-                    aria-label={`${c.name[lang]} — ${
-                      s.status === "equipped"
-                        ? t("shopEquipped", lang)
-                        : s.status === "owned"
-                          ? t("shopEquip", lang)
-                          : s.status === "locked" && s.lockedReason?.type === "level"
-                            ? `${t("shopLockedLevel", lang)} ${s.lockedReason.level}`
-                            : `${c.cost} ★`
-                    }`}
+                    aria-pressed={chosen}
+                    onClick={() => {
+                      sfx.tap();
+                      setSelectedId(cosmetic.id);
+                    }}
                     className={cn(
-                      "group relative flex flex-col rounded-2xl p-2.5 text-left transition-all active:scale-[0.98]",
-                      c.rarity === "legendary"
-                        ? "rim-legendary"
-                        : cn(
-                            "border",
-                            s.status === "equipped"
-                              ? "border-primary bg-primary/[0.06]"
-                              : "border-hairline hover:border-primary/40",
-                          ),
-                      c.rarity === "legendary" && s.status === "equipped" && "ring-2 ring-primary",
-                      s.status === "available" && !s.affordable && "opacity-60",
-                      s.status === "locked" && "opacity-50",
+                      "relative min-h-44 w-full rounded-3xl border bg-card p-3 text-left transition-all hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                      chosen ? "border-primary shadow-md ring-2 ring-primary/20" : "border-hairline hover:border-primary/40",
                     )}
                   >
-                    <div className="relative">
-                      <Swatch cosmetic={c} base={equippedLoadout.base} />
-                      {c.rarity === "legendary" && (
-                        <span className="star-chip absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide shadow-sm">
-                          <Sparkles className="size-2.5" aria-hidden />
-                          {t("rarityLegendary", lang)}
-                        </span>
-                      )}
+                    <div className="shop-pedestal grid h-24 place-items-center overflow-hidden rounded-2xl" aria-hidden>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`${cosmetic.outfit}.png`}
+                        alt=""
+                        className="shop-figure h-24 w-auto object-contain drop-shadow-[0_8px_10px_rgba(0,0,0,0.2)]"
+                      />
                     </div>
-                    <span className="mt-2 truncate text-sm font-medium">{c.name[lang]}</span>
-                    <span className="mt-1">
-                      {s.status === "equipped" ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
-                          <Check className="size-3.5" aria-hidden /> {t("shopEquipped", lang)}
-                        </span>
-                      ) : s.status === "owned" ? (
-                        <span className="text-xs font-medium text-muted-foreground">{t("shopEquip", lang)}</span>
-                      ) : s.status === "locked" ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                          <Lock className="size-3" aria-hidden />
-                          {s.lockedReason?.type === "level"
-                            ? `${t("shopLockedLevel", lang)} ${s.lockedReason.level}`
-                            : "—"}
-                        </span>
-                      ) : (
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 text-xs font-bold",
-                            s.affordable ? "text-foreground" : "text-muted-foreground",
-                          )}
-                        >
-                          <Star className="size-3" style={{ fill: "currentColor" }} strokeWidth={0} aria-hidden />
-                          {c.cost}
-                        </span>
-                      )}
-                    </span>
+                    <p className="mt-2 truncate text-sm font-bold">{cosmetic.name[lang]}</p>
+                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-muted-foreground">
+                      {equipped
+                        ? (lang === "es" ? "Puesto" : "Wearing")
+                        : owned
+                          ? (lang === "es" ? "Tuyo" : "Owned")
+                          : quote.status === "locked"
+                            ? requirement(cosmetic, player, lang)
+                            : cosmetic.cost > 0
+                              ? `${cosmetic.cost} ★`
+                              : (lang === "es" ? "Se gana practicando" : "Earn through practice")}
+                    </p>
+                    {equipped && (
+                      <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-primary text-primary-foreground" aria-label={lang === "es" ? "Puesto" : "Wearing"}>
+                        <Check className="size-4" aria-hidden />
+                      </span>
+                    )}
+                    {quote.status === "locked" && (
+                      <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-background/90 text-muted-foreground" aria-hidden>
+                        <Lock className="size-3.5" />
+                      </span>
+                    )}
                   </button>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
 
-      {/* Purchase confirmation — nothing is spent on a bare tap. */}
-      <Dialog open={!!confirming} onOpenChange={(open) => !open && setConfirming(null)}>
+      <Dialog open={Boolean(confirming)} onOpenChange={(open) => !open && setConfirming(null)}>
         <DialogContent className="max-w-sm">
-          {confirming && quote && (
+          {confirming && purchaseQuote && (
             <>
               <DialogHeader>
-                <DialogTitle className="font-display">
-                  {quote.sufficient
-                    ? `${t("shopConfirmTitle", lang)} ${confirming.name[lang]}?`
-                    : confirming.name[lang]}
-                </DialogTitle>
+                <DialogTitle>{t("shopConfirmTitle", lang)} {confirming.name[lang]}?</DialogTitle>
                 <DialogDescription>
-                  {quote.sufficient ? (
-                    <>
-                      <span className="inline-flex items-center gap-1 font-semibold text-foreground">
-                        <Star className="size-3.5" style={{ fill: "currentColor" }} strokeWidth={0} aria-hidden />
-                        {quote.cost}
-                      </span>{" "}
-                      · {t("shopConfirmAfter", lang)}{" "}
-                      <span className="font-semibold text-foreground">{quote.after} ★</span>
-                    </>
-                  ) : (
-                    <>
-                      {t("shopInsufficient", lang)}{" "}
-                      <span className="font-semibold text-foreground">{quote.shortfall} ★</span>.{" "}
-                      {t("shopInsufficientCta", lang)}
-                    </>
-                  )}
+                  {purchaseQuote.status === "buy" && purchaseQuote.balanceAfter !== undefined
+                    ? `${confirming.cost} ★ · ${t("shopConfirmAfter", lang)} ${purchaseQuote.balanceAfter} ★`
+                    : t("shopInsufficient", lang)}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="gap-2">
                 <button
                   type="button"
                   onClick={() => setConfirming(null)}
-                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-hairline bg-card px-5 text-sm font-medium transition-colors hover:bg-muted"
+                  className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-hairline px-5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   {t("shopCancel", lang)}
                 </button>
-                {quote.sufficient ? (
-                  <button
-                    type="button"
-                    onClick={confirmBuy}
-                    disabled={busy}
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {t("shopConfirmBuy", lang)} · {quote.cost} ★
-                  </button>
-                ) : (
-                  <Link
-                    href="/today"
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                  >
-                    {t("shopGoPractice", lang)}
-                    <ArrowRight className="size-4" aria-hidden />
-                  </Link>
-                )}
+                <button
+                  type="button"
+                  onClick={confirmBuy}
+                  disabled={busy || purchaseQuote.status !== "buy" || purchaseQuote.balanceAfter === undefined}
+                  className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+                >
+                  {t("shopConfirmBuy", lang)} · {confirming.cost} ★
+                </button>
               </DialogFooter>
             </>
           )}
@@ -384,92 +311,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-// A small visual chip for each cosmetic: the background gradient, the emoji prop,
-// or a labeled effect tile. (Emoji here are the items' own art, not chrome.)
-function Swatch({ cosmetic, base }: { cosmetic: Cosmetic; base: AvatarBase }) {
-  // The learner's own outfits are full-body figure sheets, one per base — the
-  // tile shows the base she actually plays as.
-  if (cosmetic.type === "avatar-outfit") {
-    return (
-      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl" aria-hidden>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={avatarFigureSrc(base, cosmetic.id)}
-          alt=""
-          className="shop-figure h-16 w-auto object-contain drop-shadow-[0_6px_8px_rgba(0,0,0,0.22)]"
-        />
-      </div>
-    );
-  }
-  // Caps ship trimmed to their own bounding box, so the chip is just the cap.
-  // ("Sin gorra" has no art and falls through to the empty-slot tile.)
-  if (cosmetic.type === "cap" && cosmetic.id !== DEFAULT_FOR_SLOT.cap) {
-    return (
-      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl" aria-hidden>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={avatarCapSrc(cosmetic.id)}
-          alt=""
-          className="shop-figure h-14 w-auto object-contain drop-shadow-[0_6px_8px_rgba(0,0,0,0.22)]"
-        />
-      </div>
-    );
-  }
-  if (cosmetic.type === "background") {
-    return (
-      <div className="relative h-16 w-full overflow-hidden rounded-xl ring-1 ring-black/5" style={{ background: cosmetic.background }} aria-hidden>
-        {cosmetic.video ? (
-          <SceneVideo base={cosmetic.video} className="h-full w-full object-cover" />
-        ) : (
-          <SceneArt bgId={cosmetic.id} />
-        )}
-      </div>
-    );
-  }
-  if (cosmetic.type === "outfit" && cosmetic.outfit) {
-    return (
-      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl" aria-hidden>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${cosmetic.outfit}.png`} alt="" className="shop-figure h-16 w-auto object-contain drop-shadow-[0_6px_8px_rgba(0,0,0,0.22)]" />
-      </div>
-    );
-  }
-  if (cosmetic.image) {
-    return (
-      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl" aria-hidden>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cosmetic.image} alt="" className="shop-figure h-14 w-auto drop-shadow-[0_6px_8px_rgba(0,0,0,0.22)]" />
-      </div>
-    );
-  }
-  if (cosmetic.type === "pet") {
-    return (
-      <div className="shop-pedestal grid h-16 w-full place-items-center rounded-xl text-3xl" aria-hidden>
-        <span className="shop-figure drop-shadow-[0_5px_6px_rgba(0,0,0,0.28)]">{cosmetic.emoji ?? "∅"}</span>
-      </div>
-    );
-  }
-  return (
-    <div className="grid h-16 w-full place-items-center rounded-xl bg-muted text-3xl" aria-hidden>
-      {cosmetic.emoji ?? (cosmetic.effect ? EFFECT_PREVIEW[cosmetic.effect] : "∅")}
-    </div>
-  );
-}
-
-const EFFECT_PREVIEW: Record<string, string> = {
-  hearts: "💕",
-  petals: "🌸",
-  snow: "❄️",
-  sparkle: "✨",
-  confetti: "🎉",
-  stars: "⭐",
-  bubbles: "🫧",
-  notes: "🎵",
-  leaves: "🍃",
-  rainbow: "🌈",
-  coins: "🌟",
-  diamonds: "💎",
-  fireworks: "🎆",
-  none: "∅",
-};

@@ -5,7 +5,8 @@
 // stays on the server.
 
 import { guardApi } from "@/lib/api-guard";
-import { requireUser } from "@/lib/auth-server";
+import { requireAllowedUserIdentity } from "@/lib/auth-server";
+import { enforcePaidApiQuota } from "@/lib/api-quota";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -18,8 +19,10 @@ const FORMAT = "mp3_44100_128";
 export async function POST(request: Request): Promise<Response> {
   const blocked = guardApi(request);
   if (blocked) return blocked;
-  const unauth = await requireUser(request);
-  if (unauth) return unauth;
+  const identity = await requireAllowedUserIdentity(request);
+  if ("response" in identity) return identity.response;
+  const quota = await enforcePaidApiQuota({ userId: identity.user.id, route: "tts" });
+  if (quota) return quota;
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {

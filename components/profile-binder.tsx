@@ -14,13 +14,14 @@ import { ensureProfile } from "@/lib/sync/supabase-sync";
 export function ProfileBinder() {
   const { required, session, user } = useAuth();
   const { settings, ready, update } = useSettings();
-  const done = useRef(false);
+  const doneFor = useRef<string | null>(null);
+  const runningFor = useRef<string | null>(null);
 
   useEffect(() => {
     if (!required || !ready || !session || !user) return;
-    if (settings.profileId === user.id) return; // already bound this account
-    if (done.current) return;
-    done.current = true;
+    if (doneFor.current === user.id || runningFor.current === user.id) return;
+    runningFor.current = user.id;
+    let cancelled = false;
 
     void (async () => {
       // Cloud is the source of truth. Pull the account's consolidated data first
@@ -43,9 +44,21 @@ export function ProfileBinder() {
         user.email?.split("@")[0] ||
         "Clara";
       // The account IS the profile now; cloud values win over local/email defaults.
-      await update({ ...patch, profileId: user.id, studentName: name });
-      await ensureProfile({ id: user.id, name, coachLanguage: patch.coachLanguage ?? settings.coachLanguage }).catch(() => {});
-    })();
+      const profile = { id: user.id, name, coachLanguage: patch.coachLanguage ?? settings.coachLanguage };
+      try {
+        await ensureProfile(profile);
+      } catch {
+        await ensureProfile(profile);
+      }
+      if (cancelled) return;
+      let saved = await update({ ...patch, profileId: user.id, studentName: name });
+      if (!saved && !cancelled) saved = await update({ ...patch, profileId: user.id, studentName: name });
+      if (!saved) throw new Error("Profile binding settings were not committed");
+      if (!cancelled) doneFor.current = user.id;
+    })().catch(() => {}).finally(() => {
+      if (runningFor.current === user.id) runningFor.current = null;
+    });
+    return () => { cancelled = true; };
   }, [required, ready, session, user, settings.profileId, settings.studentName, settings.coachLanguage, update]);
 
   return null;

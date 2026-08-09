@@ -1,6 +1,6 @@
-import { boundAccountId, db } from "./dexie.ts";
-import { applyTranscriptRetention, DEFAULT_PLAYER, DEFAULT_SETTINGS, type DataRepository } from "./repository.ts";
-import type { DailySession } from "../daily-session";
+import { boundAccountId, captureDbBinding, db, isDbBindingCurrent, type DbBinding } from "./dexie.ts";
+import { applyTranscriptRetention, attemptOutboxPayload, DEFAULT_PLAYER, DEFAULT_SETTINGS, examCompletionOutboxPayload, examPromotionIsCanonical, failedExamOutboxPayload, playerOutboxPayload, progressOutboxPayload, questOutboxPayload, sanitizeAttempt, sanitizeNewAttempt, settingsSyncPayload, StaleExamLevelError, StalePracticeBindingError, type DataRepository, type PracticeAttemptCommitResult, type PracticeAttemptMutation, type PracticePersistenceBinding } from "./repository.ts";
+import { dailyPronunciationChoiceIds, isAuthoredDailyPronunciationActivity, migrateLegacyDailyPronunciationActivity, type DailySession } from "../daily-session.ts";
 import { mergeDailySessions } from "../daily-session-merge.ts";
 import {
   applySessionCompletion,
@@ -14,14 +14,30 @@ import type {
   ConvItem,
   DailyQuestState,
   ExamAttempt,
+  ExamCheckpoint,
+  ExamCheckpointCas,
+  ExamCheckpointIdentity,
+  ExamCompletionPayload,
   ItemProgress,
   Lesson,
   PhraseRecording,
   PlayerStats,
+  OutboxRow,
   Settings,
   TalkSession,
   VirtualCallRecord,
 } from "./types";
+import { applyResult, freshProgress } from "../srs.ts";
+import { applyAttempt, dayKey, levelForXp, type AttemptRewards } from "../gamification.ts";
+import { applyQuestEvent, emptyQuestState } from "../quest-rules.ts";
+import {
+  applyBoundPronunciationCheckpoint,
+  applyDailyPronunciationAttempt,
+  type BoundPronunciationCheckpoint,
+} from "../daily-pronunciation-mutation.ts";
+import { createDailyPronunciationGameState, dailyPronunciationContentHash, dailyPronunciationLegacyContentHash, isDailyPronunciationGameState } from "../speech/daily-pronunciation-game.ts";
+import { ExamCheckpointConflictError, sameExamCheckpointIdentity, sanitizeExamCheckpoint } from "../exam-checkpoint.ts";
+import { applyPassedCallMilestone } from "../milestone.ts";
 
 const RECENT_WINDOW = 20; // attempts per category counted as "recent"
 
@@ -32,7 +48,315 @@ const RECENT_WINDOW = 20; // attempts per category counted as "recent"
  */
 export class DexieRepository implements DataRepository {
   async recordAttempt(attempt: Omit<Attempt, "id">): Promise<void> {
-    await db.attempts.add(attempt as Attempt);
+    const safe = sanitizeNewAttempt(attempt);
+    if (!safe) throw new TypeError("Invalid attempt persistence record");
+    await db.attempts.add(safe);
+  }
+
+  capturePracticeBinding(): PracticePersistenceBinding | null {
+    return captureDbBinding() as PracticePersistenceBinding | null;
+  }
+
+  async getAttemptsForPracticeBinding(
+    bindingToken: PracticePersistenceBinding,
+    opts: { itemId?: string; categoryId?: string; limit?: number; since?: number } = {},
+  ): Promise<Attempt[]> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const table = binding.database.attempts;
+    let rows: Attempt[];
+    if (opts.itemId || opts.categoryId) {
+      rows = opts.itemId
+        ? await table.where("itemId").equals(opts.itemId).toArray()
+        : await table.where("categoryId").equals(opts.categoryId!).toArray();
+      if (opts.itemId && opts.categoryId) rows = rows.filter((attempt) => attempt.categoryId === opts.categoryId);
+      if (opts.since) rows = rows.filter((attempt) => attempt.at >= opts.since!);
+      rows.sort((a, b) => b.at - a.at);
+      if (opts.limit) rows = rows.slice(0, opts.limit);
+    } else {
+      const collection = opts.since
+        ? table.where("at").aboveOrEqual(opts.since).reverse()
+        : table.orderBy("at").reverse();
+      rows = await (opts.limit ? collection.limit(opts.limit) : collection).toArray();
+    }
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    return rows.map(sanitizeAttempt).filter((attempt): attempt is Attempt => attempt !== null);
+  }
+
+  async commitPracticeAttempt(bindingToken: PracticePersistenceBinding, mutation: PracticeAttemptMutation): Promise<PracticeAttemptCommitResult> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const safe = sanitizeNewAttempt(mutation.attempt);
+    if (!safe?.clientAttemptId) throw new TypeError("Invalid attempt persistence record");
+    const clientAttemptId = safe.clientAttemptId;
+    if (mutation.dailyPronunciation && mutation.dailyPronunciation.event.id !== clientAttemptId) {
+      throw new TypeError("Pronunciation event UUID must match its attempt UUID");
+    }
+    const concrete = binding.database;
+
+    const result = await concrete.transaction(
+      "rw",
+      [concrete.attempts, concrete.settings, concrete.progress, concrete.player, concrete.quests, concrete.dailySessions, concrete.outbox],
+      async (): Promise<PracticeAttemptCommitResult> => {
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const existing = await concrete.attempts.where("clientAttemptId").equals(clientAttemptId).first();
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+
+      const storedSettings = await concrete.settings.get("app");
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const settings = { ...DEFAULT_SETTINGS, ...storedSettings };
+      const owner = (binding.accountId ?? settings.profileId)?.trim().toLowerCase() || null;
+      let nextDaily: DailySession | undefined;
+      let dailyEventAlreadyPresent = false;
+      if (mutation.dailyPronunciation) {
+        const currentDaily = await concrete.dailySessions.where("day").equals(mutation.dailyPronunciation.day).first();
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+        if (!currentDaily) throw new Error("Daily pronunciation session is unavailable");
+        if (!owner || currentDaily.profileId.trim().toLowerCase() !== owner) {
+          throw new StalePracticeBindingError();
+        }
+        dailyEventAlreadyPresent = Boolean(
+          currentDaily.activities
+            .find((activity) => activity.id === mutation.dailyPronunciation!.activityId)
+            ?.pronunciation?.state?.attemptEvents
+            .some((event) => event.id === clientAttemptId),
+        );
+        nextDaily = applyDailyPronunciationAttempt(currentDaily, mutation.dailyPronunciation);
+      }
+      if (existing && !nextDaily) return { status: "already-committed", outboxIds: [] };
+
+      // A network/UI retry may arrive after the attempt row committed but before
+      // the caller observed success. The event union is idempotent, so applying
+      // the same UUID repairs a missing session event without duplicating credit.
+      if (existing && dailyEventAlreadyPresent) {
+        return { status: "already-committed", outboxIds: [], dailySession: nextDaily };
+      }
+      const previousProgress = mutation.progress
+        ? await concrete.progress.get(safe.itemId)
+        : undefined;
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const previousPlayer = mutation.reward
+        ? { ...DEFAULT_PLAYER, ...(await concrete.player.get("player")) }
+        : undefined;
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+
+      const nextProgress = mutation.progress
+        ? applyResult(
+            previousProgress ?? freshProgress({
+              itemId: safe.itemId,
+              lessonId: safe.lessonId,
+              categoryId: safe.categoryId,
+              phoneme: safe.phoneme,
+            }, safe.at),
+            mutation.progress.passed,
+            mutation.progress.score,
+            safe.at,
+          )
+        : undefined;
+      if (nextProgress && mutation.progress?.dueInMs !== undefined) {
+        nextProgress.dueAt = safe.at + mutation.progress.dueInMs;
+      }
+
+      let nextPlayer: PlayerStats | undefined;
+      let rewards: AttemptRewards | undefined;
+      if (previousPlayer && mutation.reward) {
+        const applied = applyAttempt(previousPlayer, {
+          passed: mutation.reward.passed,
+          combo: mutation.reward.combo,
+          dailyGoal: settings.dailyGoal,
+          score: mutation.reward.score,
+          now: new Date(safe.at),
+        });
+        if (mutation.reward.xpAward !== undefined) {
+          const xpDelta = mutation.reward.xpAward - applied.rewards.xpGain;
+          applied.stats.xp += xpDelta;
+          applied.stats.todayXp += xpDelta;
+          const oldLevel = levelForXp(previousPlayer.xp);
+          const newLevel = levelForXp(applied.stats.xp);
+          applied.rewards = {
+            ...applied.rewards,
+            xpGain: mutation.reward.xpAward,
+            newXp: applied.stats.xp,
+            oldLevel,
+            newLevel,
+            leveledUp: newLevel > oldLevel,
+          };
+        }
+        if (mutation.reward.masteryStars !== undefined) {
+          const starDelta = mutation.reward.masteryStars - applied.rewards.starsEarned;
+          applied.stats.stars = (applied.stats.stars ?? 0) + starDelta;
+          applied.rewards = {
+            ...applied.rewards,
+            starsEarned: mutation.reward.masteryStars,
+            starTotal: applied.stats.stars,
+          };
+        }
+        nextPlayer = applied.stats;
+        rewards = applied.rewards;
+      }
+
+      let nextQuest: DailyQuestState | undefined;
+      if (mutation.quest) {
+        const day = dayKey(new Date(safe.at));
+        const quest = (await concrete.quests.get(day)) ?? emptyQuestState(day);
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+        const applied = applyQuestEvent(quest, previousProgress ? "review" : "learn");
+        nextQuest = applied.state;
+        if (applied.bonusXp && nextPlayer) {
+          nextPlayer = {
+            ...nextPlayer,
+            xp: nextPlayer.xp + applied.bonusXp,
+            todayXp: nextPlayer.todayXp + applied.bonusXp,
+          };
+        }
+      }
+
+      if (!existing) await concrete.attempts.add(safe);
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (!existing && nextProgress) await concrete.progress.put(nextProgress);
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (!existing && nextPlayer) await concrete.player.put({ ...nextPlayer, id: "player" });
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (!existing && nextQuest) await concrete.quests.put(nextQuest);
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (nextDaily) await concrete.dailySessions.put(nextDaily);
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const outboxIds: number[] = [];
+      if (owner) {
+        const queued: Omit<OutboxRow, "id">[] = [];
+        if (!existing) {
+          const attemptPayload = attemptOutboxPayload(safe);
+          if (!attemptPayload) throw new TypeError("Invalid attempt retry payload");
+          queued.push({ kind: "attempt", profileId: owner, payload: attemptPayload, at: safe.at, tries: 0 });
+        }
+        if (!existing && nextProgress) {
+          const payload = progressOutboxPayload(nextProgress);
+          if (!payload) throw new TypeError("Invalid progress retry payload");
+          queued.push({ kind: "progress", profileId: owner, payload, at: safe.at, tries: 0 });
+        }
+        if (!existing && nextPlayer) {
+          const payload = playerOutboxPayload(nextPlayer);
+          if (!payload) throw new TypeError("Invalid player retry payload");
+          queued.push({ kind: "player", profileId: owner, payload, at: safe.at, tries: 0 });
+        }
+        if (!existing && nextQuest) {
+          const payload = questOutboxPayload(nextQuest);
+          if (!payload) throw new TypeError("Invalid quest retry payload");
+          queued.push({ kind: "quest", profileId: owner, payload, at: safe.at, tries: 0 });
+        }
+        if (nextDaily) queued.push({ kind: "daily-session", profileId: owner, payload: nextDaily, at: mutation.dailyPronunciation?.at ?? safe.at, tries: 0 });
+        if (queued.length) outboxIds.push(...await concrete.outbox.bulkAdd(queued, { allKeys: true }) as number[]);
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      }
+      if (existing) return { status: "already-committed", outboxIds, dailySession: nextDaily };
+      return {
+        status: "committed",
+        rewards: rewards ?? {
+          xpGain: 0, newXp: nextPlayer?.xp ?? 0, leveledUp: false,
+          oldLevel: levelForXp(nextPlayer?.xp ?? 0), newLevel: levelForXp(nextPlayer?.xp ?? 0),
+          combo: 0, starsEarned: 0, starTotal: nextPlayer?.stars ?? 0,
+          streakIncreased: false, currentStreak: nextPlayer?.currentStreak ?? 0,
+          freezeUsed: false, freezeEarned: false, dailyGoalMet: false, unlocked: [],
+        },
+        outboxIds,
+        dailySession: nextDaily,
+      };
+    });
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    return result;
+  }
+
+  async checkpointDailyPronunciation(
+    bindingToken: PracticePersistenceBinding,
+    checkpoint: BoundPronunciationCheckpoint,
+  ): Promise<DailySession> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const concrete = binding.database;
+    const result = await concrete.transaction(
+      "rw",
+      [concrete.dailySessions, concrete.settings, concrete.outbox],
+      async () => {
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+        const storedSettings = await concrete.settings.get("app");
+        const owner = (binding.accountId ?? storedSettings?.profileId)?.trim().toLowerCase() || null;
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+        const current = await concrete.dailySessions.where("day").equals(checkpoint.day).first();
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+        if (!current) throw new Error("Daily pronunciation session is unavailable");
+        if (!owner || current.profileId.trim().toLowerCase() !== owner) throw new StalePracticeBindingError();
+        const next = applyBoundPronunciationCheckpoint(current, checkpoint);
+        await concrete.dailySessions.put(next);
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+        await concrete.outbox.add({ kind: "daily-session", profileId: owner, payload: next, at: checkpoint.at, tries: 0 });
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+        return next;
+      },
+    );
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    return result;
+  }
+
+  async replaceCorruptDailyPronunciation(
+    bindingToken: PracticePersistenceBinding,
+    input: { day: string; activityId: string; at: number },
+  ): Promise<DailySession> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const concrete = binding.database;
+    const result = await concrete.transaction("rw", [concrete.dailySessions, concrete.settings, concrete.outbox], async () => {
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const settings = await concrete.settings.get("app");
+      const owner = (binding.accountId ?? settings?.profileId)?.trim().toLowerCase() || null;
+      const current = await concrete.dailySessions.where("day").equals(input.day).first();
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (!owner || !current || current.profileId.trim().toLowerCase() !== owner) throw new StalePracticeBindingError();
+      const activity = current.activities.find((entry) => entry.id === input.activityId);
+      if (!activity?.pronunciation) throw new Error("Unknown pronunciation activity");
+      const pronunciation = activity.pronunciation;
+      const shippedV1 = pronunciation.state === undefined && pronunciation.itemPool === undefined;
+      const canonicalPronunciation = shippedV1 ? migrateLegacyDailyPronunciationActivity(pronunciation) : pronunciation;
+      if (!canonicalPronunciation || !isAuthoredDailyPronunciationActivity(canonicalPronunciation)) {
+        throw new Error("Canonical pronunciation activity is unavailable");
+      }
+      const expectedHashes = [
+        dailyPronunciationContentHash(pronunciation.game, pronunciation.targets, pronunciation.itemPool),
+        dailyPronunciationLegacyContentHash(pronunciation.game, pronunciation.targets),
+      ];
+      if (isDailyPronunciationGameState(pronunciation.state, expectedHashes, dailyPronunciationChoiceIds(pronunciation, pronunciation.state?.targetIndex ?? 0))) return current;
+      const unsafe = pronunciation.state as unknown as Record<string, unknown> | undefined;
+      const archivedVersion = unsafe?.version === 1 || unsafe?.version === 2 ? unsafe.version : null;
+      const archivedHash = typeof unsafe?.contentHash === "string" && /^daily-pronunciation-v[23]:[0-9a-f]{8}$/.test(unsafe.contentHash)
+        ? unsafe.contentHash : null;
+      const replacement = shippedV1
+        ? canonicalPronunciation.state!
+        : createDailyPronunciationGameState(canonicalPronunciation.game, canonicalPronunciation.targets, canonicalPronunciation.itemPool);
+      const activities = current.activities.map((entry) => entry.id !== input.activityId ? entry : {
+        ...entry,
+        status: "active" as const,
+        completedAt: undefined,
+        pronunciation: {
+          ...canonicalPronunciation,
+          state: replacement,
+          ...(unsafe ? { recoveryArchive: [{ at: input.at, version: archivedVersion, contentHash: archivedHash }] } : {}),
+        },
+      });
+      const next: DailySession = {
+        ...current,
+        version: 2,
+        activities,
+        currentActivityId: shippedV1 ? current.currentActivityId : input.activityId,
+        completedAt: shippedV1 ? current.completedAt : null,
+        updatedAt: Math.max(current.updatedAt, input.at),
+      };
+      await concrete.dailySessions.put(next);
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      await concrete.outbox.add({ kind: "daily-session", profileId: owner, payload: next, at: input.at, tries: 0 });
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      return next;
+    });
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    return result;
   }
 
   async getAttempts(opts: {
@@ -56,13 +380,16 @@ export class DexieRepository implements DataRepository {
       if (opts.itemId && opts.categoryId) rows = rows.filter((a) => a.categoryId === opts.categoryId);
       if (opts.since) rows = rows.filter((a) => a.at >= opts.since!);
       rows.sort((a, b) => b.at - a.at);
-      return opts.limit ? rows.slice(0, opts.limit) : rows;
+      const selected = opts.limit ? rows.slice(0, opts.limit) : rows;
+      return selected.map(sanitizeAttempt).filter((attempt): attempt is Attempt => attempt !== null);
     }
 
     const coll = opts.since
       ? db.attempts.where("at").aboveOrEqual(opts.since).reverse()
       : db.attempts.orderBy("at").reverse();
-    return (opts.limit ? coll.limit(opts.limit) : coll).toArray();
+    return (await (opts.limit ? coll.limit(opts.limit) : coll).toArray())
+      .map(sanitizeAttempt)
+      .filter((attempt): attempt is Attempt => attempt !== null);
   }
 
   async getProgress(itemId: string): Promise<ItemProgress | undefined> {
@@ -106,6 +433,22 @@ export class DexieRepository implements DataRepository {
     await db.settings.put({ ...settings, id: "app" });
   }
 
+  async saveSettingsForPracticeBinding(bindingToken: PracticePersistenceBinding, settings: Settings): Promise<void> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const payload = binding.accountId ? settingsSyncPayload(binding.accountId, settings) : null;
+    if (binding.accountId && (!payload || settings.profileId !== binding.accountId)) throw new StalePracticeBindingError();
+    await binding.database.transaction("rw", [binding.database.settings, binding.database.outbox], async () => {
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      await binding.database.settings.put({ ...settings, id: "app" });
+      if (payload) {
+        await binding.database.outbox.where("kind").equals("settings").and((row) => row.profileId === binding.accountId).delete();
+        await binding.database.outbox.add({ kind: "settings", profileId: binding.accountId!, payload, at: Date.now(), tries: 0 });
+      }
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    });
+  }
+
   async getPlayerStats(): Promise<PlayerStats> {
     const existing = await db.player.get("player");
     if (existing) return { ...DEFAULT_PLAYER, ...existing };
@@ -139,12 +482,142 @@ export class DexieRepository implements DataRepository {
     return rows.sort((a, b) => b.at - a.at);
   }
 
+  async getExamAttemptsForPracticeBinding(bindingToken: PracticePersistenceBinding): Promise<ExamAttempt[]> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const rows = await binding.database.examAttempts.toArray();
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    return rows.sort((a, b) => b.at - a.at);
+  }
+
   async saveExamAttempt(attempt: Omit<ExamAttempt, "id">): Promise<void> {
-    // Append-only: sittings are never overwritten, so a band stays auditable.
-    await db.examAttempts.add(attempt as ExamAttempt);
-    // Mirrored to the cloud so an earned band survives a device change — the whole
-    // point of an exam is that it is not device-local trivia.
-    void this.mirror((profileId, sync) => sync.pushExamAttempt(profileId, attempt as ExamAttempt));
+    const binding = this.capturePracticeBinding();
+    if (!binding) throw new StalePracticeBindingError();
+    return this.saveExamAttemptForPracticeBinding(binding, attempt);
+  }
+
+  async saveExamAttemptForPracticeBinding(
+    bindingToken: PracticePersistenceBinding,
+    attempt: Omit<ExamAttempt, "id">,
+    promotedOnboarding?: Settings["onboarding"],
+    checkpointIdentity?: ExamCheckpointIdentity,
+    checkpointCas?: ExamCheckpointCas,
+  ): Promise<void> {
+    if (!examPromotionIsCanonical(attempt as ExamAttempt, promotedOnboarding)) {
+      throw new TypeError(attempt.passed ? "A passed sitting requires its canonical level promotion" : "A failed sitting cannot promote a learner");
+    }
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const concrete = binding.database;
+    await concrete.transaction("rw", [concrete.settings, concrete.examAttempts, concrete.examCheckpoints, concrete.outbox], async () => {
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const settings = await concrete.settings.get("app");
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const existing = await concrete.examAttempts.where("at").equals(attempt.at).first();
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (existing) {
+        const { id: _existingId, ...existingAttempt } = existing;
+        void _existingId;
+        if (JSON.stringify(existingAttempt) === JSON.stringify(attempt)) return;
+        throw new Error("Conflicting exam sitting identity");
+      }
+      if (attempt.passed && (!settings?.onboarding || settings.onboarding.level !== attempt.level)) {
+        throw new StaleExamLevelError();
+      }
+      if (checkpointIdentity) {
+        const checkpoint = sanitizeExamCheckpoint(await concrete.examCheckpoints.get("active"));
+        const owner = binding.accountId ?? settings?.profileId ?? null;
+        if (!checkpoint || checkpoint.profileId !== owner || !sameExamCheckpointIdentity(checkpoint, checkpointIdentity)
+          || !checkpointCas || checkpoint.sessionId !== checkpointCas.sessionId || checkpoint.sequence !== checkpointCas.sequence) {
+          throw new ExamCheckpointConflictError();
+        }
+      }
+      await concrete.examAttempts.add(attempt as ExamAttempt);
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (promotedOnboarding) {
+        await concrete.settings.put({ ...(settings ?? DEFAULT_SETTINGS), id: "app", onboarding: promotedOnboarding });
+        if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      }
+      if (checkpointIdentity) await concrete.examCheckpoints.delete("active");
+      if (binding.accountId) {
+        if (promotedOnboarding) {
+          const cloudAttempt = {
+            day: attempt.day, at: attempt.at, level: attempt.level, score: attempt.score,
+            passed: attempt.passed, sections: attempt.sections, weakest: attempt.weakest,
+          };
+          const payload: ExamCompletionPayload = { attempt: cloudAttempt, targetLevel: promotedOnboarding.level };
+          const safePayload = examCompletionOutboxPayload(payload);
+          if (!safePayload) throw new TypeError("Invalid stage exam completion payload");
+          await concrete.outbox.add({ kind: "exam-completion", profileId: binding.accountId, payload: safePayload, at: Date.now(), tries: 0 });
+        } else {
+          const safeFailure = failedExamOutboxPayload(attempt);
+          if (!safeFailure) throw new TypeError("Invalid failed exam payload");
+          await concrete.outbox.add({ kind: "exam", profileId: binding.accountId, payload: safeFailure, at: Date.now(), tries: 0 });
+        }
+      }
+    });
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+  }
+
+  async getExamCheckpointForPracticeBinding(
+    bindingToken: PracticePersistenceBinding,
+    identity: ExamCheckpointIdentity,
+  ): Promise<ExamCheckpoint | null> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const stored = await binding.database.examCheckpoints.get("active");
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const checkpoint = sanitizeExamCheckpoint(stored);
+    const owner = binding.accountId ?? (await binding.database.settings.get("app"))?.profileId ?? null;
+    if (!checkpoint || checkpoint.profileId !== owner || !sameExamCheckpointIdentity(checkpoint, identity)) return null;
+    return checkpoint;
+  }
+
+  async peekExamCheckpointForPracticeBinding(bindingToken: PracticePersistenceBinding): Promise<ExamCheckpoint | null> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const stored = await binding.database.examCheckpoints.get("active");
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const checkpoint = sanitizeExamCheckpoint(stored);
+    const owner = binding.accountId ?? (await binding.database.settings.get("app"))?.profileId ?? null;
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    return checkpoint?.profileId === owner ? checkpoint : null;
+  }
+
+  async saveExamCheckpointForPracticeBinding(
+    bindingToken: PracticePersistenceBinding,
+    value: ExamCheckpoint,
+    expected: ExamCheckpointCas | null,
+  ): Promise<void> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const checkpoint = sanitizeExamCheckpoint(value);
+    const owner = binding.accountId ?? (await binding.database.settings.get("app"))?.profileId ?? null;
+    if (!checkpoint || !owner || checkpoint.profileId !== owner) throw new TypeError("Invalid stage exam checkpoint");
+    await binding.database.transaction("rw", binding.database.examCheckpoints, async () => {
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const existing = sanitizeExamCheckpoint(await binding.database.examCheckpoints.get("active"));
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (expected === null) {
+        if (existing || checkpoint.sequence !== 0) throw new ExamCheckpointConflictError();
+      } else if (!existing || existing.sessionId !== expected.sessionId || existing.sequence !== expected.sequence
+        || checkpoint.sessionId !== expected.sessionId || checkpoint.sequence !== expected.sequence + 1) {
+        throw new ExamCheckpointConflictError();
+      }
+      await binding.database.examCheckpoints.put(checkpoint);
+    });
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+  }
+
+  async clearExamCheckpointForPracticeBinding(bindingToken: PracticePersistenceBinding, expected: ExamCheckpointCas): Promise<void> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    await binding.database.transaction("rw", binding.database.examCheckpoints, async () => {
+      const existing = sanitizeExamCheckpoint(await binding.database.examCheckpoints.get("active"));
+      if (!existing || existing.sessionId !== expected.sessionId || existing.sequence !== expected.sequence) throw new ExamCheckpointConflictError();
+      await binding.database.examCheckpoints.delete("active");
+    });
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
   }
 
   async getCallScores(): Promise<CallScore[]> {
@@ -153,8 +626,17 @@ export class DexieRepository implements DataRepository {
   }
 
   async saveCallScore(score: Omit<CallScore, "id">): Promise<void> {
-    await db.callScores.add(score as CallScore);
+    const { player: stored, newlyUnlocked } = await db.transaction("rw", [db.callScores, db.player], async () => {
+      await db.callScores.add(score as CallScore);
+      const player = { ...DEFAULT_PLAYER, ...((await db.player.get("player")) ?? {}) };
+      const nextPlayer = applyPassedCallMilestone(player, score.score, score.at);
+      if (nextPlayer !== player) await db.player.put(nextPlayer);
+      return { player: nextPlayer, newlyUnlocked: nextPlayer !== player };
+    });
     void this.mirror((profileId, sync) => sync.pushCallScore(profileId, score as CallScore));
+    if (newlyUnlocked) {
+      void this.mirror((profileId, sync) => sync.pushPlayer(profileId, stored));
+    }
   }
 
   async getTalkSessions(): Promise<TalkSession[]> {
@@ -175,22 +657,52 @@ export class DexieRepository implements DataRepository {
   }
 
   async saveVirtualCall(record: Omit<VirtualCallRecord, "id">): Promise<void> {
-    // The retention setting is read asynchronously, so the account binding is
-    // re-checked before the write: an account switch in between would land this
-    // call in the WRONG learner's database (the failure saveDailySession guards
-    // against, arriving here through the awaited read rather than a stale hook).
-    const bound = boundAccountId();
-    const { callTranscriptRetention } = await this.getSettings();
-    if (boundAccountId() !== bound) {
-      throw new Error("Account changed while saving the virtual call");
-    }
-    const stored = applyTranscriptRetention(record, callTranscriptRetention) as VirtualCallRecord;
-    await db.virtualCalls.add(stored);
+    const binding = this.capturePracticeBinding();
+    if (!binding) throw new StalePracticeBindingError();
+    return this.saveVirtualCallForPracticeBinding(binding, record);
+  }
+
+  async saveVirtualCallForPracticeBinding(
+    bindingToken: PracticePersistenceBinding,
+    record: Omit<VirtualCallRecord, "id">,
+  ): Promise<void> {
+    const binding = bindingToken as unknown as DbBinding;
+    if (!binding?.database || !isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    const concrete = binding.database;
+    let stored!: VirtualCallRecord;
+    const inserted = await concrete.transaction("rw", [concrete.settings, concrete.virtualCalls], async () => {
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      const settings = await concrete.settings.get("app");
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      stored = applyTranscriptRetention(record, settings?.callTranscriptRetention ?? DEFAULT_SETTINGS.callTranscriptRetention) as VirtualCallRecord;
+      const existing = await concrete.virtualCalls.where("at").equals(stored.at).first();
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      if (existing) {
+        if (existing.scenarioId === stored.scenarioId && existing.startedAt === stored.startedAt && existing.endedAt === stored.endedAt) return false;
+        throw new Error("Conflicting virtual call identity");
+      }
+      await concrete.virtualCalls.add(stored);
+      if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+      return true;
+    });
+    if (!isDbBindingCurrent(binding)) throw new StalePracticeBindingError();
+    if (!inserted) return;
     // Mirror the REPORT to the cloud so it survives an iOS storage eviction —
     // seven quiet days used to take her whole call history with it. The
     // transcript never goes: pushVirtualCall names its columns explicitly and
     // has none for it, which is what /privacidad promises.
-    void this.mirror((profileId, sync) => sync.pushVirtualCall(profileId, stored));
+    const profileId = binding.accountId;
+    if (profileId) {
+      void import("../sync/supabase-sync.ts")
+        .then((sync) => {
+          if (!isDbBindingCurrent(binding)) return;
+          // The row keeps the microphone-start owner even if auth changes after
+          // the local transaction. RLS will reject a stale A write under B;
+          // it can never be relabelled as learner B's report.
+          sync.pushVirtualCall(profileId, stored);
+        })
+        .catch(() => {});
+    }
   }
 
   async deleteVirtualCallTranscripts(): Promise<void> {
@@ -200,7 +712,11 @@ export class DexieRepository implements DataRepository {
     await db.transaction("rw", db.virtualCalls, async () => {
       const stripped = (await db.virtualCalls.toArray())
         .filter((call) => call.transcript !== undefined)
-        .map(({ transcript: _dropped, ...rest }) => rest as VirtualCallRecord);
+        .map((call) => {
+          const rest = { ...call };
+          delete rest.transcript;
+          return rest as VirtualCallRecord;
+        });
       if (stripped.length) await db.virtualCalls.bulkPut(stripped);
     });
   }
@@ -325,7 +841,9 @@ export class DexieRepository implements DataRepository {
     ]);
 
     const byCat = new Map<string, Attempt[]>();
-    for (const a of attempts) {
+    for (const raw of attempts) {
+      const a = sanitizeAttempt(raw);
+      if (!a || a.providerStatus === "technical-skip" || a.providerStatus === "unavailable") continue;
       const list = byCat.get(a.categoryId) ?? [];
       list.push(a);
       byCat.set(a.categoryId, list);

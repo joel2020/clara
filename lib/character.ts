@@ -10,6 +10,9 @@ export type CharacterMood = "idle" | "wave" | "cheer" | "think" | "encourage" | 
 
 export const MOODS: CharacterMood[] = ["idle", "wave", "cheer", "think", "encourage", "clap", "point", "love"];
 
+/** Canonical Lumi art used when an equipped outfit has no matching pose. */
+export const BASE_LUMI_ART_BASE = "/character/lumi";
+
 /** Per-mood filename suffix on an outfit's art base
  *  (base "/character/lumi" → "/character/lumi-cheer.png"; idle/wave = base). */
 export const MOOD_SUFFIX: Record<CharacterMood, string> = {

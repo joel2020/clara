@@ -100,11 +100,10 @@ not findings.
   allowlisted, which open signup makes false.
 - **Why it matters:** curriculum vandalism/defacement visible to all students, by
   an unauthenticated-in-spirit actor. Cheap to do, annoying to detect.
-- **Fix (pick one):** (a) move custom-lesson writes behind a server route that
-  checks `isAdmin` (same shape as `/api/coach`) and set the table to deny client
-  writes; or (b) keep client writes but restrict the policy to admin emails via a
-  JWT claim check. Separately, gate the instructor UI on `isAdmin(user?.email)`
-  rather than a self-serve toggle — students shouldn't see teaching tools at all.
+- **Fix:** authorize custom-lesson writes and server admin routes from the
+  server-controlled `app_metadata.clara_role` JWT claim. Never derive the role
+  from an email address or user-editable metadata. Gate the instructor UI from
+  the same server-derived access flag — students shouldn't see teaching tools.
 
 ### P1-4 · Next.js 16.2.9 has nine known advisories — upgrade to 16.2.12
 - **Where:** [package.json:26](package.json#L26); `npm audit` output.

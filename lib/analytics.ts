@@ -72,7 +72,7 @@ export type DailySessionAnalyticsAction =
 export function trackDailySession(
   action: DailySessionAnalyticsAction,
   session: DailySession,
-  activity?: Pick<DailyActivity, "kind" | "status">,
+  activity?: Pick<DailyActivity, "kind" | "status" | "pronunciation">,
 ): void {
   const counts = {
     completedActivities: session.activities.filter(
@@ -93,6 +93,12 @@ export function trackDailySession(
         ...counts,
         activityKind: activity.kind,
         activityStatus: activity.status,
+        ...(activity.pronunciation?.state?.terminal ? {
+          gradedTargets: activity.pronunciation.state.gradedTargets,
+          masteredTargets: activity.pronunciation.state.masteredTargets,
+          technicalTargets: activity.pronunciation.state.technicalTargets,
+          ungradedTargets: activity.pronunciation.state.ungradedTargets,
+        } : {}),
       });
     } else {
       track("session_resume", counts);

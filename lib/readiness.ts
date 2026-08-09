@@ -76,7 +76,16 @@ function clamp(n: number): number {
 export function computeReadiness(input: ReadinessInput): Readiness {
   const { attempts, progress, band, examPassed = false } = input;
 
-  const recent = [...attempts].sort((a, b) => b.at - a.at).slice(0, RECENT);
+  // Legacy attempts predate providerStatus and remain valid evidence. Once a
+  // provider status exists, only an explicitly valid acoustic result may move
+  // readiness; outage/technical rows are operational telemetry, not learning.
+  const recent = attempts
+    .filter((attempt) => (
+      (attempt.providerStatus === undefined || attempt.providerStatus === "valid")
+      && attempt.pronunciationOutcome !== "technical-skip"
+    ))
+    .sort((a, b) => b.at - a.at)
+    .slice(0, RECENT);
   const practised = progress.filter((p) => p.attempts > 0);
 
   // Intelligibility — how accurately her recent speech was recognised.

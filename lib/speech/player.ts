@@ -12,6 +12,7 @@ import { AUDIO_KEYS, ALT_VOICES } from "@/lib/content/audio-manifest";
 const HAVE = new Set(AUDIO_KEYS);
 
 let currentAudio: HTMLAudioElement | null = null;
+let playbackGeneration = 0;
 
 export function hasRecordedVoice(itemId?: string): boolean {
   return !!itemId && HAVE.has(audioKey(itemId));
@@ -56,11 +57,22 @@ export interface PlayOptions {
   voiceURI?: string;
   onStart?: () => void;
   onEnd?: () => void;
+  onError?: () => void;
 }
 
 export function playPronunciation(opts: PlayOptions): void {
   stopPronunciation();
-  const { id, text, slow, voice, rate, voiceURI, onStart, onEnd } = opts;
+  const generation = playbackGeneration;
+  const { id, text, slow, voice, rate, voiceURI, onStart, onEnd, onError } = opts;
+  let terminal = false;
+
+  const isActive = () => generation === playbackGeneration;
+  const finish = (state: "end" | "error") => {
+    if (!isActive() || terminal) return;
+    terminal = true;
+    if (state === "end") onEnd?.();
+    else onError?.();
+  };
 
   if (hasRecordedVoice(id)) {
     playFile(audioUrl(id!, voice), () => {
@@ -73,31 +85,47 @@ export function playPronunciation(opts: PlayOptions): void {
 
   fallback();
 
-  function playFile(url: string, onError: () => void) {
+  function playFile(url: string, handleError: () => void) {
+    if (!isActive() || terminal) return;
     const audio = new Audio(url);
+    let settled = false;
     audio.playbackRate = slow ? 0.65 : 1;
     currentAudio = audio;
-    audio.onplay = () => onStart?.();
+    audio.onplay = () => {
+      if (isActive() && !terminal && !settled) onStart?.();
+    };
     audio.onended = () => {
+      if (!isActive() || terminal || settled) return;
+      settled = true;
       if (currentAudio === audio) currentAudio = null;
-      onEnd?.();
+      finish("end");
     };
-    audio.onerror = () => {
-      currentAudio = null;
-      onError();
+    const fail = () => {
+      if (!isActive() || terminal || settled) return;
+      settled = true;
+      if (currentAudio === audio) currentAudio = null;
+      handleError();
     };
-    audio.play().catch(() => {
-      currentAudio = null;
-      onError();
-    });
+    audio.onerror = fail;
+    audio.play().catch(fail);
   }
 
   function fallback() {
-    speak(text, { rate: slow ? 0.55 : rate ?? 0.9, voiceURI, onStart, onEnd });
+    if (!isActive() || terminal) return;
+    speak(text, {
+      rate: slow ? 0.55 : rate ?? 0.9,
+      voiceURI,
+      onStart: () => {
+        if (isActive() && !terminal) onStart?.();
+      },
+      onEnd: () => finish("end"),
+      onError: () => finish("error"),
+    });
   }
 }
 
 export function stopPronunciation(): void {
+  playbackGeneration += 1;
   if (currentAudio) {
     currentAudio.pause();
     currentAudio = null;

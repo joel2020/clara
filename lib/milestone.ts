@@ -1,4 +1,4 @@
-import type { TalkSession } from "@/lib/db/types";
+import type { PlayerStats, TalkSession } from "@/lib/db/types";
 
 // The general path's felt milestone: hold a ten-minute unscripted conversation
 // without freezing.
@@ -11,6 +11,8 @@ import type { TalkSession } from "@/lib/db/types";
 
 export const MILESTONE_MINUTES = 10;
 export const MILESTONE_TURNS = 20;
+export const CALL_PASS_SCORE = 80;
+export const FIRST_PASSED_INTERVIEW_CALL = "first-passed-interview-call";
 
 const MS_PER_MIN = 60_000;
 
@@ -64,5 +66,31 @@ export function milestoneProgress(sessions: TalkSession[]): MilestoneProgress {
     percent: Math.max(0, Math.min(100, Math.round(bestFraction * 100))),
     achieved: achievedSessions.length > 0,
     achievedAt: achievedSessions.length ? achievedSessions[0].at : null,
+  };
+}
+
+/**
+ * Earn the Closet's interview/call milestone once. The persisted call score is
+ * the evidence; repeating or improving a passed call never duplicates the id.
+ */
+export function applyPassedCallMilestone(
+  player: PlayerStats,
+  score: number,
+  at: number,
+): PlayerStats {
+  const milestones = player.unlockedMilestones ?? [];
+  if (
+    !Number.isFinite(score)
+    || !Number.isSafeInteger(at)
+    || at < 0
+    || score < CALL_PASS_SCORE
+    || milestones.includes(FIRST_PASSED_INTERVIEW_CALL)
+  ) {
+    return player;
+  }
+  return {
+    ...player,
+    unlockedMilestones: [...milestones, FIRST_PASSED_INTERVIEW_CALL],
+    updatedAt: Math.max(player.updatedAt, at),
   };
 }

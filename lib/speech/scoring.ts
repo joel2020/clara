@@ -4,7 +4,22 @@
 // (or something very close), or did it hear something else — often the
 // minimal-pair partner? That mismatch is exactly what we want to show her.
 
-export type FeedbackKey = "perfect" | "pass" | "close" | "notQuite" | "partner";
+import {
+  gradePronunciation,
+  type PronunciationVerdict,
+} from "./pronunciation-policy.ts";
+import type { AssessmentResult } from "./azure-response.ts";
+
+export type FeedbackKey =
+  | "perfect"
+  | "pass"
+  | "close"
+  | "notQuite"
+  | "partner"
+  | "diagnostic"
+  | "technical";
+export type GradingOutcome = PronunciationVerdict["outcome"] | "ungraded";
+export type GradedOutcome = Extract<GradingOutcome, "mastered" | "retry">;
 
 export interface ScoreResult {
   score: number; // 0–100
@@ -14,6 +29,14 @@ export interface ScoreResult {
   feedback: string;
   /** Which feedback case fired — lets the UI translate the coaching line. */
   feedbackKey: FeedbackKey;
+  /** Distinguishes valid mastery/retry evidence from diagnostic or ungraded attempts. */
+  gradingOutcome: GradingOutcome;
+}
+
+export function isGradedScoreResult<T extends Pick<ScoreResult, "gradingOutcome">>(
+  result: T,
+): result is T & { gradingOutcome: GradedOutcome } {
+  return result.gradingOutcome === "mastered" || result.gradingOutcome === "retry";
 }
 
 const WORD_PASS = 80;
@@ -100,36 +123,44 @@ export interface ScoreInput {
   /** The minimal-pair partner's text, if any (e.g. target "sheep" → "ship"). */
   partnerText?: string;
   /** Phoneme-level acoustic scores (Azure), when the attempt went through /api/assess. */
-  assessment?: { display: string; pronScore: number; completenessScore?: number };
+  assessment?: AssessmentResult;
   /**
-   * Gentle mode: drop every pass threshold by 10 points. A beginner needs
-   * wins to keep going — precision comes later, on "normal".
+   * Retained for caller compatibility. Gentle mode may select scaffolding,
+   * but scoring never lowers a pass threshold.
    */
   lenient?: boolean;
   /**
-   * Adaptive override: exact points to shave off the pass threshold. When set,
-   * it wins over `lenient` (which stays as a simple fallback). See lib/adaptive.ts.
+   * Retained for caller compatibility. Adaptive ease may select scaffolding,
+   * but scoring never lowers a pass threshold.
    */
   ease?: number;
 }
 
 export function scoreAttempt(input: ScoreInput): ScoreResult {
   const { target, transcript, alternatives = [], kind, partnerText } = input;
-  const ease = input.ease ?? (input.lenient ? 10 : 0);
 
-  // Acoustic scoring path: Azure measured HOW she pronounced it — trust that
-  // over transcript similarity. The minimal-pair check still runs on what the
-  // recognizer heard, since landing on the twin stays the teachable moment.
+  // Route normalized provider evidence through the strict policy as A0 daily
+  // practice. This legacy entry point still has no selected target phoneme or
+  // explicit target-recognition evidence, so those remain missing until the
+  // shared pronunciation-coach flow supplies them.
   if (input.assessment) {
-    const heard = input.assessment.display || transcript;
+    const heard = input.assessment.recognizedText || transcript;
     let heardPartner = false;
     if (partnerText && kind === "word") {
       heardPartner = similarity(partnerText, heard) >= 80 && similarity(target, heard) < 80;
     }
-    const threshold = (kind === "phrase" ? 65 : 70) - ease;
-    const score = Math.max(0, Math.min(100, input.assessment.pronScore));
-    const passed = score >= threshold && !heardPartner;
-    const feedbackKey = pickFeedbackKey(passed, score, heardPartner);
+    const evidence = {
+      ...input.assessment,
+      ...(heardPartner ? { minimalPairSubstitution: true } : {}),
+    };
+    const verdict = gradePronunciation({
+      context: kind === "word" ? "word" : "daily-phrase",
+      cefr: "A0",
+      evidence,
+    });
+    const score = input.assessment.pronunciationScore ?? 0;
+    const passed = verdict.outcome === "mastered" && !heardPartner;
+    const feedbackKey = pickFeedbackKey(passed, score, heardPartner, verdict.outcome);
     return {
       score,
       passed,
@@ -137,10 +168,11 @@ export function scoreAttempt(input: ScoreInput): ScoreResult {
       heardPartner,
       feedback: buildFeedback(feedbackKey, target, partnerText),
       feedbackKey,
+      gradingOutcome: verdict.outcome,
     };
   }
   const candidates = [transcript, ...alternatives].filter(Boolean);
-  const threshold = (kind === "phrase" ? PHRASE_PASS : WORD_PASS) - ease;
+  const threshold = kind === "phrase" ? PHRASE_PASS : WORD_PASS;
 
   const scoreOne = (heard: string) =>
     kind === "phrase" ? phraseScore(target, heard) : similarity(target, heard);
@@ -164,7 +196,7 @@ export function scoreAttempt(input: ScoreInput): ScoreResult {
   }
 
   const passed = best.score >= threshold && !heardPartner;
-  const feedbackKey = pickFeedbackKey(passed, best.score, heardPartner);
+  const feedbackKey = pickFeedbackKey(passed, best.score, heardPartner, "ungraded");
 
   return {
     score: best.score,
@@ -173,10 +205,18 @@ export function scoreAttempt(input: ScoreInput): ScoreResult {
     heardPartner,
     feedback: buildFeedback(feedbackKey, target, partnerText),
     feedbackKey,
+    gradingOutcome: "ungraded",
   };
 }
 
-function pickFeedbackKey(passed: boolean, score: number, heardPartner: boolean): FeedbackKey {
+function pickFeedbackKey(
+  passed: boolean,
+  score: number,
+  heardPartner: boolean,
+  gradingOutcome: GradingOutcome,
+): FeedbackKey {
+  if (gradingOutcome === "diagnostic") return "diagnostic";
+  if (gradingOutcome === "technical-skip") return "technical";
   if (heardPartner) return "partner";
   if (passed && score === 100) return "perfect";
   if (passed) return "pass";
@@ -196,5 +236,9 @@ function buildFeedback(key: FeedbackKey, target: string, partnerText?: string): 
       return "Close. Listen once more, then try again.";
     case "notQuite":
       return "Not quite. Tap Listen, watch the mouth hint, and give it another go.";
+    case "diagnostic":
+      return "We heard you, but did not receive enough detail to grade this attempt.";
+    case "technical":
+      return "We couldn't grade this attempt. Please try again.";
   }
 }

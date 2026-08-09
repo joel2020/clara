@@ -130,30 +130,32 @@ export function ResetPasswordScreen() {
 
         {phase === "ready" && (
           <form onSubmit={submit} className="rounded-3xl border border-hairline bg-card p-6 shadow-[0_18px_44px_-24px_rgba(18,58,147,0.25)]">
-            <label className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <label htmlFor="new-password" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Nueva contraseña · New password
             </label>
             <input
+              id="new-password"
               type="password"
               autoComplete="new-password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-primary"
+              className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               placeholder="••••••••"
             />
-            <label className="mt-4 block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <label htmlFor="confirm-password" className="mt-4 block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Confirmar · Confirm
             </label>
             <input
+              id="confirm-password"
               type="password"
               autoComplete="new-password"
               required
               minLength={6}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-primary"
+              className="mt-1.5 w-full rounded-xl border border-hairline bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               placeholder="••••••••"
             />
             {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}

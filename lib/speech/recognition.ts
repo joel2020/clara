@@ -1,10 +1,10 @@
 "use client";
 
 import { getSpeechRecognitionCtor, hasMediaRecording } from "./support";
-import { assessEnabled, assessEnabledSync, assessRecording, type Assessment } from "./azure";
-import { startWavRecording, SILENCE_PEAK, type WavHandle } from "./wav-recorder";
+import { assessEnabled, assessEnabledSync, assessRecording, requireAssessmentCapability, type Assessment, type AssessmentKind } from "./azure";
+import { startWavRecording, SILENCE_PEAK, type WavHandle, type WavOptions } from "./wav-recorder";
 import { authHeaders } from "@/lib/auth-client";
-import { ensureVoiceConsent, hasVoiceConsent } from "./consent";
+import { ensureVoiceConsent, hasVoiceConsent, registerVoiceConsentWithdrawalListener } from "./consent";
 
 // Promise-based wrapper around the one-shot SpeechRecognition flow: start
 // listening, capture the best transcript, stop. Surfaces alternatives too, so
@@ -32,6 +32,22 @@ export class RecognitionError extends Error {
   }
 }
 
+/** Infrastructure/provider failures are never learner pronunciation misses. */
+export function isTechnicalRecognitionError(error: unknown): error is RecognitionError {
+  return error instanceof RecognitionError && (error.code === "technical-skip" || error.code === "network");
+}
+
+/** Translate bounded provider/capture status without conflating learner silence and outage. */
+export function assessmentRecognitionError(assessment: Assessment): RecognitionError | null {
+  if (assessment.recognitionReason) {
+    return new RecognitionError("no-speech", "I didn't catch anything — try again.");
+  }
+  if (assessment.providerStatus !== "valid") {
+    return new RecognitionError("technical-skip", "Pronunciation scoring is temporarily unavailable. Try again.");
+  }
+  return null;
+}
+
 /** i18n key for a recognition error, so the message shows in her coach language. */
 export function recognitionErrorKey(e: unknown): "recNoSpeech" | "recSilent" | "recNotAllowed" | "recNetwork" | "recConsent" | "recGeneric" {
   if (!(e instanceof RecognitionError)) return "recGeneric";
@@ -43,6 +59,7 @@ export function recognitionErrorKey(e: unknown): "recNoSpeech" | "recSilent" | "
     case "not-allowed":
       return "recNotAllowed";
     case "network":
+    case "technical-skip":
       return "recNetwork";
     case "consent":
       return "recConsent";
@@ -60,7 +77,30 @@ export interface RecognitionHandle {
   cancel: () => void;
 }
 
-export function startRecognition(opts: { lang?: string; maxAlternatives?: number } = {}): RecognitionHandle {
+const activeConsentBoundHandles = new Set<RecognitionHandle>();
+registerVoiceConsentWithdrawalListener(() => {
+  for (const handle of [...activeConsentBoundHandles]) handle.cancel();
+  activeConsentBoundHandles.clear();
+});
+
+function consentBound(handle: RecognitionHandle): RecognitionHandle {
+  const wrapped: RecognitionHandle = {
+    result: handle.result,
+    stop: () => handle.stop(),
+    cancel: () => {
+      activeConsentBoundHandles.delete(wrapped);
+      handle.cancel();
+    },
+  };
+  activeConsentBoundHandles.add(wrapped);
+  void wrapped.result.then(
+    () => activeConsentBoundHandles.delete(wrapped),
+    () => activeConsentBoundHandles.delete(wrapped),
+  );
+  return wrapped;
+}
+
+export function startRecognition(opts: { lang?: string; maxAlternatives?: number; maxDurationMs?: number } = {}): RecognitionHandle {
   const Ctor = getSpeechRecognitionCtor();
   if (!Ctor) {
     return {
@@ -79,6 +119,7 @@ export function startRecognition(opts: { lang?: string; maxAlternatives?: number
   recognition.continuous = false;
 
   let settled = false;
+  let autoStop: ReturnType<typeof setTimeout> | null = null;
   let resolveFn!: (r: RecognitionResult) => void;
   let rejectFn!: (e: RecognitionError) => void;
 
@@ -95,6 +136,7 @@ export function startRecognition(opts: { lang?: string; maxAlternatives?: number
       alternatives.push(res[i].transcript.trim());
     }
     settled = true;
+    if (autoStop) clearTimeout(autoStop);
     resolveFn({
       transcript: res[0].transcript.trim(),
       confidence: res[0].confidence,
@@ -105,6 +147,7 @@ export function startRecognition(opts: { lang?: string; maxAlternatives?: number
   recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
     if (settled) return;
     settled = true;
+    if (autoStop) clearTimeout(autoStop);
     const code = event.error || "error";
     const message =
       code === "no-speech"
@@ -120,12 +163,14 @@ export function startRecognition(opts: { lang?: string; maxAlternatives?: number
   recognition.onend = () => {
     if (!settled) {
       settled = true;
+      if (autoStop) clearTimeout(autoStop);
       rejectFn(new RecognitionError("no-speech", "I didn't catch anything — try again."));
     }
   };
 
   try {
     recognition.start();
+    autoStop = setTimeout(() => recognition.stop(), opts.maxDurationMs ?? SHORT_CAPTURE_MS);
   } catch {
     if (!settled) {
       settled = true;
@@ -144,6 +189,7 @@ export function startRecognition(opts: { lang?: string; maxAlternatives?: number
     },
     cancel: () => {
       settled = true;
+      if (autoStop) clearTimeout(autoStop);
       try {
         recognition.abort();
       } catch {
@@ -154,23 +200,45 @@ export function startRecognition(opts: { lang?: string; maxAlternatives?: number
   };
 }
 
-// Longest a single recording runs before we auto-stop and transcribe, so a
-// forgotten "stop" tap can't hang the flow.
-const MAX_RECORD_MS = 7000;
+/** Short drills retain their established seven-second capture cap. */
+export const SHORT_CAPTURE_MS = 7_000;
+/** Calls get a full spoken turn, not a seven-second exercise capture. */
+export const VIRTUAL_CALL_CAPTURE_MS = 30_000;
+
+/** Resolve each caller's capture contract before choosing a speech provider. */
+export function recognitionCapturePolicy(opts: { autoEnd?: boolean; maxDurationMs?: number } = {}): {
+  endOnSilence: boolean;
+  maxDurationMs: number;
+} {
+  return {
+    endOnSilence: opts.autoEnd === true,
+    maxDurationMs: opts.maxDurationMs ?? SHORT_CAPTURE_MS,
+  };
+}
+
+/** Build the one recorder contract shared by Azure and cloud transcription. */
+export function wavRecordingOptions(input: {
+  autoEnd: boolean;
+  maxDurationMs: number;
+  onSpeechEnd: () => void;
+}): WavOptions {
+  return {
+    maxDurationMs: input.maxDurationMs,
+    ...(input.autoEnd ? { onSpeechEnd: input.onSpeechEnd } : {}),
+  };
+}
 
 /**
  * Fallback recognizer for browsers without the Web Speech API (iOS Safari):
- * record with MediaRecorder, then transcribe on the server via /api/transcribe.
- * Unlike Web Speech it doesn't auto-detect end-of-speech — the caller ends it
- * with stop() (there's also a safety timeout).
+ * record 16 kHz WAV, then transcribe on the server via /api/transcribe. For
+ * continuous calls the shared recorder detects the end of spoken audio.
  */
-export function startCloudRecognition(): RecognitionHandle {
-  let recorder: MediaRecorder | null = null;
-  let stream: MediaStream | null = null;
+export function startCloudRecognition(autoEnd = false, maxDurationMs = SHORT_CAPTURE_MS): RecognitionHandle {
+  let wav: WavHandle | null = null;
   let autoStop: ReturnType<typeof setTimeout> | null = null;
-  const chunks: BlobPart[] = [];
   let settled = false;
-  let stopped = false;
+  let stopping = false;
+  let cancelled = false;
 
   let resolveFn!: (r: RecognitionResult) => void;
   let rejectFn!: (e: RecognitionError) => void;
@@ -179,12 +247,8 @@ export function startCloudRecognition(): RecognitionHandle {
     rejectFn = reject;
   });
 
-  const cleanupStream = () => stream?.getTracks().forEach((t) => t.stop());
-
-  const transcribe = async () => {
+  const transcribe = async (blob: Blob) => {
     try {
-      const type = recorder?.mimeType || "audio/webm";
-      const blob = new Blob(chunks, { type });
       if (!blob.size) {
         if (!settled) {
           settled = true;
@@ -193,7 +257,7 @@ export function startCloudRecognition(): RecognitionHandle {
         return;
       }
       const form = new FormData();
-      form.append("file", blob, "attempt.webm");
+      form.append("file", blob, "attempt.wav");
       const res = await fetch("/api/transcribe", { method: "POST", body: form, headers: await authHeaders() });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { transcript?: string };
@@ -214,29 +278,40 @@ export function startCloudRecognition(): RecognitionHandle {
     }
   };
 
-  (async () => {
+  const finish = async () => {
+    if (settled || stopping || !wav) return;
+    stopping = true;
+    if (autoStop) clearTimeout(autoStop);
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recorder = new MediaRecorder(stream);
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size) chunks.push(e.data);
-      };
-      recorder.onstop = () => {
-        if (autoStop) clearTimeout(autoStop);
-        cleanupStream();
-        if (!settled) void transcribe();
-      };
-      recorder.start();
-      autoStop = setTimeout(() => {
-        if (!stopped) {
-          stopped = true;
-          try {
-            recorder?.stop();
-          } catch {
-            /* no-op */
-          }
+      const blob = await wav.stop();
+      if (wav.peak() < SILENCE_PEAK) {
+        if (!settled) {
+          settled = true;
+          rejectFn(new RecognitionError("silent", "We couldn't hear the mic. Check microphone access and try again."));
         }
-      }, MAX_RECORD_MS);
+        return;
+      }
+      void transcribe(blob);
+    } catch {
+      if (!settled) {
+        settled = true;
+        rejectFn(new RecognitionError("network", "Couldn't score that. Check your connection and try again."));
+      }
+    }
+  };
+
+  void (async () => {
+    try {
+      wav = await startWavRecording(wavRecordingOptions({ autoEnd, maxDurationMs, onSpeechEnd: () => void finish() }));
+      if (cancelled) {
+        wav.cancel();
+        return;
+      }
+      autoStop = setTimeout(() => void finish(), maxDurationMs);
+      if (stopping) {
+        stopping = false;
+        void finish();
+      }
     } catch {
       if (!settled) {
         settled = true;
@@ -248,24 +323,14 @@ export function startCloudRecognition(): RecognitionHandle {
   return {
     result,
     stop: () => {
-      if (stopped) return;
-      stopped = true;
-      try {
-        recorder?.stop();
-      } catch {
-        /* no-op */
-      }
+      if (wav) void finish();
+      else stopping = true;
     },
     cancel: () => {
+      cancelled = true;
       settled = true;
-      stopped = true;
       if (autoStop) clearTimeout(autoStop);
-      try {
-        recorder?.stop();
-      } catch {
-        /* no-op */
-      }
-      cleanupStream();
+      wav?.cancel();
       rejectFn(new RecognitionError("cancelled", "Cancelled."));
     },
   };
@@ -276,7 +341,12 @@ export function startCloudRecognition(): RecognitionHandle {
  * for phoneme-level scoring. She taps stop (like the cloud path); a safety
  * timer auto-stops so a forgotten tap can't hang the flow.
  */
-function startAzureRecognition(target?: string, autoEnd = false): RecognitionHandle {
+function startAzureRecognition(
+  assessmentKind: AssessmentKind,
+  target?: string,
+  autoEnd = false,
+  maxDurationMs = SHORT_CAPTURE_MS,
+): RecognitionHandle {
   let wav: WavHandle | null = null;
   let settled = false;
   let stopping = false;
@@ -305,16 +375,17 @@ function startAzureRecognition(target?: string, autoEnd = false): RecognitionHan
         }
         return;
       }
-      const assessment = await assessRecording(blob, target);
+      const assessment = await assessRecording(blob, { kind: assessmentKind, ...(target ? { target } : {}) });
       if (settled) return;
       settled = true;
-      if (!assessment.display && assessment.pronScore === 0 && !assessment.words.length) {
-        rejectFn(new RecognitionError("no-speech", "I didn't catch anything — try again."));
+      const assessmentError = assessmentRecognitionError(assessment);
+      if (assessmentError) {
+        rejectFn(assessmentError);
       } else {
         resolveFn({
-          transcript: assessment.display,
+          transcript: assessment.recognizedText,
           confidence: 1,
-          alternatives: assessment.display ? [assessment.display] : [],
+          alternatives: assessment.recognizedText ? [assessment.recognizedText] : [],
           assessment,
           audio: blob,
         });
@@ -322,7 +393,7 @@ function startAzureRecognition(target?: string, autoEnd = false): RecognitionHan
     } catch {
       if (!settled) {
         settled = true;
-        rejectFn(new RecognitionError("network", "Couldn't score that. Check your connection and try again."));
+        rejectFn(new RecognitionError("technical-skip", "Pronunciation scoring is temporarily unavailable. Try again."));
       }
     }
   };
@@ -331,12 +402,12 @@ function startAzureRecognition(target?: string, autoEnd = false): RecognitionHan
     try {
       // In a continuous call the recorder decides when her turn ended, so she
       // never taps to hand the conversation back.
-      wav = await startWavRecording(autoEnd ? { onSpeechEnd: () => void finish() } : {});
+      wav = await startWavRecording(wavRecordingOptions({ autoEnd, maxDurationMs, onSpeechEnd: () => void finish() }));
       if (cancelled) {
         wav.cancel();
         return;
       }
-      autoStop = setTimeout(finish, MAX_RECORD_MS);
+      autoStop = setTimeout(finish, maxDurationMs);
       if (stopping) {
         stopping = false;
         void finish();
@@ -379,7 +450,14 @@ export function recognitionMode(): RecognitionMode {
  * API (desktop Chrome — instant, free) or record-and-transcribe (iOS Safari).
  */
 export function createRecognition(
-  opts: { lang?: string; target?: string; assess?: boolean; autoEnd?: boolean } = {},
+  opts: {
+    lang?: string;
+    target?: string;
+    assess?: boolean;
+    assessmentKind?: AssessmentKind;
+    autoEnd?: boolean;
+    maxDurationMs?: number;
+  } = {},
 ): RecognitionHandle {
   // Consent before capture (audit P0): the first mic use anywhere opens the
   // one-time consent sheet; a decline blocks capture only, never the app.
@@ -394,28 +472,59 @@ export function createRecognition(
       inner = createRecognition(opts);
       return inner.result;
     });
-    return {
+    return consentBound({
       result,
       stop: () => inner?.stop(),
       cancel: () => {
         cancelled = true;
         inner?.cancel();
       },
-    };
+    });
   }
   // Warm the capability probe so the second attempt onward can use Azure.
   void assessEnabled();
+  const { endOnSilence, maxDurationMs } = recognitionCapturePolicy(opts);
   // Assessment no longer needs a known target: Azure grades unscripted speech
   // too, so free conversation gets real pronunciation scores instead of only
   // repeat-after-me drills. `assess: true` opts a caller in without one.
   if ((opts.target || opts.assess) && assessEnabledSync() && hasMediaRecording()) {
-    return startAzureRecognition(opts.target, opts.autoEnd);
+    if (!opts.assessmentKind) {
+      return consentBound({
+        result: Promise.reject(new RecognitionError("technical-skip", "Pronunciation assessment mode is missing.")),
+        stop: () => {},
+        cancel: () => {},
+      });
+    }
+    return consentBound(startAzureRecognition(opts.assessmentKind, opts.target, endOnSilence, maxDurationMs));
   }
-  if (getSpeechRecognitionCtor()) return startRecognition(opts);
-  if (hasMediaRecording()) return startCloudRecognition();
-  return {
+  if (getSpeechRecognitionCtor()) return consentBound(startRecognition({ ...opts, maxDurationMs }));
+  if (hasMediaRecording()) return consentBound(startCloudRecognition(endOnSilence, maxDurationMs));
+  return consentBound({
     result: Promise.reject(new RecognitionError("unsupported", "Recording isn't available in this browser.")),
     stop: () => {},
     cancel: () => {},
-  };
+  });
+}
+
+/**
+ * Stage-exam capture has no transcript/Web Speech fallback. Capability is
+ * resolved before consent or microphone access, then the cached Azure path is
+ * the only path createRecognition can select.
+ */
+export async function createRequiredAssessmentRecognition(opts: {
+  target?: string;
+  assessmentKind: AssessmentKind;
+  maxDurationMs?: number;
+  signal?: AbortSignal;
+}): Promise<RecognitionHandle> {
+  const { signal, ...capture } = opts;
+  try {
+    await requireAssessmentCapability(signal);
+  } catch {
+    if (signal?.aborted) throw new RecognitionError("cancelled", "Cancelled.");
+    throw new RecognitionError("technical-skip", "Pronunciation assessment is unavailable.");
+  }
+  if (signal?.aborted) throw new RecognitionError("cancelled", "Cancelled.");
+  if (!hasMediaRecording()) throw new RecognitionError("technical-skip", "Pronunciation recording is unavailable.");
+  return createRecognition({ ...capture, assess: true });
 }

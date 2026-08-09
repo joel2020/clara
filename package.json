@@ -7,13 +7,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node scripts/test.mjs",
+    "test": "node scripts/test.mjs && vitest run app/api/assess/route.test.ts lib/practice-grading.test.ts components/accessibility-behavior.test.tsx components/settings-consent-transaction.test.tsx components/visual-learning/*.test.tsx components/character/character-illustration-fallback.test.tsx components/practice/practice-session-visual.test.tsx components/virtual-call/virtual-call-pronunciation.test.tsx && node scripts/verify-context-assets.mjs",
+    "test:components": "vitest run components",
     "lint:ratchet": "node scripts/lint-ratchet.mjs",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint:ratchet && npm test && next build"
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "verify": "npm run typecheck && npm run lint:ratchet && npm test && npm run audit:prod && next build"
+  },
+  "engines": {
+    "node": "24.x"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@sentry/nextjs": "10.69.0",
     "@supabase/supabase-js": "^2.110.0",
     "@types/canvas-confetti": "^1.9.0",
     "canvas-confetti": "^1.9.4",
@@ -22,7 +28,7 @@
     "dexie": "^4.4.4",
     "dexie-react-hooks": "^4.4.0",
     "lucide-react": "^1.22.0",
-    "next": "^16.2.12",
+    "next": "^16.3.0",
     "next-themes": "^0.4.6",
     "openai": "^6.45.0",
     "react": "19.2.4",
@@ -35,14 +41,20 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
-    "eslint-config-next": "^16.2.12",
+    "eslint-config-next": "^16.3.0",
     "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.0.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "4.23.11",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

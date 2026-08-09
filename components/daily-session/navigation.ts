@@ -11,7 +11,7 @@ export function activityHref(activity: DailyActivity, day: string): string | nul
         : activity.kind === "listen"
           ? "/listen"
           : activity.kind === "speak"
-            ? "/shadow"
+            ? activity.pronunciation ? null : "/shadow"
             : activity.kind === "situation"
               ? "/talk"
               : null;

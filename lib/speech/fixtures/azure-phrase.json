@@ -1,0 +1,48 @@
+{
+  "RecognitionStatus": "Success",
+  "DisplayText": "I'd like a coffee.",
+  "NBest": [
+    {
+      "Display": "I'd like a coffee.",
+      "PronunciationAssessment": {
+        "PronScore": 86.8,
+        "AccuracyScore": 85.2,
+        "FluencyScore": 83.7,
+        "CompletenessScore": 96.4,
+        "ProsodyScore": 78.9
+      },
+      "Words": [
+        {
+          "Word": "I'd",
+          "PronunciationAssessment": {
+            "AccuracyScore": 89.3,
+            "ErrorType": "None"
+          },
+          "Phonemes": [
+            {
+              "Phoneme": "aɪd",
+              "PronunciationAssessment": { "AccuracyScore": 89.3 }
+            }
+          ]
+        },
+        {
+          "Word": "coffee",
+          "PronunciationAssessment": {
+            "AccuracyScore": 72.1,
+            "ErrorType": "None"
+          },
+          "Phonemes": [
+            {
+              "Phoneme": "k",
+              "PronunciationAssessment": { "AccuracyScore": 92.1 }
+            },
+            {
+              "Phoneme": "ɔ",
+              "PronunciationAssessment": { "AccuracyScore": 64.7 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

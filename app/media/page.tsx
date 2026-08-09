@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Play, Check, Newspaper, X, Volume2 } from "lucide-react";
@@ -13,6 +13,7 @@ import { juice } from "@/components/juice";
 import { Splash } from "@/components/splash";
 import { mediaByKind, youtubeEmbed, youtubeThumb, type MediaItem } from "@/lib/content/media";
 import { authHeaders } from "@/lib/auth-client";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 // Real American media, safely: official YouTube embeds (trailers + music
 // videos) with a word-hunt listening game layered on top, and today's news
@@ -33,7 +34,7 @@ export default function MediaPage() {
   useEffect(() => {
     let active = true;
     authHeaders()
-      .then((headers) => fetch("/api/news", { headers }))
+      .then((headers) => fetch("/api/news", { method: "POST", headers }))
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d: { items: NewsItem[] }) => active && setNews(d.items ?? []))
       .catch(() => active && setNews(null));
@@ -78,10 +79,12 @@ export default function MediaPage() {
         </section>
       )}
 
-      <MediaSection heading={t("mediaSongs", lang)} items={mediaByKind("song")} lang={lang} onOpen={setOpen} />
-      <MediaSection heading={t("mediaTrailers", lang)} items={mediaByKind("trailer")} lang={lang} onOpen={setOpen} />
+      <MediaSection heading={t("mediaSongs", lang)} items={mediaByKind("song")} onOpen={setOpen} />
+      <MediaSection heading={t("mediaTrailers", lang)} items={mediaByKind("trailer")} onOpen={setOpen} />
 
-      {open && <Player item={open} lang={lang} onClose={() => setOpen(null)} />}
+      <Dialog open={open !== null} onOpenChange={(nextOpen) => !nextOpen && setOpen(null)}>
+        {open && <Player item={open} lang={lang} />}
+      </Dialog>
     </div>
   );
 }
@@ -89,12 +92,10 @@ export default function MediaPage() {
 function MediaSection({
   heading,
   items,
-  lang,
   onOpen,
 }: {
   heading: string;
   items: MediaItem[];
-  lang: CoachLang;
   onOpen: (m: MediaItem) => void;
 }) {
   return (
@@ -134,11 +135,12 @@ function MediaSection({
   );
 }
 
-function Player({ item, lang, onClose }: { item: MediaItem; lang: CoachLang; onClose: () => void }) {
+function Player({ item, lang }: { item: MediaItem; lang: CoachLang }) {
   const [found, setFound] = useState<Set<string>>(new Set());
   const allFound = found.size === item.focusWords.length;
   const [saidIt, setSaidIt] = useState(false);
   const [usedIt, setUsedIt] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   const speak = (text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -169,21 +171,24 @@ function Player({ item, lang, onClose }: { item: MediaItem; lang: CoachLang; onC
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6" role="dialog" aria-modal>
-      <div className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-background p-5 shadow-xl sm:rounded-3xl">
+    <DialogContent
+      showCloseButton={false}
+      initialFocus={closeRef}
+      overlayClassName="bg-black/60 backdrop-blur-sm"
+      className="top-auto bottom-0 block max-h-[92dvh] max-w-2xl translate-y-0 overflow-y-auto rounded-t-3xl bg-background p-5 shadow-xl sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-3xl"
+    >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-display text-xl font-semibold leading-tight">{item.title}</p>
-            <p className="text-sm text-muted-foreground">{item.by}</p>
+            <DialogTitle className="font-display text-xl font-semibold leading-tight">{item.title}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">{item.by}</DialogDescription>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
+          <DialogClose
+            ref={closeRef}
             aria-label={t("mediaClose", lang)}
-            className="grid size-9 shrink-0 place-items-center rounded-full border border-hairline text-muted-foreground transition-colors hover:text-foreground"
+            className="grid size-9 shrink-0 place-items-center rounded-full border border-hairline text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <X className="size-4" />
-          </button>
+          </DialogClose>
         </div>
 
         <div className="mt-4 overflow-hidden rounded-2xl bg-black ring-1 ring-border">
@@ -288,7 +293,6 @@ function Player({ item, lang, onClose }: { item: MediaItem; lang: CoachLang; onC
             </button>
           </div>
         )}
-      </div>
-    </div>
+    </DialogContent>
   );
 }

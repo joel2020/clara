@@ -96,9 +96,9 @@ const PHONEME_CATEGORY: Record<string, string> = {
 
 interface AssessedWordLike {
   word: string;
-  accuracy: number;
-  errorType: string;
-  phonemes: { p: string; accuracy: number }[];
+  accuracyScore?: number;
+  errorType?: string;
+  phonemes: { phoneme: string; accuracyScore?: number }[];
 }
 
 /**
@@ -107,8 +107,8 @@ interface AssessedWordLike {
  */
 export function diagnoseAssessment(words: AssessedWordLike[], targetText: string): Diagnosis {
   const problems = words
-    .filter((w) => w.errorType === "Omission" || w.errorType === "Mispronunciation" || w.accuracy < 70)
-    .sort((a, b) => a.accuracy - b.accuracy);
+    .filter((w) => w.errorType === "Omission" || w.errorType === "Mispronunciation" || (w.accuracyScore !== undefined && w.accuracyScore < 70))
+    .sort((a, b) => (a.accuracyScore ?? 101) - (b.accuracyScore ?? 101));
   if (!problems.length) return { misses: [], sound: null };
 
   const misses: WordMiss[] = problems.map((w) => ({
@@ -123,8 +123,11 @@ export function diagnoseAssessment(words: AssessedWordLike[], targetText: string
       if (textual) return { misses, sound: textual };
       continue;
     }
-    const worst = [...w.phonemes].sort((a, b) => a.accuracy - b.accuracy).find((p) => p.accuracy < 60);
-    const categoryId = worst ? PHONEME_CATEGORY[worst.p] : undefined;
+    const worst = [...w.phonemes]
+      .filter((phoneme) => phoneme.accuracyScore !== undefined)
+      .sort((a, b) => (a.accuracyScore ?? 101) - (b.accuracyScore ?? 101))
+      .find((phoneme) => (phoneme.accuracyScore ?? 101) < 60);
+    const categoryId = worst ? PHONEME_CATEGORY[worst.phoneme] : undefined;
     if (categoryId && TIPS[categoryId]) {
       return {
         misses,
