@@ -85,7 +85,7 @@ export const LUMI_CITY_REMIX: Cosmetic[] = [
   {
     id: "cancha-chic", type: "outfit", collection: "city-remix",
     name: { es: "Cancha Chic", en: "Cancha Chic" }, cost: 140,
-    unlockRule: { type: "none" }, outfit: "/character/outfits/sport",
+    unlockRule: { type: "none" }, outfit: "/character/outfits/cancha",
   },
   {
     id: "club-lectura", type: "outfit", collection: "city-remix",
