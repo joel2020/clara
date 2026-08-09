@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Flame, Star, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Flame, Star, RefreshCw, Shirt } from "lucide-react";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -10,6 +10,8 @@ import { GOALS } from "@/lib/onboarding";
 import { levelBlurbEs } from "@/lib/onboarding";
 import { pathOf } from "@/lib/paths";
 import { cn } from "@/lib/utils";
+import { CharacterIllustration } from "@/components/character";
+import { getCosmetic } from "@/lib/cosmetics";
 
 // The learner's profile: who they are, their English level, and their momentum.
 // Reads the onboarding record + live player stats. A "retake placement" button
@@ -24,6 +26,8 @@ export default function ProfilePage() {
 
   const goalEs = ob ? GOALS.find((g) => g.id === ob.goal)?.es ?? "—" : "—";
   const xpLevel = player ? levelForXp(player.xp) : 1;
+  const equippedLook = getCosmetic(player?.equippedOutfit)?.name[lang]
+    ?? (lang === "es" ? "Clásico" : "Classic");
 
   return (
     <div className="mx-auto max-w-2xl px-5 pb-24 pt-6 sm:px-6 sm:pt-10">
@@ -42,6 +46,26 @@ export default function ProfilePage() {
           </p>
         </div>
       </header>
+
+      <Link
+        href="/shop"
+        className="group mt-6 grid min-h-28 grid-cols-[5.5rem_1fr_auto] items-center gap-4 overflow-hidden rounded-3xl border border-primary/25 bg-primary/[0.05] p-4 transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <CharacterIllustration mode="bust" mood="wave" className="size-20" priority />
+        <div className="min-w-0">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+            <Shirt className="size-3.5" aria-hidden />
+            Lumi City Remix
+          </span>
+          <h2 className="mt-1 font-display text-xl font-semibold">
+            {lang === "es" ? "El clóset de Lumi" : "Lumi’s Closet"}
+          </h2>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
+            {equippedLook} · {player?.stars ?? 0} ★
+          </p>
+        </div>
+        <ArrowRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden />
+      </Link>
 
       {/* English level */}
       {ob && (

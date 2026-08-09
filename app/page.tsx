@@ -7,7 +7,6 @@ import {
   CalendarDays,
   MessageCircle,
   PhoneCall,
-  Store,
   Volume2,
   Map as MapIcon,
   Headphones,
@@ -29,13 +28,12 @@ import { EffectLayer } from "@/components/lumi-scene";
 import { SceneArt } from "@/components/scene-art";
 import { SceneVideo } from "@/components/scene-video";
 import { InstallNudge } from "@/components/install-nudge";
-import { PetSprite } from "@/components/pet-sprite";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { pathOf } from "@/lib/paths";
 import { ReadinessCard } from "@/components/readiness-card";
 import { TodaySessionCard } from "@/components/today-session-card";
 import { usePlayer } from "@/lib/hooks/usePlayer";
-import { getCosmetic, chestAvailable } from "@/lib/cosmetics";
+import { getCosmetic } from "@/lib/cosmetics";
 import { timeGreetingKey } from "@/lib/greeting";
 import { t, type StringKey } from "@/lib/i18n";
 
@@ -74,7 +72,6 @@ export default function HomePage() {
   );
   const accessory = getCosmetic(player?.equippedAccessory ?? "acc-none");
   const effect = getCosmetic(player?.equippedEffect ?? "fx-none");
-  const chestReady = player ? chestAvailable(player) : false;
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-4 sm:px-6 sm:pt-10">
@@ -140,7 +137,6 @@ export default function HomePage() {
                 shader displaced different parts of the flat illustration and
                 visibly duplicated her face and body on production devices. */}
             <CharacterIllustration mode="full" mood="wave" priority className="lumi-3d" />
-            <PetSprite petId={player?.equippedPet} className="absolute -left-8 bottom-1 z-10 sm:-left-10" />
           </div>
         </div>
       </section>
@@ -217,7 +213,6 @@ export default function HomePage() {
               <Tile href="/shadow" icon={Volume2} label="shadowCard" lang={lang} />
               <Tile href="/build" icon={Puzzle} label="buildCard" lang={lang} />
               <Tile href="/play" icon={Zap} label="speedRound" lang={lang} />
-              <Tile href="/shop" icon={Store} label="shopCard" lang={lang} badge={chestReady} />
               <Tile href="/radio" icon={Radio} label="radioCard" lang={lang} />
               <Tile href="/map" icon={MapIcon} label="mapCard" lang={lang} />
               <Tile href="/mundo" icon={Globe} label="mundoNav" lang={lang} />
