@@ -58,6 +58,8 @@ export function applySessionCompletion(
       ...player,
       xp: player.xp + xpAward,
       stars: (player.stars ?? 0) + DAILY_SESSION_REWARD_STARS,
+      completedDailySessions: (player.completedDailySessions ?? 0) + 1,
+      unlockedMilestones: player.unlockedMilestones ?? [],
       ...dailyAccounting,
       updatedAt: Math.max(player.updatedAt, at),
     },

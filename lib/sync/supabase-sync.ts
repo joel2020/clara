@@ -166,6 +166,16 @@ function playerRows(profileId: string, s: PlayerStats) {
   ];
 }
 
+function mergePlayerClosetProgressCloud(profileId: string, s: PlayerStats) {
+  const sb = supabase();
+  return sb?.rpc("merge_player_closet_progress", {
+    p_profile_id: profileId,
+    p_completed_daily_sessions: s.completedDailySessions ?? 0,
+    p_unlocked_milestones: s.unlockedMilestones ?? [],
+    p_updated_at: s.updatedAt,
+  });
+}
+
 function questRow(profileId: string, q: DailyQuestState) {
   return { profile_id: profileId, day: q.day, state: q, updated_at: Date.now() };
 }
@@ -216,7 +226,10 @@ export async function deliverQueued(kind: DurableKind, profileId: string, payloa
       if (!player) return true;
       for (const row of playerRows(profileId, player)) {
         const { error } = await sb.from("player_stats").upsert(row, { onConflict: "profile_id" });
-        if (!error) return true;
+        if (!error) {
+          const merged = await mergePlayerClosetProgressCloud(profileId, player);
+          return !merged?.error;
+        }
       }
       return false;
     }
@@ -415,14 +428,21 @@ export function pushPlayer(profileId: string, s: PlayerStats): void {
   // Cascade from richest payload to safest: a cloud schema missing a newer
   // column rejects the whole row, so drop back a tier instead of losing the
   // rest of her progress. (equipped_pet is the newest column.)
-  const payloads = playerRows(profileId, s);
-  bg(
+  const safe = playerOutboxPayload(s);
+  if (!safe) return;
+  const payloads = playerRows(profileId, safe);
+  bgDurable(
     (async () => {
       for (const payload of payloads) {
         const res = await sb.from("player_stats").upsert(payload, { onConflict: "profile_id" });
-        if (!res.error) return;
+        if (!res.error) {
+          const merged = await mergePlayerClosetProgressCloud(profileId, safe);
+          if (!merged?.error) return;
+          return merged;
+        }
       }
-    })(), "player_stats");
+      return { error: { message: "Player row could not be synced" } };
+    })(), "player_stats", "player", profileId, safe);
 }
 
 function settingsRow(s: NonNullable<ReturnType<typeof sanitizeSettingsSyncPayload>>["settings"]) {
@@ -638,6 +658,8 @@ function mapPlayer(pd: Row | null | undefined): PlayerStats | null {
     totalPasses: pd.total_passes,
     bestCombo: pd.best_combo,
     achievements: pd.achievements ?? [],
+    completedDailySessions: pd.completed_daily_sessions ?? 0,
+    unlockedMilestones: pd.unlocked_milestones ?? [],
     stars: pd.stars ?? 0,
     ownedCosmetics: pd.owned_cosmetics ?? [],
     equippedBg: pd.equipped_bg ?? "bg-default",

@@ -416,13 +416,20 @@ export function playerOutboxPayload(value: unknown): PlayerStats | null {
   if (Object.values(integers).some((entry) => entry === null)) return null;
   const achievements = safeStringList(own(source, "achievements"));
   const ownedCosmetics = safeStringList(own(source, "ownedCosmetics"));
+  const completedDailySessions = own(source, "completedDailySessions") === undefined
+    ? 0
+    : safeNonNegativeInteger(own(source, "completedDailySessions"));
+  const unlockedMilestones = own(source, "unlockedMilestones") === undefined
+    ? []
+    : safeStringList(own(source, "unlockedMilestones"));
   const optionalDay = (key: string) => own(source, key) === null ? null : safeDay(own(source, key));
   const lastActiveDay = optionalDay("lastActiveDay");
   const todayKey = optionalDay("todayKey");
   const lastChestDay = optionalDay("lastChestDay");
   const freezeUsedDay = optionalDay("freezeUsedDay");
   const cosmetic = (key: string, fallback: string) => boundedLabel(own(source, key), 128) ?? fallback;
-  if (!achievements || !ownedCosmetics || (own(source, "lastActiveDay") !== null && !lastActiveDay)
+  if (!achievements || !ownedCosmetics || completedDailySessions === null || !unlockedMilestones
+    || (own(source, "lastActiveDay") !== null && !lastActiveDay)
     || (own(source, "todayKey") !== null && !todayKey)
     || (own(source, "lastChestDay") !== null && !lastChestDay)
     || (own(source, "freezeUsedDay") !== null && !freezeUsedDay)) return null;
@@ -431,6 +438,7 @@ export function playerOutboxPayload(value: unknown): PlayerStats | null {
     xp: integers.xp!, currentStreak: integers.currentStreak!, longestStreak: integers.longestStreak!,
     lastActiveDay, todayKey, todayXp: integers.todayXp!, totalAttempts: integers.totalAttempts!,
     totalPasses: integers.totalPasses!, bestCombo: integers.bestCombo!, achievements,
+    completedDailySessions, unlockedMilestones,
     stars: integers.stars!, ownedCosmetics,
     equippedBg: cosmetic("equippedBg", "bg-default"),
     equippedAccessory: cosmetic("equippedAccessory", "acc-none"),
@@ -812,6 +820,8 @@ export const DEFAULT_PLAYER: PlayerStats = {
   totalPasses: 0,
   bestCombo: 0,
   achievements: [],
+  completedDailySessions: 0,
+  unlockedMilestones: [],
   stars: 0,
   ownedCosmetics: [],
   equippedBg: "bg-default",

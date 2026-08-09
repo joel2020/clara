@@ -1,5 +1,5 @@
 import { captureDbBinding, db, isDbBindingCurrent, type DbBinding } from "@/lib/db/dexie";
-import type { Settings } from "@/lib/db/types";
+import type { PlayerStats, Settings } from "@/lib/db/types";
 import { mergeAttemptHistory } from "@/lib/db/repository";
 import {
   getProfile,
@@ -10,8 +10,10 @@ import {
   pullProfileData,
   pullSettings,
   pullTalkSessions,
+  pushPlayer,
   type Profile,
 } from "./supabase-sync";
+import { mergePlayerClosetProgress } from "./player-closet-merge.ts";
 
 // "Logging in" on a new device: the sync code is the account. Pull everything
 // the cloud has for that profile and seed the local Dexie stores with it, so
@@ -225,13 +227,17 @@ export async function hydrateFromCloud(
   if (!isDbBindingCurrent(binding)) return null;
 
   try {
+    let mergedPlayerToPush: PlayerStats | null = null;
     await target.transaction("rw", [target.progress, target.player], async () => {
       if (data.player) {
         const local = await target.player.get("player");
         requireCurrent(binding);
-        if (!local || (local.updatedAt ?? 0) <= (data.player.updatedAt ?? 0)) {
-          await target.player.put(data.player);
-        }
+        const merged = mergePlayerClosetProgress(local, data.player);
+        await target.player.put(merged);
+        if (
+          merged.completedDailySessions !== data.player.completedDailySessions
+          || merged.unlockedMilestones.join("\0") !== data.player.unlockedMilestones.join("\0")
+        ) mergedPlayerToPush = merged;
       }
 
       requireCurrent(binding);
@@ -245,6 +251,7 @@ export async function hydrateFromCloud(
         if (toPut.length) await target.progress.bulkPut(toPut);
       }
     });
+    if (mergedPlayerToPush && isDbBindingCurrent(binding)) pushPlayer(id, mergedPlayerToPush);
   } catch (error) {
     if (error instanceof StaleDbBindingError || !isDbBindingCurrent(binding)) return null;
     throw error;

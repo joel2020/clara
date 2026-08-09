@@ -436,6 +436,10 @@ export interface PlayerStats {
   totalPasses: number;
   bestCombo: number;
   achievements: string[]; // unlocked achievement ids
+  /** Lifetime completed daily sessions. Missed days never reduce this count. */
+  completedDailySessions: number;
+  /** Durable earned-content gates, kept as a set of stable milestone ids. */
+  unlockedMilestones: string[];
   /** Stars — the game currency. Earned 1–3 per clear answer by how clean it was. */
   stars: number;
   /** Cosmetic ids the learner has bought with stars (free items are always owned). */

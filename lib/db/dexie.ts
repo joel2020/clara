@@ -111,6 +111,27 @@ export class ClaraDB extends Dexie {
     this.version(13).stores({
       examCheckpoints: "id, day, sourceLevel, candidateLevel, contentHash",
     });
+    // v14 persists the two monotonic Closet unlock fields on legacy player
+    // rows. No index changes are needed because there is still one player row.
+    this.version(14).stores({
+      player: "id",
+    }).upgrade(async (transaction) => {
+      const table = transaction.table<PlayerStats, string>("player");
+      const player = await table.get("player");
+      if (!player) return;
+      await table.put({
+        ...player,
+        completedDailySessions:
+          Number.isSafeInteger(player.completedDailySessions) && player.completedDailySessions >= 0
+            ? player.completedDailySessions
+            : 0,
+        unlockedMilestones: Array.isArray(player.unlockedMilestones)
+          ? [...new Set(player.unlockedMilestones.filter(
+              (id): id is string => typeof id === "string" && /^[a-z0-9][a-z0-9:._/-]{0,127}$/i.test(id),
+            ))].sort().slice(0, 64)
+          : [],
+      });
+    });
   }
 }
 

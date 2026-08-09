@@ -37,6 +37,7 @@ import {
 } from "../daily-pronunciation-mutation.ts";
 import { createDailyPronunciationGameState, dailyPronunciationContentHash, dailyPronunciationLegacyContentHash, isDailyPronunciationGameState } from "../speech/daily-pronunciation-game.ts";
 import { ExamCheckpointConflictError, sameExamCheckpointIdentity, sanitizeExamCheckpoint } from "../exam-checkpoint.ts";
+import { applyPassedCallMilestone } from "../milestone.ts";
 
 const RECENT_WINDOW = 20; // attempts per category counted as "recent"
 
@@ -624,8 +625,17 @@ export class DexieRepository implements DataRepository {
   }
 
   async saveCallScore(score: Omit<CallScore, "id">): Promise<void> {
-    await db.callScores.add(score as CallScore);
+    const { player: stored, newlyUnlocked } = await db.transaction("rw", [db.callScores, db.player], async () => {
+      await db.callScores.add(score as CallScore);
+      const player = { ...DEFAULT_PLAYER, ...((await db.player.get("player")) ?? {}) };
+      const nextPlayer = applyPassedCallMilestone(player, score.score, score.at);
+      if (nextPlayer !== player) await db.player.put(nextPlayer);
+      return { player: nextPlayer, newlyUnlocked: nextPlayer !== player };
+    });
     void this.mirror((profileId, sync) => sync.pushCallScore(profileId, score as CallScore));
+    if (newlyUnlocked) {
+      void this.mirror((profileId, sync) => sync.pushPlayer(profileId, stored));
+    }
   }
 
   async getTalkSessions(): Promise<TalkSession[]> {
